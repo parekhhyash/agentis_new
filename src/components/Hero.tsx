@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import heroBg from '../assets/hero-bg.png'
 import { ArrowUpIcon, ChevronDownIcon, MonitorIcon } from './icons'
 
@@ -8,17 +9,31 @@ const navLinks = [
   { label: 'FAQs', href: '#faqs' },
 ]
 
-function Navbar() {
+function Navbar({ dark }: { dark: boolean }) {
   return (
-    <nav className="fixed top-6 left-1/2 z-20 flex w-[95%] max-w-3xl -translate-x-1/2 items-center justify-between gap-6 rounded-full border border-white/40 bg-white/25 px-3 py-2 pl-6 shadow-[0_8px_32px_rgba(0,0,0,0.15)] backdrop-blur-2xl">
-      <span className="font-display text-xl text-white">Agentis</span>
+    <nav
+      className={`fixed top-6 left-1/2 z-20 flex w-[95%] max-w-3xl -translate-x-1/2 items-center justify-between gap-6 rounded-full border px-3 py-2 pl-6 shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-2xl transition-colors duration-300 ${
+        dark
+          ? 'border-slate-200 bg-white/80'
+          : 'border-white/40 bg-white/25'
+      }`}
+    >
+      <span
+        className={`font-display text-xl transition-colors duration-300 ${dark ? 'text-slate-900' : 'text-white'}`}
+      >
+        Agentis
+      </span>
 
-      <div className="hidden items-center gap-8 text-[15px] font-semibold text-white md:flex">
+      <div
+        className={`hidden items-center gap-8 text-[15px] font-semibold transition-colors duration-300 md:flex ${
+          dark ? 'text-slate-700' : 'text-white'
+        }`}
+      >
         {navLinks.map((link) => (
           <a
             key={link.label}
             href={link.href}
-            className="transition-colors hover:text-white/80"
+            className={`transition-colors ${dark ? 'hover:text-slate-950' : 'hover:text-white/80'}`}
           >
             {link.label}
           </a>
@@ -27,7 +42,7 @@ function Navbar() {
 
       <a
         href="#"
-        className="rounded-full bg-white px-5 py-2.5 text-[15px] font-medium text-blue-500 transition-opacity hover:opacity-90"
+        className="rounded-full bg-white px-5 py-2.5 text-[15px] font-medium text-blue-500 shadow-sm transition-opacity hover:opacity-90"
       >
         Signup
       </a>
@@ -67,12 +82,28 @@ function PromptBox() {
 }
 
 export default function Hero() {
+  const heroRef = useRef<HTMLDivElement>(null)
+  const [scrolledPastHero, setScrolledPastHero] = useState(false)
+
+  useEffect(() => {
+    const el = heroRef.current
+    if (!el) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setScrolledPastHero(!entry.isIntersecting),
+      { rootMargin: '-88px 0px 0px 0px', threshold: 0 },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
   return (
     <div
+      ref={heroRef}
       className="min-h-screen bg-cover bg-center bg-no-repeat"
       style={{ backgroundImage: `url(${heroBg})` }}
     >
-      <Navbar />
+      <Navbar dark={scrolledPastHero} />
 
       <main className="flex min-h-screen flex-col items-center justify-center px-4 pt-24 pb-16">
         <h1 className="font-display text-center text-6xl leading-[1.1] text-white sm:text-7xl md:text-8xl">

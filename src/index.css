@@ -13,6 +13,10 @@
   --font-sans: 'Instrument Sans', system-ui, sans-serif;
 }
 
+html {
+  scroll-padding-top: 110px;
+}
+
 html,
 body,
 #root {
