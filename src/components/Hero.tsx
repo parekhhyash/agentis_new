@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import heroBg from '../assets/hero-bg.png'
 import { ArrowUpIcon, ChevronDownIcon, MonitorIcon } from './icons'
+import SectionLink from './SectionLink'
 
 const navLinks = [
-  { label: 'Features', href: '#features' },
-  { label: 'How it works', href: '#how-it-works' },
-  { label: 'Testimonials', href: '#testimonials' },
-  { label: 'FAQs', href: '#faqs' },
+  { label: 'Features', id: 'features' },
+  { label: 'How it works', id: 'how-it-works' },
+  { label: 'Testimonials', id: 'testimonials' },
+  { label: 'FAQs', id: 'faqs' },
 ]
 
 function Navbar({ dark }: { dark: boolean }) {
@@ -31,13 +32,13 @@ function Navbar({ dark }: { dark: boolean }) {
         }`}
       >
         {navLinks.map((link) => (
-          <a
+          <SectionLink
             key={link.label}
-            href={link.href}
+            id={link.id}
             className={`transition-colors ${dark ? 'hover:text-slate-950' : 'hover:text-white/80'}`}
           >
             {link.label}
-          </a>
+          </SectionLink>
         ))}
       </div>
 

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import SectionLink from './SectionLink'
 
 export default function CTA() {
   return (
@@ -23,27 +24,30 @@ export default function CTA() {
         <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
           <span className="font-display text-lg text-slate-900">Agentis</span>
           <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-sm text-slate-500">
-            <a
-              href="#features"
+            <SectionLink
+              id="features"
               className="transition-colors hover:text-slate-900"
             >
               Features
-            </a>
-            <a
-              href="#how-it-works"
+            </SectionLink>
+            <SectionLink
+              id="how-it-works"
               className="transition-colors hover:text-slate-900"
             >
               How it works
-            </a>
-            <a
-              href="#testimonials"
+            </SectionLink>
+            <SectionLink
+              id="testimonials"
               className="transition-colors hover:text-slate-900"
             >
               Testimonials
-            </a>
-            <a href="#faqs" className="transition-colors hover:text-slate-900">
+            </SectionLink>
+            <SectionLink
+              id="faqs"
+              className="transition-colors hover:text-slate-900"
+            >
               FAQs
-            </a>
+            </SectionLink>
           </div>
           <span className="text-sm text-slate-400">
             © 2026 Agentis. All rights reserved.

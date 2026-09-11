@@ -17,6 +17,16 @@ html {
   scroll-padding-top: 110px;
 }
 
+/* Smaller laptop screens (roughly 1024-1535px) report a logical width in
+   the same range as much larger monitors, so the type/spacing scale tuned
+   for those monitors reads oversized here. Scale everything down slightly
+   for just this bucket instead of relying on the visitor to zoom out. */
+@media (min-width: 1024px) and (max-width: 1535px) {
+  html {
+    font-size: 90%;
+  }
+}
+
 html,
 body,
 #root {
