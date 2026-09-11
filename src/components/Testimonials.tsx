@@ -26,12 +26,12 @@ const testimonials = [
 
 export default function Testimonials() {
   return (
-    <section id="testimonials" className="bg-black px-4 py-24 sm:py-32">
+    <section id="testimonials" className="bg-white px-4 py-24 sm:py-32">
       <div className="mx-auto max-w-2xl text-center">
-        <span className="text-sm font-semibold tracking-[0.2em] text-sky-400 uppercase">
+        <span className="text-sm font-semibold tracking-[0.2em] text-sky-600 uppercase">
           Testimonials
         </span>
-        <h2 className="font-display mt-4 text-4xl text-white sm:text-5xl">
+        <h2 className="font-display mt-4 text-4xl text-slate-900 sm:text-5xl">
           Teams running on Agentis
         </h2>
       </div>
@@ -40,21 +40,21 @@ export default function Testimonials() {
         {testimonials.map((t) => (
           <figure
             key={t.name}
-            className="flex flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-7"
+            className="flex flex-col rounded-2xl border border-slate-200 bg-white p-7 shadow-sm"
           >
-            <QuoteIcon className="text-sky-400/50" />
-            <blockquote className="mt-4 flex-1 text-[15px] leading-relaxed text-white/80">
+            <QuoteIcon className="text-sky-200" />
+            <blockquote className="mt-4 flex-1 text-[15px] leading-relaxed text-slate-700">
               &ldquo;{t.quote}&rdquo;
             </blockquote>
             <figcaption className="mt-6 flex items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-400/15 text-sm font-semibold text-sky-300">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sm font-semibold text-sky-700">
                 {t.initials}
               </span>
               <span>
-                <span className="block text-sm font-semibold text-white">
+                <span className="block text-sm font-semibold text-slate-900">
                   {t.name}
                 </span>
-                <span className="block text-sm text-white/50">{t.role}</span>
+                <span className="block text-sm text-slate-500">{t.role}</span>
               </span>
             </figcaption>
           </figure>

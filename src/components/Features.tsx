@@ -48,15 +48,15 @@ const features = [
 
 export default function Features() {
   return (
-    <section id="features" className="bg-black px-4 py-24 sm:py-32">
+    <section id="features" className="bg-white px-4 py-24 sm:py-32">
       <div className="mx-auto max-w-2xl text-center">
-        <span className="text-sm font-semibold tracking-[0.2em] text-sky-400 uppercase">
+        <span className="text-sm font-semibold tracking-[0.2em] text-sky-600 uppercase">
           Agents
         </span>
-        <h2 className="font-display mt-4 text-4xl text-white sm:text-5xl">
+        <h2 className="font-display mt-4 text-4xl text-slate-900 sm:text-5xl">
           One team, every function
         </h2>
-        <p className="mt-6 text-lg leading-relaxed text-white/70">
+        <p className="mt-6 text-lg leading-relaxed text-slate-600">
           Each agent specializes in a single job, the way a great hire would
           — and they all report to you.
         </p>
@@ -66,13 +66,15 @@ export default function Features() {
         {features.map(({ icon: Icon, title, description }) => (
           <div
             key={title}
-            className="group rounded-2xl border border-white/10 bg-white/[0.03] p-7 transition-colors hover:border-sky-400/40 hover:bg-white/[0.06]"
+            className="group rounded-2xl border border-slate-200 bg-white p-7 shadow-sm transition-all hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md"
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-400/10 text-sky-400 transition-colors group-hover:bg-sky-400/15">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-50 text-sky-600 transition-colors group-hover:bg-sky-100">
               <Icon />
             </div>
-            <h3 className="mt-5 text-lg font-semibold text-white">{title}</h3>
-            <p className="mt-2 text-[15px] leading-relaxed text-white/60">
+            <h3 className="mt-5 text-lg font-semibold text-slate-900">
+              {title}
+            </h3>
+            <p className="mt-2 text-[15px] leading-relaxed text-slate-600">
               {description}
             </p>
           </div>
