@@ -5,16 +5,16 @@ function Navbar() {
 
   return (
     <nav
-      className="fixed top-6 left-1/2 z-20 flex w-[95%] max-w-3xl -translate-x-1/2 items-center justify-between gap-6 rounded-full border border-white/15 bg-white/10 px-3 py-2 pl-6 shadow-[0_8px_32px_rgba(0,0,0,0.35)] backdrop-blur-xl"
+      className="fixed top-6 left-1/2 z-20 flex w-[95%] max-w-3xl -translate-x-1/2 items-center justify-between gap-6 rounded-full border border-white/40 bg-white/25 px-3 py-2 pl-6 shadow-[0_8px_32px_rgba(0,0,0,0.15)] backdrop-blur-2xl"
     >
       <span className="font-display text-xl text-white">make.design</span>
 
-      <div className="hidden items-center gap-8 text-[15px] text-white/90 md:flex">
+      <div className="hidden items-center gap-8 text-[15px] font-semibold text-white md:flex">
         {links.map((link) => (
           <a
             key={link}
             href="#"
-            className="transition-colors hover:text-white"
+            className="transition-colors hover:text-white/80"
           >
             {link}
           </a>
