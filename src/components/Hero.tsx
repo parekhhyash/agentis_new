@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import heroBg from '../assets/hero-bg.png'
 import { ArrowUpIcon, ChevronDownIcon, MonitorIcon } from './icons'
 
@@ -40,21 +41,37 @@ function Navbar({ dark }: { dark: boolean }) {
         ))}
       </div>
 
-      <a
-        href="#"
+      <Link
+        to="/signup"
         className="rounded-full bg-white px-5 py-2.5 text-[15px] font-medium text-blue-500 shadow-sm transition-opacity hover:opacity-90"
       >
-        Signup
-      </a>
+        Get started
+      </Link>
     </nav>
   )
 }
 
 function PromptBox() {
+  const [value, setValue] = useState('')
+  const navigate = useNavigate()
+
+  const submit = () => {
+    if (value.trim().length === 0) return
+    navigate('/signup')
+  }
+
   return (
     <div className="w-full max-w-2xl rounded-2xl border border-black/5 bg-white p-4 shadow-[0_20px_60px_rgba(0,0,0,0.45)] sm:p-5">
       <textarea
         rows={1}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault()
+            submit()
+          }
+        }}
         placeholder="Describe what you want to do..."
         className="w-full resize-none bg-transparent text-[17px] text-slate-800 placeholder:text-slate-400 focus:outline-none"
       />
@@ -72,6 +89,7 @@ function PromptBox() {
         <button
           type="button"
           aria-label="Submit"
+          onClick={submit}
           className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-sky-400 text-sky-500 transition-colors hover:bg-sky-50"
         >
           <ArrowUpIcon />
@@ -106,12 +124,18 @@ export default function Hero() {
       <Navbar dark={scrolledPastHero} />
 
       <main className="flex min-h-screen flex-col items-center justify-center px-4 pt-24 pb-16">
-        <h1 className="font-display text-center text-6xl leading-[1.1] text-white sm:text-7xl md:text-8xl">
+        <h1 className="font-display text-center text-7xl leading-[1.05] text-white sm:text-8xl md:text-9xl">
           Agentis
         </h1>
 
-        <p className="mt-6 max-w-2xl text-center text-lg text-white/85 sm:text-xl">
-          Agentis lets you run company with AI
+        <p className="mt-8 max-w-2xl text-center text-2xl leading-snug font-medium text-balance text-white sm:text-3xl">
+          Agentis lets you run your company with AI
+        </p>
+
+        <p className="mt-5 max-w-xl text-center text-lg text-balance text-white/85">
+          Deploy a team of specialized AI agents for sales, design, support,
+          and operations — describe the outcome you need, and watch it get
+          done.
         </p>
 
         <div className="mt-10 w-full max-w-2xl">

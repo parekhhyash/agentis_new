@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 export default function CTA() {
   return (
     <section id="get-started" className="bg-white px-4 pt-24 sm:pt-32">
@@ -9,12 +11,12 @@ export default function CTA() {
           Start free. No credit card, no setup calls — describe your first
           task and watch Agentis take it from there.
         </p>
-        <a
-          href="#"
+        <Link
+          to="/signup"
           className="mt-8 inline-flex items-center justify-center rounded-full bg-sky-600 px-7 py-3 text-[15px] font-semibold text-white transition-colors hover:bg-sky-700"
         >
           Get started free
-        </a>
+        </Link>
       </div>
 
       <footer className="mx-auto mt-24 max-w-5xl border-t border-slate-200 py-10">

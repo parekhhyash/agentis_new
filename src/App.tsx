@@ -1,22 +1,17 @@
-import About from './components/About'
-import CTA from './components/CTA'
-import Features from './components/Features'
-import Hero from './components/Hero'
-import HowItWorks from './components/HowItWorks'
-import ScrollReveal from './components/ScrollReveal'
-import Testimonials from './components/Testimonials'
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import LandingPage from './pages/LandingPage'
+import LoginPage from './pages/LoginPage'
+import SignupPage from './pages/SignupPage'
 
 function App() {
   return (
-    <>
-      <Hero />
-      <About />
-      <ScrollReveal />
-      <Features />
-      <HowItWorks />
-      <Testimonials />
-      <CTA />
-    </>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
