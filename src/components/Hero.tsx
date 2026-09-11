@@ -1,3 +1,5 @@
+import heroBg from '../assets/hero-bg.png'
+
 function Navbar() {
   const links = ['How it works', 'Showcases', 'Pricing', 'Login']
 
@@ -116,7 +118,10 @@ function PromptBox() {
 
 export default function Hero() {
   return (
-    <div className="min-h-screen bg-black">
+    <div
+      className="min-h-screen bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: `url(${heroBg})` }}
+    >
       <Navbar />
 
       <main className="flex min-h-screen flex-col items-center justify-center px-4 pt-24 pb-16">
