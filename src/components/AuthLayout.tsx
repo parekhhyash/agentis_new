@@ -35,12 +35,15 @@ export default function AuthLayout({
         </div>
       </div>
 
-      <div className="flex w-full flex-col justify-center px-6 py-12 sm:px-12 lg:w-1/2 lg:px-20">
-        <Link to="/" className="font-display text-2xl text-slate-900 lg:hidden">
+      <div className="flex w-full flex-col items-center justify-center px-6 py-12 sm:px-12 lg:w-1/2 lg:px-20">
+        <Link
+          to="/"
+          className="font-display self-start text-2xl text-slate-900 lg:hidden"
+        >
           Agentis
         </Link>
 
-        <div className="mx-auto w-full max-w-sm lg:mx-0">{children}</div>
+        <div className="mx-auto w-full max-w-sm">{children}</div>
       </div>
     </div>
   )

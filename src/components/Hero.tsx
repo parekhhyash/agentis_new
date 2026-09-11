@@ -128,7 +128,7 @@ export default function Hero() {
           Agentis
         </h1>
 
-        <p className="mt-3 max-w-2xl text-center text-lg text-white/85 sm:text-xl">
+        <p className="mt-3 max-w-2xl text-center text-lg font-medium text-white/85 sm:text-xl">
           Turn sales, marketing, design, finance, and operations into
           AI-powered agents.
         </p>
