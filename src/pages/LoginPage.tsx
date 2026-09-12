@@ -1,9 +1,35 @@
-import { Link } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import authBg from '../assets/auth-bg-login.png'
 import AuthLayout from '../components/AuthLayout'
 import { GoogleIcon } from '../components/icons'
+import { useAuth } from '../lib/AuthContext'
 
 export default function LoginPage() {
+  const { signIn } = useAuth()
+  const navigate = useNavigate()
+
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setSubmitting(true)
+
+    const { error } = await signIn(email, password)
+
+    setSubmitting(false)
+
+    if (error) {
+      setError(error)
+    } else {
+      navigate('/dashboard')
+    }
+  }
+
   return (
     <AuthLayout
       image={authBg}
@@ -34,7 +60,13 @@ export default function LoginPage() {
         <div className="h-px flex-1 bg-slate-200" />
       </div>
 
-      <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
+      <form className="space-y-5" onSubmit={handleSubmit}>
+        {error && (
+          <p className="rounded-lg bg-red-50 px-3.5 py-2.5 text-sm text-red-600">
+            {error}
+          </p>
+        )}
+
         <div>
           <label
             htmlFor="login-email"
@@ -45,8 +77,11 @@ export default function LoginPage() {
           <input
             id="login-email"
             type="email"
+            required
             autoComplete="email"
             placeholder="you@company.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             className="mt-1.5 w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-[15px] text-slate-900 placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 focus:outline-none"
           />
         </div>
@@ -66,17 +101,21 @@ export default function LoginPage() {
           <input
             id="login-password"
             type="password"
+            required
             autoComplete="current-password"
             placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             className="mt-1.5 w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-[15px] text-slate-900 placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 focus:outline-none"
           />
         </div>
 
         <button
           type="submit"
-          className="w-full rounded-full bg-sky-600 py-2.5 text-[15px] font-semibold text-white transition-colors hover:bg-sky-700"
+          disabled={submitting}
+          className="w-full rounded-full bg-sky-600 py-2.5 text-[15px] font-semibold text-white transition-colors hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Log in
+          {submitting ? 'Logging in...' : 'Log in'}
         </button>
       </form>
     </AuthLayout>
