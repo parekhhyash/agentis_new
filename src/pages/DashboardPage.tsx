@@ -5,7 +5,8 @@ import RequestHistory from '../components/dashboard/RequestHistory'
 import TaskComposer from '../components/dashboard/TaskComposer'
 import type { AgentType } from '../lib/agentTypes'
 import { useAuth } from '../lib/AuthContext'
-import type { Tables } from '../lib/database.types'
+import type { Json, Tables } from '../lib/database.types'
+import { generateLeads, SalesAgentApiError } from '../lib/salesAgentApi'
 import { supabase } from '../lib/supabase'
 
 type AgentRequest = Tables<'agent_requests'>
@@ -37,6 +38,32 @@ export default function DashboardPage() {
       })
   }, [user])
 
+  function updateRequest(id: string, patch: Partial<AgentRequest>) {
+    setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)))
+  }
+
+  async function runSalesAgent(requestId: string, prompt: string) {
+    await supabase.from('agent_requests').update({ status: 'in_progress' }).eq('id', requestId)
+    updateRequest(requestId, { status: 'in_progress' })
+
+    try {
+      const result = await generateLeads(prompt)
+      await supabase
+        .from('agent_requests')
+        .update({ status: 'completed', result: result as unknown as Json })
+        .eq('id', requestId)
+      updateRequest(requestId, { status: 'completed', result: result as unknown as Json })
+    } catch (err) {
+      const message =
+        err instanceof SalesAgentApiError ? err.message : 'Unexpected error running the agent.'
+      await supabase
+        .from('agent_requests')
+        .update({ status: 'failed', error: message })
+        .eq('id', requestId)
+      updateRequest(requestId, { status: 'failed', error: message })
+    }
+  }
+
   async function handleSubmit(prompt: string) {
     if (!user) return
 
@@ -46,9 +73,16 @@ export default function DashboardPage() {
       .select()
       .single()
 
-    if (!error && data) {
-      setRequests((prev) => [data, ...prev])
-    }
+    if (error || !data) return
+    setRequests((prev) => [data, ...prev])
+
+    // Only Sales & Outreach has a real agent behind it right now - other
+    // categories just sit in the queue until their agents are built.
+    if (agentType !== 'sales_outreach') return
+
+    // Fire-and-forget: a real run takes minutes, so the composer shouldn't
+    // stay locked waiting for it. Status updates flow back via updateRequest.
+    void runSalesAgent(data.id, prompt)
   }
 
   const firstName = profile?.full_name.split(' ')[0]

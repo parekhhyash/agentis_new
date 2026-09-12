@@ -22,9 +22,20 @@ export default function AgentGrid({
                 : 'border-slate-200 bg-white hover:border-sky-300'
             }`}
           >
-            <h3 className="text-[15px] font-semibold text-slate-900">
-              {agent.label}
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-[15px] font-semibold text-slate-900">
+                {agent.label}
+              </h3>
+              {agent.value === 'sales_outreach' ? (
+                <span className="rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-medium text-green-700">
+                  Live
+                </span>
+              ) : (
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
+                  Coming soon
+                </span>
+              )}
+            </div>
             <p className="mt-1 text-sm text-slate-500">{agent.description}</p>
           </button>
         )

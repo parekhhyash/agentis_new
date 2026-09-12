@@ -18,24 +18,30 @@ export type Database = {
         Row: {
           agent_type: Database["public"]["Enums"]["agent_type"]
           created_at: string
+          error: string | null
           id: string
           prompt: string
+          result: Json | null
           status: Database["public"]["Enums"]["request_status"]
           user_id: string
         }
         Insert: {
           agent_type: Database["public"]["Enums"]["agent_type"]
           created_at?: string
+          error?: string | null
           id?: string
           prompt: string
+          result?: Json | null
           status?: Database["public"]["Enums"]["request_status"]
           user_id: string
         }
         Update: {
           agent_type?: Database["public"]["Enums"]["agent_type"]
           created_at?: string
+          error?: string | null
           id?: string
           prompt?: string
+          result?: Json | null
           status?: Database["public"]["Enums"]["request_status"]
           user_id?: string
         }
@@ -77,7 +83,7 @@ export type Database = {
         | "customer_support"
         | "data_reporting"
         | "operations"
-      request_status: "queued" | "in_progress" | "completed"
+      request_status: "queued" | "in_progress" | "completed" | "failed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -213,7 +219,7 @@ export const Constants = {
         "data_reporting",
         "operations",
       ],
-      request_status: ["queued", "in_progress", "completed"],
+      request_status: ["queued", "in_progress", "completed", "failed"],
     },
   },
 } as const
