@@ -48,9 +48,14 @@ def get_model():
         # response entirely so it never gets echoed back.
         # num_retries: gets merged straight into litellm's completion call
         # (same mechanism as reasoning_format above), so a transient 429
-        # from Groq's free-tier TPM limit gets retried with backoff instead
-        # of failing the whole run outright.
-        return LiteLlm(model=settings.groq_model, reasoning_format="hidden", num_retries=3)
+        # from Groq's free-tier TPM limit gets retried instead of failing
+        # the whole run outright. Set high (8) because litellm's built-in
+        # backoff is exponential but caps at 8s/step - confirmed via Render
+        # logs that 3 retries exhausted in ~2s total, nowhere near the
+        # 20-30s Groq's error message says the TPM window needs to clear.
+        # Worst case ~40s of cumulative backoff, well inside the 280s run
+        # timeout below.
+        return LiteLlm(model=settings.groq_model, reasoning_format="hidden", num_retries=8)
 
     return settings.gemini_model
 
