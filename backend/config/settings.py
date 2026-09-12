@@ -26,12 +26,19 @@ class Settings(BaseSettings):
     groq_model: str = "groq/openai/gpt-oss-120b"
 
     # --- Tool safeguards ------------------------------------------------
-    max_search_results_per_query: int = 8
-    max_page_text_chars: int = 6000
+    # Kept modest because every search/fetch result gets folded into the
+    # conversation history for every subsequent LLM turn - Groq's free-tier
+    # TPM cap (8000 tokens/min for gpt-oss-120b) is easy to blow through on
+    # a multi-lead research run otherwise.
+    max_search_results_per_query: int = 5
+    max_page_text_chars: int = 4000
     http_timeout_seconds: float = 15.0
 
     # --- Run-level safeguards -------------------------------------------
-    agent_run_timeout_seconds: float = 240.0
+    # Padded above the plain 240s budget to leave room for the automatic
+    # rate-limit retry/backoff on the Groq path (see agent.py's
+    # num_retries) - a 429 mid-run can cost 20-30s of waiting on its own.
+    agent_run_timeout_seconds: float = 280.0
 
     # --- API --------------------------------------------------------
     # Plain comma-separated string, not list[str]: pydantic-settings always

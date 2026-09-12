@@ -46,7 +46,11 @@ def get_model():
         # anyway whenever tool calls or JSON mode are in play (both stages
         # here use one or the other); "hidden" drops the field from the
         # response entirely so it never gets echoed back.
-        return LiteLlm(model=settings.groq_model, reasoning_format="hidden")
+        # num_retries: gets merged straight into litellm's completion call
+        # (same mechanism as reasoning_format above), so a transient 429
+        # from Groq's free-tier TPM limit gets retried with backoff instead
+        # of failing the whole run outright.
+        return LiteLlm(model=settings.groq_model, reasoning_format="hidden", num_retries=3)
 
     return settings.gemini_model
 
