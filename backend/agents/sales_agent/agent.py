@@ -37,7 +37,16 @@ def get_model():
     settings = get_settings()
 
     if settings.llm_provider == "groq":
-        return LiteLlm(model=settings.groq_model)
+        # Groq's reasoning models (gpt-oss-*) emit a `reasoning_content`
+        # field on assistant turns. ADK replays prior turns verbatim as
+        # message history on the next call (needed for its multi-turn tool
+        # loop), and Groq's own endpoint rejects that field on an incoming
+        # message - "property 'reasoning_content' is unsupported". Groq
+        # docs confirm `reasoning_format` must be "parsed" or "hidden"
+        # anyway whenever tool calls or JSON mode are in play (both stages
+        # here use one or the other); "hidden" drops the field from the
+        # response entirely so it never gets echoed back.
+        return LiteLlm(model=settings.groq_model, reasoning_format="hidden")
 
     return settings.gemini_model
 
