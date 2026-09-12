@@ -15,7 +15,7 @@ services:
       - key: GEMINI_MODEL
         value: gemini-flash-latest
       - key: GROQ_MODEL
-        value: groq/llama-3.3-70b-versatile
+        value: groq/openai/gpt-oss-120b
       - key: CORS_ORIGINS
         value: https://agentis-new.vercel.app,http://localhost:5173
       - key: GOOGLE_API_KEY

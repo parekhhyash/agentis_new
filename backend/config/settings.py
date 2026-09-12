@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-flash-latest"
 
     groq_api_key: str | None = None
-    groq_model: str = "groq/llama-3.3-70b-versatile"
+    groq_model: str = "groq/openai/gpt-oss-120b"
 
     # --- Tool safeguards ------------------------------------------------
     max_search_results_per_query: int = 8
