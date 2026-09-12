@@ -118,7 +118,7 @@ function LeadCard({ lead }: { lead: Lead }) {
 
 export default function LeadResultsPanel({ result }: { result: LeadGenerationResult }) {
   return (
-    <div className="border-t border-slate-100 bg-slate-50 p-4">
+    <div>
       <p className="text-xs text-slate-500">
         {result.leads_found} lead{result.leads_found === 1 ? '' : 's'} qualified
         {result.criteria.industry && ` · ${result.criteria.industry}`}

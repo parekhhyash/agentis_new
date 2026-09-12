@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import AgentGrid from '../components/dashboard/AgentGrid'
+import ChatConversation from '../components/dashboard/ChatConversation'
 import DashboardTopBar from '../components/dashboard/DashboardTopBar'
-import RequestHistory from '../components/dashboard/RequestHistory'
+import RequestSidebar from '../components/dashboard/RequestSidebar'
 import TaskComposer from '../components/dashboard/TaskComposer'
+import { CloseIcon, MenuIcon, PlusIcon } from '../components/icons'
 import type { AgentType } from '../lib/agentTypes'
 import { useAuth } from '../lib/AuthContext'
 import type { Json, Tables } from '../lib/database.types'
@@ -17,6 +18,8 @@ export default function DashboardPage() {
   const [requests, setRequests] = useState<AgentRequest[]>([])
   const [loadingRequests, setLoadingRequests] = useState(true)
   const [agentType, setAgentType] = useState<AgentType>('sales_outreach')
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -35,6 +38,7 @@ export default function DashboardPage() {
       .then(({ data }) => {
         setRequests(data ?? [])
         setLoadingRequests(false)
+        setSelectedId((current) => current ?? data?.[0]?.id ?? null)
       })
   }, [user])
 
@@ -75,6 +79,7 @@ export default function DashboardPage() {
 
     if (error || !data) return
     setRequests((prev) => [data, ...prev])
+    setSelectedId(data.id)
 
     // Only Sales & Outreach has a real agent behind it right now - other
     // categories just sit in the queue until their agents are built.
@@ -85,46 +90,99 @@ export default function DashboardPage() {
     void runSalesAgent(data.id, prompt)
   }
 
+  function selectRequest(id: string | null) {
+    setSelectedId(id)
+    setSidebarOpen(false)
+  }
+
   const firstName = profile?.full_name.split(' ')[0]
+  const selectedRequest = requests.find((r) => r.id === selectedId) ?? null
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="flex h-screen flex-col overflow-hidden bg-slate-50">
       <DashboardTopBar companyName={profile?.company_name ?? null} />
 
-      <main className="mx-auto max-w-6xl px-6 py-10">
-        <h1 className="font-display text-3xl text-slate-900">
-          {firstName ? `Welcome back, ${firstName}` : 'Welcome back'}
-        </h1>
-        <p className="mt-1 text-slate-500">
-          Pick an agent, describe the task, and it lands in your queue below.
-        </p>
-
-        <div className="mt-8">
-          <TaskComposer
-            agentType={agentType}
-            onAgentTypeChange={setAgentType}
-            onSubmit={handleSubmit}
+      <div className="relative flex min-h-0 flex-1">
+        {sidebarOpen && (
+          <div
+            className="absolute inset-0 z-10 bg-slate-900/20 sm:hidden"
+            onClick={() => setSidebarOpen(false)}
           />
-        </div>
+        )}
 
-        <div className="mt-10">
-          <h2 className="text-sm font-semibold tracking-wide text-slate-500 uppercase">
-            Your agents
-          </h2>
-          <div className="mt-4">
-            <AgentGrid selected={agentType} onSelect={setAgentType} />
+        <aside
+          className={`absolute inset-y-0 left-0 z-20 flex w-72 shrink-0 flex-col border-r border-slate-200 bg-white transition-transform duration-200 ease-in-out sm:static sm:z-auto sm:translate-x-0 ${
+            sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        >
+          <div className="flex items-center justify-between gap-2 border-b border-slate-100 p-3">
+            <button
+              type="button"
+              onClick={() => selectRequest(null)}
+              className="flex flex-1 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100"
+            >
+              <PlusIcon className="text-slate-500" />
+              New chat
+            </button>
+            <button
+              type="button"
+              aria-label="Close sidebar"
+              onClick={() => setSidebarOpen(false)}
+              className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 sm:hidden"
+            >
+              <CloseIcon />
+            </button>
           </div>
-        </div>
 
-        <div className="mt-10">
-          <h2 className="text-sm font-semibold tracking-wide text-slate-500 uppercase">
-            Recent requests
-          </h2>
-          <div className="mt-4">
-            <RequestHistory requests={requests} loading={loadingRequests} />
+          <div className="flex-1 overflow-y-auto px-2 py-2">
+            <RequestSidebar
+              requests={requests}
+              loading={loadingRequests}
+              selectedId={selectedId}
+              onSelect={selectRequest}
+            />
           </div>
-        </div>
-      </main>
+        </aside>
+
+        <main className="flex min-w-0 flex-1 flex-col">
+          <div className="flex items-center gap-2 border-b border-slate-100 p-3 sm:hidden">
+            <button
+              type="button"
+              aria-label="Open sidebar"
+              onClick={() => setSidebarOpen(true)}
+              className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+            >
+              <MenuIcon />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto">
+            {selectedRequest ? (
+              <div className="mx-auto max-w-3xl px-6 py-8">
+                <ChatConversation request={selectedRequest} />
+              </div>
+            ) : (
+              <div className="mx-auto flex h-full max-w-3xl flex-col items-center justify-center px-6 text-center">
+                <h1 className="font-display text-3xl text-slate-900">
+                  {firstName ? `Welcome back, ${firstName}` : 'Welcome back'}
+                </h1>
+                <p className="mt-2 text-slate-500">
+                  Pick an agent below, describe the task, and it'll show up here like a
+                  conversation.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="mx-auto w-full max-w-3xl px-6 pb-6">
+            <TaskComposer
+              agentType={agentType}
+              onAgentTypeChange={setAgentType}
+              onSubmit={handleSubmit}
+            />
+          </div>
+        </main>
+      </div>
     </div>
   )
 }
