@@ -1,6 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -33,7 +34,19 @@ class Settings(BaseSettings):
     agent_run_timeout_seconds: float = 240.0
 
     # --- API --------------------------------------------------------
-    cors_origins: list[str] = ["http://localhost:5173"]
+    # Plain comma-separated string, not list[str]: pydantic-settings always
+    # tries json.loads() on the raw env value for any list-typed field
+    # before any validator gets a chance to run, and a bare CSV string
+    # isn't valid JSON - confirmed this raises SettingsError outright
+    # (fails closed, not a silent fallback). Keeping this a str field and
+    # parsing it ourselves below sidesteps that entirely.
+    cors_origins_raw: str = Field(
+        default="http://localhost:5173", validation_alias="CORS_ORIGINS"
+    )
+
+    @property
+    def cors_origins(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_origins_raw.split(",") if origin.strip()]
 
 
 @lru_cache
