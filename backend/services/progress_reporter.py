@@ -9,6 +9,7 @@ write here must never break the actual agent run.
 """
 
 import logging
+import uuid
 from datetime import datetime, timezone
 from typing import Any
 
@@ -28,8 +29,23 @@ class ProgressTracker:
     """Accumulates step labels for one request and reports them to Supabase."""
 
     def __init__(self, request_id: str | None) -> None:
-        self._request_id = request_id
+        # request_id comes straight from the public API's request body - an
+        # attacker-controlled string. It's used with the service role key,
+        # which bypasses RLS entirely, so validating it's actually a UUID
+        # (matching the agent_requests.id column type) before it goes
+        # anywhere near a request URL is not optional here.
+        self._request_id = request_id if self._is_valid_uuid(request_id) else None
         self._steps: list[dict[str, str]] = []
+
+    @staticmethod
+    def _is_valid_uuid(value: str | None) -> bool:
+        if not value:
+            return False
+        try:
+            uuid.UUID(value)
+        except ValueError:
+            return False
+        return True
 
     async def add_step(self, label: str) -> None:
         self._steps.append(
@@ -46,7 +62,7 @@ class ProgressTracker:
         if not settings.supabase_url or not settings.supabase_service_role_key:
             return
 
-        url = f"{settings.supabase_url}/rest/v1/agent_requests?id=eq.{self._request_id}"
+        url = f"{settings.supabase_url}/rest/v1/agent_requests"
         headers = {
             "apikey": settings.supabase_service_role_key,
             "Authorization": f"Bearer {settings.supabase_service_role_key}",
@@ -62,7 +78,16 @@ class ProgressTracker:
 
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
-                response = await client.patch(url, headers=headers, json=body)
+                # params= lets httpx encode the value instead of it being
+                # concatenated straight into the URL - the second guard
+                # against a crafted id smuggling extra query-string content
+                # into a request made with an RLS-bypassing key.
+                response = await client.patch(
+                    url,
+                    headers=headers,
+                    params={"id": f"eq.{self._request_id}"},
+                    json=body,
+                )
                 response.raise_for_status()
         except Exception:  # noqa: BLE001 - progress reporting must never break the run
             logger.warning(
