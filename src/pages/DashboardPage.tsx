@@ -8,7 +8,7 @@ import { CloseIcon, MenuIcon, PlusIcon } from '../components/icons'
 import type { AgentType } from '../lib/agentTypes'
 import { useAuth } from '../lib/AuthContext'
 import type { Json, Tables } from '../lib/database.types'
-import { generateLeads, SalesAgentApiError } from '../lib/salesAgentApi'
+import { cancelLeadsGeneration, generateLeads, SalesAgentApiError } from '../lib/salesAgentApi'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../lib/useProfile'
 
@@ -36,6 +36,8 @@ export default function DashboardPage() {
         setSelectedId((current) => current ?? data?.[0]?.id ?? null)
       })
   }, [user])
+
+  const abortControllersRef = useRef<Map<string, AbortController>>(new Map())
 
   const requestsRef = useRef<AgentRequest[]>(requests)
   useEffect(() => {
@@ -76,14 +78,22 @@ export default function DashboardPage() {
       .eq('id', requestId)
     updateRequest(requestId, { status: 'in_progress', started_at: startedAt })
 
+    const controller = new AbortController()
+    abortControllersRef.current.set(requestId, controller)
+
     try {
-      const result = await generateLeads(prompt, requestId, {
-        company_name: profile?.company_name,
-        company_website: profile?.company_website,
-        industry: profile?.industry,
-        company_size: profile?.company_size,
-        company_description: profile?.company_description,
-      })
+      const result = await generateLeads(
+        prompt,
+        requestId,
+        {
+          company_name: profile?.company_name,
+          company_website: profile?.company_website,
+          industry: profile?.industry,
+          company_size: profile?.company_size,
+          company_description: profile?.company_description,
+        },
+        controller.signal,
+      )
       await supabase
         .from('agent_requests')
         .update({ status: 'completed', result: result as unknown as Json })
@@ -97,7 +107,14 @@ export default function DashboardPage() {
         .update({ status: 'failed', error: message })
         .eq('id', requestId)
       updateRequest(requestId, { status: 'failed', error: message })
+    } finally {
+      abortControllersRef.current.delete(requestId)
     }
+  }
+
+  function stopSalesAgent(requestId: string) {
+    abortControllersRef.current.get(requestId)?.abort()
+    void cancelLeadsGeneration(requestId)
   }
 
   async function handleSubmit(prompt: string) {
@@ -218,6 +235,10 @@ export default function DashboardPage() {
             agentType={agentType}
             onAgentTypeChange={setAgentType}
             onSubmit={handleSubmit}
+            isRunning={
+              selectedRequest?.status === 'in_progress' || selectedRequest?.status === 'queued'
+            }
+            onStop={() => selectedRequest && stopSalesAgent(selectedRequest.id)}
           />
         </div>
       </main>

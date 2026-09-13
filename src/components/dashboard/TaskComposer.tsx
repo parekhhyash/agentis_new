@@ -1,15 +1,19 @@
 import { useState } from 'react'
 import { AGENT_TYPES, type AgentType } from '../../lib/agentTypes'
-import { ArrowUpIcon, ChevronDownIcon, MonitorIcon } from '../icons'
+import { ArrowUpIcon, ChevronDownIcon, MonitorIcon, StopIcon } from '../icons'
 
 export default function TaskComposer({
   agentType,
   onAgentTypeChange,
   onSubmit,
+  isRunning = false,
+  onStop,
 }: {
   agentType: AgentType
   onAgentTypeChange: (value: AgentType) => void
   onSubmit: (prompt: string) => Promise<void>
+  isRunning?: boolean
+  onStop?: () => void
 }) {
   const [value, setValue] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -87,15 +91,26 @@ export default function TaskComposer({
           )}
         </div>
 
-        <button
-          type="button"
-          aria-label="Submit"
-          onClick={handleSubmit}
-          disabled={submitting || value.trim().length === 0}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-sky-400 text-sky-500 transition-colors hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <ArrowUpIcon />
-        </button>
+        {isRunning ? (
+          <button
+            type="button"
+            aria-label="Stop"
+            onClick={onStop}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-red-400 text-red-500 transition-colors hover:bg-red-50"
+          >
+            <StopIcon />
+          </button>
+        ) : (
+          <button
+            type="button"
+            aria-label="Submit"
+            onClick={handleSubmit}
+            disabled={submitting || value.trim().length === 0}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-sky-400 text-sky-500 transition-colors hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <ArrowUpIcon />
+          </button>
+        )}
       </div>
     </div>
   )

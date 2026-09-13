@@ -21,9 +21,26 @@ export async function generateLeads(
   query: string,
   requestId?: string,
   companyContext?: CompanyContext,
+  externalSignal?: AbortSignal,
 ): Promise<LeadGenerationResult> {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+
+  // Combined manually (rather than AbortSignal.any) for broader browser
+  // compatibility - either the timeout or the caller's own signal (the stop
+  // button) should abort the same underlying fetch.
+  let stoppedByCaller = false
+  const onExternalAbort = () => {
+    stoppedByCaller = true
+    controller.abort()
+  }
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      onExternalAbort()
+    } else {
+      externalSignal.addEventListener('abort', onExternalAbort)
+    }
+  }
 
   let response: Response
   try {
@@ -39,13 +56,16 @@ export async function generateLeads(
     })
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') {
-      throw new SalesAgentApiError('The request took too long and was cancelled.')
+      throw new SalesAgentApiError(
+        stoppedByCaller ? 'Stopped by you.' : 'The request took too long and was cancelled.',
+      )
     }
     throw new SalesAgentApiError(
       `Could not reach the agent API at ${BASE_URL}. Is the backend running?`,
     )
   } finally {
     clearTimeout(timeoutId)
+    externalSignal?.removeEventListener('abort', onExternalAbort)
   }
 
   if (!response.ok) {
@@ -55,4 +75,20 @@ export async function generateLeads(
   }
 
   return response.json() as Promise<LeadGenerationResult>
+}
+
+// Best-effort: tells the backend to stop the run at its next checkpoint so
+// it doesn't keep burning LLM tokens after the user has already given up on
+// it client-side. Swallow errors - the frontend abort() already stops the
+// in-flight fetch regardless of whether this reaches the backend.
+export async function cancelLeadsGeneration(requestId: string): Promise<void> {
+  try {
+    await fetch(`${BASE_URL}/sales-agent/cancel`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ request_id: requestId }),
+    })
+  } catch {
+    // Nothing useful to do client-side if this fails.
+  }
 }

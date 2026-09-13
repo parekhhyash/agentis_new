@@ -17,7 +17,8 @@ from agents.sales_agent.agent import build_sales_agent_pipeline
 from agents.sales_agent.schemas import LeadGenerationResult
 from api.models import CompanyContext
 from config.settings import get_settings
-from services.exceptions import AgentOutputError, AgentTimeoutError
+from services.cancellation import clear_cancellation, is_cancelled
+from services.exceptions import AgentCancelledError, AgentOutputError, AgentTimeoutError
 from services.progress_reporter import ProgressTracker
 
 logger = logging.getLogger(__name__)
@@ -93,6 +94,9 @@ async def run_sales_agent(
         async for event in runner.run_async(
             user_id=user_id, session_id=session_id, new_message=content
         ):
+            if is_cancelled(request_id):
+                raise AgentCancelledError("Cancelled by the caller")
+
             author = getattr(event, "author", None)
             if author in _STAGE_LABELS and author != seen_stage:
                 seen_stage = author
@@ -108,15 +112,22 @@ async def run_sales_agent(
                     await progress.add_step(f"Calling {call.name}...")
 
     try:
-        await asyncio.wait_for(
-            _drive_to_completion(), timeout=settings.agent_run_timeout_seconds
-        )
-    except asyncio.TimeoutError as exc:
-        logger.warning("Sales agent run timed out for query=%r", query)
-        await progress.add_step("Timed out.")
-        raise AgentTimeoutError(
-            f"Agent did not finish within {settings.agent_run_timeout_seconds}s"
-        ) from exc
+        try:
+            await asyncio.wait_for(
+                _drive_to_completion(), timeout=settings.agent_run_timeout_seconds
+            )
+        except asyncio.TimeoutError as exc:
+            logger.warning("Sales agent run timed out for query=%r", query)
+            await progress.add_step("Timed out.")
+            raise AgentTimeoutError(
+                f"Agent did not finish within {settings.agent_run_timeout_seconds}s"
+            ) from exc
+        except AgentCancelledError:
+            logger.info("Sales agent run cancelled for request_id=%r", request_id)
+            await progress.add_step("Stopped.")
+            raise
+    finally:
+        clear_cancellation(request_id)
 
     session = await session_service.get_session(
         app_name=_APP_NAME, user_id=user_id, session_id=session_id

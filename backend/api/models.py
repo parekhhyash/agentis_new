@@ -36,3 +36,9 @@ class LeadGenerationRequest(BaseModel):
         default=None,
         description="The requesting user's own company profile, if available.",
     )
+
+
+class CancelRequest(BaseModel):
+    request_id: str = Field(
+        description="The agent_requests row's id for the run to stop.",
+    )
