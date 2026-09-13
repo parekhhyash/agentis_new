@@ -20,6 +20,7 @@ from config.settings import get_settings
 from services.cancellation import clear_cancellation, is_cancelled
 from services.exceptions import AgentCancelledError, AgentOutputError, AgentTimeoutError
 from services.progress_reporter import ProgressTracker
+from services.request_store import finalize_request
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +65,40 @@ async def run_sales_agent(
     query: str,
     request_id: str | None = None,
     company_context: CompanyContext | None = None,
+) -> LeadGenerationResult:
+    """Thin wrapper around `_run_pipeline` that guarantees the request's
+    final status/result lands in Supabase directly from the backend, not
+    only via the caller's own HTTP response handling. Without this, a
+    deploy restart, a dropped connection, or the user closing the tab
+    mid-run leaves the row stuck at 'in_progress' forever - nothing else
+    would ever flip it to a terminal state."""
+    try:
+        result = await _run_pipeline(query, request_id, company_context)
+    except AgentTimeoutError as exc:
+        await finalize_request(request_id, status="failed", error=str(exc))
+        raise
+    except AgentCancelledError:
+        await finalize_request(request_id, status="failed", error="Stopped by you.")
+        raise
+    except AgentOutputError as exc:
+        await finalize_request(request_id, status="failed", error=str(exc))
+        raise
+    except Exception:
+        await finalize_request(
+            request_id, status="failed", error="Internal error running the sales agent"
+        )
+        raise
+    else:
+        await finalize_request(
+            request_id, status="completed", result=result.model_dump(mode="json")
+        )
+        return result
+
+
+async def _run_pipeline(
+    query: str,
+    request_id: str | None,
+    company_context: CompanyContext | None,
 ) -> LeadGenerationResult:
     settings = get_settings()
     progress = ProgressTracker(request_id)

@@ -9,13 +9,13 @@ write here must never break the actual agent run.
 """
 
 import logging
-import uuid
 from datetime import datetime, timezone
 from typing import Any
 
 import httpx
 
 from config.settings import get_settings
+from services.uuid_utils import is_valid_request_id
 
 logger = logging.getLogger(__name__)
 
@@ -34,18 +34,8 @@ class ProgressTracker:
         # which bypasses RLS entirely, so validating it's actually a UUID
         # (matching the agent_requests.id column type) before it goes
         # anywhere near a request URL is not optional here.
-        self._request_id = request_id if self._is_valid_uuid(request_id) else None
+        self._request_id = request_id if is_valid_request_id(request_id) else None
         self._steps: list[dict[str, str]] = []
-
-    @staticmethod
-    def _is_valid_uuid(value: str | None) -> bool:
-        if not value:
-            return False
-        try:
-            uuid.UUID(value)
-        except ValueError:
-            return False
-        return True
 
     async def add_step(self, label: str) -> None:
         self._steps.append(
