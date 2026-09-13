@@ -20,8 +20,10 @@ export type Database = {
           created_at: string
           error: string | null
           id: string
+          progress: Json | null
           prompt: string
           result: Json | null
+          started_at: string | null
           status: Database["public"]["Enums"]["request_status"]
           user_id: string
         }
@@ -30,8 +32,10 @@ export type Database = {
           created_at?: string
           error?: string | null
           id?: string
+          progress?: Json | null
           prompt: string
           result?: Json | null
+          started_at?: string | null
           status?: Database["public"]["Enums"]["request_status"]
           user_id: string
         }
@@ -40,8 +44,10 @@ export type Database = {
           created_at?: string
           error?: string | null
           id?: string
+          progress?: Json | null
           prompt?: string
           result?: Json | null
+          started_at?: string | null
           status?: Database["public"]["Enums"]["request_status"]
           user_id?: string
         }

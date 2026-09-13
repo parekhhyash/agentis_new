@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import ChatConversation from '../components/dashboard/ChatConversation'
 import ProfileMenu from '../components/dashboard/ProfileMenu'
@@ -37,6 +37,29 @@ export default function DashboardPage() {
       })
   }, [user])
 
+  const requestsRef = useRef<AgentRequest[]>(requests)
+  useEffect(() => {
+    requestsRef.current = requests
+  }, [requests])
+
+  // The backend pushes live progress straight to Supabase as it runs (see
+  // ProgressTracker in the Python service) - poll the in-progress rows so
+  // the chat view can show it updating instead of just a static spinner.
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const inProgressIds = requestsRef.current
+        .filter((r) => r.status === 'in_progress')
+        .map((r) => r.id)
+      if (inProgressIds.length === 0) return
+
+      const { data } = await supabase.from('agent_requests').select('*').in('id', inProgressIds)
+      if (!data) return
+      setRequests((prev) => prev.map((r) => data.find((d) => d.id === r.id) ?? r))
+    }, 2000)
+
+    return () => clearInterval(interval)
+  }, [])
+
   if (!loadingProfile && profile && !profile.onboarding_completed) {
     return <Navigate to="/setup-company" replace />
   }
@@ -46,11 +69,15 @@ export default function DashboardPage() {
   }
 
   async function runSalesAgent(requestId: string, prompt: string) {
-    await supabase.from('agent_requests').update({ status: 'in_progress' }).eq('id', requestId)
-    updateRequest(requestId, { status: 'in_progress' })
+    const startedAt = new Date().toISOString()
+    await supabase
+      .from('agent_requests')
+      .update({ status: 'in_progress', started_at: startedAt })
+      .eq('id', requestId)
+    updateRequest(requestId, { status: 'in_progress', started_at: startedAt })
 
     try {
-      const result = await generateLeads(prompt)
+      const result = await generateLeads(prompt, requestId)
       await supabase
         .from('agent_requests')
         .update({ status: 'completed', result: result as unknown as Json })

@@ -17,14 +17,23 @@ from agents.sales_agent.agent import build_sales_agent_pipeline
 from agents.sales_agent.schemas import LeadGenerationResult
 from config.settings import get_settings
 from services.exceptions import AgentOutputError, AgentTimeoutError
+from services.progress_reporter import ProgressTracker
 
 logger = logging.getLogger(__name__)
 
 _APP_NAME = "agentis-sales-agent"
 
+_STAGE_LABELS = {
+    "lead_researcher": "Researching the web for candidate companies...",
+    "lead_structurer": "Structuring the qualified leads into the final report...",
+}
 
-async def run_sales_agent(query: str) -> LeadGenerationResult:
+
+async def run_sales_agent(
+    query: str, request_id: str | None = None
+) -> LeadGenerationResult:
     settings = get_settings()
+    progress = ProgressTracker(request_id)
 
     session_service = InMemorySessionService()
     user_id = f"api-user-{uuid.uuid4().hex[:8]}"
@@ -42,11 +51,27 @@ async def run_sales_agent(query: str) -> LeadGenerationResult:
 
     content = types.Content(role="user", parts=[types.Part(text=query)])
 
+    await progress.add_step("Starting up the research agent...")
+
     async def _drive_to_completion() -> None:
-        async for _event in runner.run_async(
+        seen_stage: str | None = None
+
+        async for event in runner.run_async(
             user_id=user_id, session_id=session_id, new_message=content
         ):
-            pass  # we read the final state after the run, not the event stream
+            author = getattr(event, "author", None)
+            if author in _STAGE_LABELS and author != seen_stage:
+                seen_stage = author
+                await progress.add_step(_STAGE_LABELS[author])
+
+            for call in event.get_function_calls():
+                args = call.args or {}
+                if call.name == "search_web":
+                    await progress.add_step(f"Searching: {args.get('query', '')}")
+                elif call.name == "fetch_webpage":
+                    await progress.add_step(f"Reading: {args.get('url', '')}")
+                else:
+                    await progress.add_step(f"Calling {call.name}...")
 
     try:
         await asyncio.wait_for(
@@ -54,6 +79,7 @@ async def run_sales_agent(query: str) -> LeadGenerationResult:
         )
     except asyncio.TimeoutError as exc:
         logger.warning("Sales agent run timed out for query=%r", query)
+        await progress.add_step("Timed out.")
         raise AgentTimeoutError(
             f"Agent did not finish within {settings.agent_run_timeout_seconds}s"
         ) from exc

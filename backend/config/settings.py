@@ -49,6 +49,16 @@ class Settings(BaseSettings):
     # this value too.
     agent_run_timeout_seconds: float = 590.0
 
+    # --- Live progress reporting -----------------------------------------
+    # Optional: lets the agent push step-by-step progress (current tool
+    # call, stage transitions) back to the same Supabase row the frontend
+    # already polls, so a long run isn't a silent black box. Uses the
+    # service role key (bypasses RLS) since this runs with no user session -
+    # never expose this key to the frontend. If unset, progress reporting is
+    # just skipped; the run itself is unaffected.
+    supabase_url: str | None = None
+    supabase_service_role_key: str | None = None
+
     # --- API --------------------------------------------------------
     # Plain comma-separated string, not list[str]: pydantic-settings always
     # tries json.loads() on the raw env value for any list-typed field

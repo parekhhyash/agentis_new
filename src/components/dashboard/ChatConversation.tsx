@@ -1,7 +1,8 @@
 import { AGENT_LABELS } from '../../lib/agentTypes'
 import type { Tables } from '../../lib/database.types'
 import { relativeTime } from '../../lib/relativeTime'
-import type { LeadGenerationResult } from '../../lib/salesAgentTypes'
+import type { AgentProgress, LeadGenerationResult } from '../../lib/salesAgentTypes'
+import AgentProgressView from './AgentProgressView'
 import LeadResultsPanel from './LeadResultsPanel'
 
 type AgentRequest = Tables<'agent_requests'>
@@ -23,10 +24,10 @@ export default function ChatConversation({ request }: { request: AgentRequest })
           {request.status === 'queued' && <p className="text-sm text-slate-500">Queued&hellip;</p>}
 
           {request.status === 'in_progress' && (
-            <p className="flex items-center gap-2 text-sm text-slate-500">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-sky-500" />
-              Working on it - this can take a couple of minutes&hellip;
-            </p>
+            <AgentProgressView
+              startedAt={request.started_at ?? request.created_at}
+              progress={request.progress as unknown as AgentProgress | null}
+            />
           )}
 
           {request.status === 'completed' && request.result != null && (

@@ -18,6 +18,16 @@ from config.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
+# ddgs's default backend="auto" fans out across every registered engine
+# (wikipedia, grokipedia, duckduckgo, google, yahoo, startpage, brave,
+# mojeek) a few at a time. Confirmed via Render logs across multiple runs:
+# mojeek times out on essentially every single call from Render's network,
+# and brave gets rate-limited (429) almost as often - both just add dead
+# wall-clock time to every search without ever contributing results.
+# Restricting to the engines that were actually returning 200s cuts that
+# waste out.
+_SEARCH_BACKENDS = "duckduckgo,google,yahoo,startpage,wikipedia,grokipedia"
+
 
 async def search_web(query: str, max_results: int = 8) -> dict:
     """Search the web and return a list of results (title, url, snippet).
@@ -42,7 +52,7 @@ async def search_web(query: str, max_results: int = 8) -> dict:
 
     def _run_search() -> list[dict]:
         with DDGS(timeout=int(settings.http_timeout_seconds)) as ddgs:
-            return ddgs.text(query, max_results=capped_max_results)
+            return ddgs.text(query, max_results=capped_max_results, backend=_SEARCH_BACKENDS)
 
     try:
         raw_results = await asyncio.to_thread(_run_search)

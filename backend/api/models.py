@@ -12,3 +12,11 @@ class LeadGenerationRequest(BaseModel):
             "customer-support or sales automation."
         ],
     )
+    request_id: str | None = Field(
+        default=None,
+        description=(
+            "The agent_requests row's id, if the caller wants live "
+            "progress reported back to Supabase as the run executes. "
+            "Optional - the run works identically without it."
+        ),
+    )

@@ -32,3 +32,13 @@ export interface LeadGenerationResult {
   leads: Lead[]
   notes: string | null
 }
+
+export interface AgentProgressStep {
+  label: string
+  at: string
+}
+
+export interface AgentProgress {
+  current_step: string | null
+  steps: AgentProgressStep[]
+}
