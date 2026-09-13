@@ -15,6 +15,7 @@ from pydantic import ValidationError
 
 from agents.sales_agent.agent import build_sales_agent_pipeline
 from agents.sales_agent.schemas import LeadGenerationResult
+from api.models import CompanyContext
 from config.settings import get_settings
 from services.exceptions import AgentOutputError, AgentTimeoutError
 from services.progress_reporter import ProgressTracker
@@ -28,9 +29,40 @@ _STAGE_LABELS = {
     "lead_structurer": "Structuring the qualified leads into the final report...",
 }
 
+_CONTEXT_FIELD_LABELS = {
+    "company_name": "Name",
+    "company_website": "Website",
+    "industry": "Industry",
+    "company_size": "Size",
+    "company_description": "What they do",
+}
+
+
+def _format_company_context(company_context: CompanyContext | None) -> str | None:
+    """Renders the user's own company profile as a text block to prepend to
+    the query, or None if there's nothing worth including (a brand new
+    profile with every field blank, or no profile supplied at all)."""
+    if company_context is None:
+        return None
+
+    lines = [
+        f"{label}: {value}"
+        for field, label in _CONTEXT_FIELD_LABELS.items()
+        if (value := getattr(company_context, field, None))
+    ]
+    if not lines:
+        return None
+
+    return (
+        "COMPANY CONTEXT (the user's own company - not a lead, use this to "
+        "judge fit and personalize why_good_fit):\n" + "\n".join(lines)
+    )
+
 
 async def run_sales_agent(
-    query: str, request_id: str | None = None
+    query: str,
+    request_id: str | None = None,
+    company_context: CompanyContext | None = None,
 ) -> LeadGenerationResult:
     settings = get_settings()
     progress = ProgressTracker(request_id)
@@ -49,7 +81,9 @@ async def run_sales_agent(
     agent = build_sales_agent_pipeline()
     runner = Runner(agent=agent, app_name=_APP_NAME, session_service=session_service)
 
-    content = types.Content(role="user", parts=[types.Part(text=query)])
+    context_block = _format_company_context(company_context)
+    message_text = f"{context_block}\n\nREQUEST:\n{query}" if context_block else query
+    content = types.Content(role="user", parts=[types.Part(text=message_text)])
 
     await progress.add_step("Starting up the research agent...")
 

@@ -15,7 +15,11 @@ router = APIRouter(prefix="/sales-agent", tags=["sales-agent"])
 @router.post("/generate-leads", response_model=LeadGenerationResult)
 async def generate_leads(request: LeadGenerationRequest) -> LeadGenerationResult:
     try:
-        return await run_sales_agent(request.query, request_id=request.request_id)
+        return await run_sales_agent(
+            request.query,
+            request_id=request.request_id,
+            company_context=request.company_context,
+        )
     except AgentTimeoutError as exc:
         raise HTTPException(status_code=504, detail=str(exc)) from exc
     except AgentOutputError as exc:

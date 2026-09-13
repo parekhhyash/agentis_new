@@ -9,9 +9,18 @@ const REQUEST_TIMEOUT_MS = 620_000
 
 export class SalesAgentApiError extends Error {}
 
+export interface CompanyContext {
+  company_name?: string | null
+  company_website?: string | null
+  industry?: string | null
+  company_size?: string | null
+  company_description?: string | null
+}
+
 export async function generateLeads(
   query: string,
   requestId?: string,
+  companyContext?: CompanyContext,
 ): Promise<LeadGenerationResult> {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
@@ -21,7 +30,11 @@ export async function generateLeads(
     response = await fetch(`${BASE_URL}/sales-agent/generate-leads`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, request_id: requestId }),
+      body: JSON.stringify({
+        query,
+        request_id: requestId,
+        company_context: companyContext,
+      }),
       signal: controller.signal,
     })
   } catch (err) {

@@ -77,7 +77,13 @@ export default function DashboardPage() {
     updateRequest(requestId, { status: 'in_progress', started_at: startedAt })
 
     try {
-      const result = await generateLeads(prompt, requestId)
+      const result = await generateLeads(prompt, requestId, {
+        company_name: profile?.company_name,
+        company_website: profile?.company_website,
+        industry: profile?.industry,
+        company_size: profile?.company_size,
+        company_description: profile?.company_description,
+      })
       await supabase
         .from('agent_requests')
         .update({ status: 'completed', result: result as unknown as Json })
