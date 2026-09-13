@@ -19,11 +19,52 @@ what `{research_dossier}` in step 2's instruction reads back out.
 from google.adk.agents import LlmAgent, SequentialAgent
 from google.adk.models.lite_llm import LiteLlm
 
-from agents.sales_agent.prompts import RESEARCHER_INSTRUCTION, STRUCTURER_INSTRUCTION
+from agents.sales_agent.prompts import (
+    MAX_FETCH_CALLS,
+    MAX_SEARCH_CALLS,
+    RESEARCHER_INSTRUCTION,
+    STRUCTURER_INSTRUCTION,
+)
 from agents.sales_agent.schemas import LeadGenerationResult
 from agents.sales_agent.tools.search import search_web
 from agents.sales_agent.tools.web_reader import fetch_webpage
 from config.settings import get_settings
+
+_TOOL_CALL_LIMITS = {"search_web": MAX_SEARCH_CALLS, "fetch_webpage": MAX_FETCH_CALLS}
+
+
+def _make_tool_budget_callback():
+    """Hard, code-enforced backstop for RESEARCHER_INSTRUCTION's stated tool
+    budget - a weaker/quantized model won't always obey a prompt telling it
+    to stop, so once a limit is hit this intercepts the call (via ADK's
+    before_tool_callback) and returns an error instead of letting the real
+    tool run, forcing the model to actually stop instead of researching
+    indefinitely until the whole run times out with nothing to show for it.
+
+    A fresh closure per call (build_sales_agent_pipeline runs once per
+    request), so counts never leak across requests.
+    """
+    call_counts: dict[str, int] = {}
+
+    def before_tool_callback(tool, args, tool_context):  # noqa: ARG001 - ADK callback signature
+        limit = _TOOL_CALL_LIMITS.get(tool.name)
+        if limit is None:
+            return None
+
+        call_counts[tool.name] = call_counts.get(tool.name, 0) + 1
+        if call_counts[tool.name] > limit:
+            return {
+                "status": "error",
+                "error_message": (
+                    f"Tool budget exhausted: {limit} {tool.name} calls have "
+                    "already been used this task. Stop researching now and "
+                    "write your Step 4 output immediately with the "
+                    "qualified leads you already have."
+                ),
+            }
+        return None
+
+    return before_tool_callback
 
 
 def get_model():
@@ -90,6 +131,7 @@ def build_sales_agent_pipeline() -> SequentialAgent:
         description="Searches the web and qualifies companies as sales leads.",
         instruction=RESEARCHER_INSTRUCTION,
         tools=[search_web, fetch_webpage],
+        before_tool_callback=_make_tool_budget_callback(),
         output_key="research_dossier",
     )
 
