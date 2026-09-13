@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Navigate } from 'react-router-dom'
 import ChatConversation from '../components/dashboard/ChatConversation'
 import DashboardTopBar from '../components/dashboard/DashboardTopBar'
 import RequestSidebar from '../components/dashboard/RequestSidebar'
@@ -9,12 +10,13 @@ import { useAuth } from '../lib/AuthContext'
 import type { Json, Tables } from '../lib/database.types'
 import { generateLeads, SalesAgentApiError } from '../lib/salesAgentApi'
 import { supabase } from '../lib/supabase'
+import { useProfile } from '../lib/useProfile'
 
 type AgentRequest = Tables<'agent_requests'>
 
 export default function DashboardPage() {
   const { user } = useAuth()
-  const [profile, setProfile] = useState<Tables<'profiles'> | null>(null)
+  const { profile, loading: loadingProfile } = useProfile()
   const [requests, setRequests] = useState<AgentRequest[]>([])
   const [loadingRequests, setLoadingRequests] = useState(true)
   const [agentType, setAgentType] = useState<AgentType>('sales_outreach')
@@ -23,13 +25,6 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!user) return
-
-    supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single()
-      .then(({ data }) => setProfile(data))
 
     supabase
       .from('agent_requests')
@@ -41,6 +36,10 @@ export default function DashboardPage() {
         setSelectedId((current) => current ?? data?.[0]?.id ?? null)
       })
   }, [user])
+
+  if (!loadingProfile && profile && !profile.onboarding_completed) {
+    return <Navigate to="/setup-company" replace />
+  }
 
   function updateRequest(id: string, patch: Partial<AgentRequest>) {
     setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)))

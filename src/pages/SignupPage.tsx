@@ -10,7 +10,6 @@ export default function SignupPage() {
   const navigate = useNavigate()
 
   const [fullName, setFullName] = useState('')
-  const [companyName, setCompanyName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -24,7 +23,6 @@ export default function SignupPage() {
 
     const { error, needsEmailConfirmation } = await signUp({
       fullName,
-      companyName,
       email,
       password,
     })
@@ -100,25 +98,6 @@ export default function SignupPage() {
                 placeholder="Alex Morgan"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="mt-1.5 w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-[15px] text-slate-900 placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="company-name"
-                className="text-sm font-medium text-slate-700"
-              >
-                Company name
-              </label>
-              <input
-                id="company-name"
-                type="text"
-                required
-                autoComplete="organization"
-                placeholder="Acme Inc."
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
                 className="mt-1.5 w-full rounded-lg border border-slate-300 px-3.5 py-2.5 text-[15px] text-slate-900 placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 focus:outline-none"
               />
             </div>

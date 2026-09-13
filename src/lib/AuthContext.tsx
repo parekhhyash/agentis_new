@@ -12,7 +12,6 @@ type SignUpDetails = {
   email: string
   password: string
   fullName: string
-  companyName: string
 }
 
 type AuthContextValue = {
@@ -51,12 +50,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  async function signUp({ email, password, fullName, companyName }: SignUpDetails) {
+  async function signUp({ email, password, fullName }: SignUpDetails) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { full_name: fullName, company_name: companyName },
+        data: { full_name: fullName },
       },
     })
     return {

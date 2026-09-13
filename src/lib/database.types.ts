@@ -49,22 +49,37 @@ export type Database = {
       }
       profiles: {
         Row: {
-          company_name: string
+          company_description: string | null
+          company_name: string | null
+          company_size: string | null
+          company_website: string | null
           created_at: string
           full_name: string
           id: string
+          industry: string | null
+          onboarding_completed: boolean
         }
         Insert: {
-          company_name: string
+          company_description?: string | null
+          company_name?: string | null
+          company_size?: string | null
+          company_website?: string | null
           created_at?: string
           full_name: string
           id: string
+          industry?: string | null
+          onboarding_completed?: boolean
         }
         Update: {
-          company_name?: string
+          company_description?: string | null
+          company_name?: string | null
+          company_size?: string | null
+          company_website?: string | null
           created_at?: string
           full_name?: string
           id?: string
+          industry?: string | null
+          onboarding_completed?: boolean
         }
         Relationships: []
       }
