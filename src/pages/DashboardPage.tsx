@@ -143,7 +143,10 @@ export default function DashboardPage() {
           />
         </div>
 
-        <ProfileMenu fullName={profile?.full_name ?? 'Account'} email={user?.email ?? null} />
+        <ProfileMenu
+          fullName={profile?.full_name ?? 'Account'}
+          companyName={profile?.company_name ?? null}
+        />
       </aside>
 
       <main className="flex min-w-0 flex-1 flex-col">

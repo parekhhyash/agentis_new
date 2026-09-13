@@ -17,10 +17,10 @@ function initialsFor(name: string): string {
 
 export default function ProfileMenu({
   fullName,
-  email,
+  companyName,
 }: {
   fullName: string
-  email: string | null
+  companyName: string | null
 }) {
   const { signOut } = useAuth()
   const navigate = useNavigate()
@@ -68,7 +68,9 @@ export default function ProfileMenu({
         </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-medium text-slate-800">{fullName}</span>
-          {email && <span className="block truncate text-xs text-slate-400">{email}</span>}
+          {companyName && (
+            <span className="block truncate text-xs text-slate-400">{companyName}</span>
+          )}
         </span>
         <ChevronDownIcon className="shrink-0 text-slate-400" />
       </button>
