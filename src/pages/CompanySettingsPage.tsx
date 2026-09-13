@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import CompanyDetailsForm, {
   emptyCompanyDetails,
   type CompanyDetailsValues,
@@ -8,21 +8,35 @@ import { useAuth } from '../lib/AuthContext'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../lib/useProfile'
 
-export default function CompanySetupPage() {
+export default function CompanySettingsPage() {
   const { user } = useAuth()
   const { profile, loading, setProfile } = useProfile()
-  const navigate = useNavigate()
 
   const [values, setValues] = useState<CompanyDetailsValues>(emptyCompanyDetails())
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [saved, setSaved] = useState(false)
 
-  if (!loading && profile?.onboarding_completed) {
-    return <Navigate to="/dashboard" replace />
-  }
+  useEffect(() => {
+    if (!profile) return
+    setValues({
+      companyName: profile.company_name ?? '',
+      companyWebsite: profile.company_website ?? '',
+      industry: profile.industry ?? '',
+      companySize: profile.company_size ?? '',
+      companyDescription: profile.company_description ?? '',
+    })
+  }, [profile])
+
+  useEffect(() => {
+    if (!saved) return
+    const timeout = setTimeout(() => setSaved(false), 3000)
+    return () => clearTimeout(timeout)
+  }, [saved])
 
   function updateValues(patch: Partial<CompanyDetailsValues>) {
     setValues((prev) => ({ ...prev, ...patch }))
+    setSaved(false)
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -45,7 +59,6 @@ export default function CompanySetupPage() {
         industry: values.industry.trim() || null,
         company_size: values.companySize || null,
         company_description: values.companyDescription.trim() || null,
-        onboarding_completed: true,
       })
       .eq('id', user.id)
       .select()
@@ -59,23 +72,40 @@ export default function CompanySetupPage() {
     }
 
     setProfile(data)
-    navigate('/dashboard')
+    setSaved(true)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-sky-600" />
+      </div>
+    )
   }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-6 py-12">
       <div className="w-full max-w-lg">
-        <span className="font-display text-xl text-slate-900">Agentis</span>
+        <Link
+          to="/dashboard"
+          className="text-sm font-medium text-slate-500 hover:text-slate-700"
+        >
+          &larr; Back to dashboard
+        </Link>
 
-        <h1 className="mt-6 font-display text-3xl text-slate-900">Set up your company</h1>
+        <h1 className="mt-4 font-display text-3xl text-slate-900">Company settings</h1>
         <p className="mt-2 text-[15px] text-slate-500">
-          This context is shared with your agents so their work fits your business - you
-          can change it anytime.
+          This context is shared with your agents so their work fits your business.
         </p>
 
         <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
           {error && (
             <p className="rounded-lg bg-red-50 px-3.5 py-2.5 text-sm text-red-600">{error}</p>
+          )}
+          {saved && (
+            <p className="rounded-lg bg-green-50 px-3.5 py-2.5 text-sm text-green-700">
+              Saved.
+            </p>
           )}
 
           <CompanyDetailsForm values={values} onChange={updateValues} />
@@ -85,7 +115,7 @@ export default function CompanySetupPage() {
             disabled={submitting}
             className="w-full rounded-full bg-sky-600 py-2.5 text-[15px] font-semibold text-white transition-colors hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {submitting ? 'Saving...' : 'Continue to dashboard'}
+            {submitting ? 'Saving...' : 'Save changes'}
           </button>
         </form>
       </div>

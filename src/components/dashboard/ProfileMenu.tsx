@@ -41,7 +41,7 @@ export default function ProfileMenu({
               type="button"
               onClick={() => {
                 setOpen(false)
-                navigate('/setup-company')
+                navigate('/company-settings')
               }}
               className="block w-full px-3.5 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
             >

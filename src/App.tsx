@@ -1,6 +1,7 @@
 import { HashRouter, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthProvider } from './lib/AuthContext'
+import CompanySettingsPage from './pages/CompanySettingsPage'
 import CompanySetupPage from './pages/CompanySetupPage'
 import DashboardPage from './pages/DashboardPage'
 import LandingPage from './pages/LandingPage'
@@ -20,6 +21,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <CompanySetupPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/company-settings"
+            element={
+              <ProtectedRoute>
+                <CompanySettingsPage />
               </ProtectedRoute>
             }
           />
