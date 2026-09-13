@@ -17,13 +17,16 @@ class Settings(BaseSettings):
     # Which provider the agents use. Swapping this (plus the matching API
     # key) is the only thing needed to move between providers - no agent
     # code changes required.
-    llm_provider: Literal["gemini", "groq"] = "gemini"
+    llm_provider: Literal["gemini", "groq", "openrouter"] = "gemini"
 
     google_api_key: str | None = None
     gemini_model: str = "gemini-flash-latest"
 
     groq_api_key: str | None = None
     groq_model: str = "groq/openai/gpt-oss-120b"
+
+    openrouter_api_key: str | None = None
+    openrouter_model: str = "openrouter/deepseek/deepseek-v4-flash-0731"
 
     # --- Tool safeguards ------------------------------------------------
     # Kept modest because every search/fetch result gets folded into the

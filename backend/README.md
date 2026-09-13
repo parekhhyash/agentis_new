@@ -41,6 +41,7 @@ Edit `.env` and set an API key for whichever provider you're using:
 
 - **Gemini** (default): `GOOGLE_API_KEY` from https://aistudio.google.com/apikey
 - **Groq**: set `LLM_PROVIDER=groq` and `GROQ_API_KEY` from https://console.groq.com/keys
+- **OpenRouter**: set `LLM_PROVIDER=openrouter` and `OPENROUTER_API_KEY` from https://openrouter.ai/keys
 
 ## Run
 

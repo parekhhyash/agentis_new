@@ -57,6 +57,9 @@ def get_model():
         # timeout below.
         return LiteLlm(model=settings.groq_model, reasoning_format="hidden", num_retries=8)
 
+    if settings.llm_provider == "openrouter":
+        return LiteLlm(model=settings.openrouter_model, num_retries=3)
+
     return settings.gemini_model
 
 
