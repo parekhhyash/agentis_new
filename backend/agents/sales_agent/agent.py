@@ -58,7 +58,25 @@ def get_model():
         return LiteLlm(model=settings.groq_model, reasoning_format="hidden", num_retries=8)
 
     if settings.llm_provider == "openrouter":
-        return LiteLlm(model=settings.openrouter_model, num_retries=3)
+        # Pin to the OpenInference fp8 route specifically (cheaper than
+        # OpenRouter's default price/speed-balanced auto-routing across its
+        # ~27 providers for this model). `provider` is an OpenRouter-only
+        # request field - passed via extra_body since it's not a standard
+        # OpenAI-style param, and litellm forwards extra_body as-is to the
+        # underlying HTTP request. allow_fallbacks=False means a run fails
+        # loudly if this route is down rather than silently billing a
+        # pricier provider instead.
+        return LiteLlm(
+            model=settings.openrouter_model,
+            num_retries=3,
+            extra_body={
+                "provider": {
+                    "order": ["open-inference"],
+                    "quantizations": ["fp8"],
+                    "allow_fallbacks": False,
+                }
+            },
+        )
 
     return settings.gemini_model
 
