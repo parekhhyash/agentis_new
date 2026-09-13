@@ -53,8 +53,8 @@ def get_model():
         # backoff is exponential but caps at 8s/step - confirmed via Render
         # logs that 3 retries exhausted in ~2s total, nowhere near the
         # 20-30s Groq's error message says the TPM window needs to clear.
-        # Worst case ~40s of cumulative backoff, well inside the 280s run
-        # timeout below.
+        # Worst case ~40s of cumulative backoff, well inside the run
+        # timeout in config/settings.py.
         return LiteLlm(model=settings.groq_model, reasoning_format="hidden", num_retries=8)
 
     if settings.llm_provider == "openrouter":

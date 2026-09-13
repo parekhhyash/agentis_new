@@ -55,7 +55,7 @@ Then either:
 - `curl -X POST http://localhost:8000/sales-agent/generate-leads -H "Content-Type: application/json" -d '{"query": "Find 5 potential customers for my AI automation product. Focus on startups in India that are likely to need customer-support or sales automation."}'`
 
 A real run takes a while (multiple search + fetch tool calls plus two LLM
-turns) - the default timeout is 240s before the API returns a 504.
+turns) - the default timeout is 590s before the API returns a 504.
 
 ## Deploying (Render)
 

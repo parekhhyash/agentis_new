@@ -2,10 +2,10 @@ import type { LeadGenerationResult } from './salesAgentTypes'
 
 const BASE_URL = import.meta.env.VITE_SALES_AGENT_API_URL ?? 'http://localhost:8000'
 
-// The backend itself gives up after ~240s and returns a 504; give it a
-// little longer than that so its own timeout message wins over a generic
-// client-side abort.
-const REQUEST_TIMEOUT_MS = 260_000
+// The backend itself gives up after ~590s (agent_run_timeout_seconds) and
+// returns a 504; give it a little longer than that so its own timeout
+// message wins over a generic client-side abort.
+const REQUEST_TIMEOUT_MS = 620_000
 
 export class SalesAgentApiError extends Error {}
 

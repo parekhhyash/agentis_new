@@ -38,10 +38,16 @@ class Settings(BaseSettings):
     http_timeout_seconds: float = 15.0
 
     # --- Run-level safeguards -------------------------------------------
-    # Padded above the plain 240s budget to leave room for the automatic
-    # rate-limit retry/backoff on the Groq path (see agent.py's
-    # num_retries) - a 429 mid-run can cost 20-30s of waiting on its own.
-    agent_run_timeout_seconds: float = 280.0
+    # Raised from 280s after a real run on OpenRouter/DeepSeek V4 Flash
+    # timed out mid-research (confirmed via Render logs: still doing
+    # correct tool calls, just not done yet). Unlike Groq's LPU-accelerated
+    # inference, a model routed through OpenRouter to a third-party
+    # provider has ordinary LLM latency per call, and a multi-lead research
+    # loop needs many sequential search/fetch/reason round trips - so the
+    # wall-clock budget has to be generous regardless of which provider is
+    # configured. Keep src/lib/salesAgentApi.ts's client-side timeout above
+    # this value too.
+    agent_run_timeout_seconds: float = 590.0
 
     # --- API --------------------------------------------------------
     # Plain comma-separated string, not list[str]: pydantic-settings always
