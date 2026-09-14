@@ -98,8 +98,8 @@ export type Database = {
     }
     Enums: {
       agent_type:
+        | "lead_research"
         | "sales_outreach"
-        | "web_design"
         | "content_copy"
         | "customer_support"
         | "data_reporting"
@@ -233,8 +233,8 @@ export const Constants = {
   public: {
     Enums: {
       agent_type: [
+        "lead_research",
         "sales_outreach",
-        "web_design",
         "content_copy",
         "customer_support",
         "data_reporting",

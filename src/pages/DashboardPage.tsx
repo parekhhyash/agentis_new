@@ -19,7 +19,7 @@ export default function DashboardPage() {
   const { profile, loading: loadingProfile } = useProfile()
   const [requests, setRequests] = useState<AgentRequest[]>([])
   const [loadingRequests, setLoadingRequests] = useState(true)
-  const [agentType, setAgentType] = useState<AgentType>('sales_outreach')
+  const [agentType, setAgentType] = useState<AgentType>('lead_research')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
@@ -130,9 +130,9 @@ export default function DashboardPage() {
     setRequests((prev) => [data, ...prev])
     setSelectedId(data.id)
 
-    // Only Sales & Outreach has a real agent behind it right now - other
+    // Only Lead Research has a real agent behind it right now - other
     // categories just sit in the queue until their agents are built.
-    if (agentType !== 'sales_outreach') return
+    if (agentType !== 'lead_research') return
 
     // Fire-and-forget: a real run takes minutes, so the composer shouldn't
     // stay locked waiting for it. Status updates flow back via updateRequest.

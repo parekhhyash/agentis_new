@@ -73,26 +73,26 @@ export default function Features() {
       </div>
 
       <div className="mx-auto mt-16 grid max-w-5xl grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Sales & Outreach — white, wide, email mockup */}
+        {/* Lead Research — white, wide, email mockup */}
         <div className="relative col-span-1 overflow-hidden rounded-2xl border border-slate-200 bg-white p-7 pb-24 shadow-sm sm:col-span-2">
           <h3 className="max-w-[60%] text-xl font-semibold text-slate-900">
-            Sales &amp; Outreach
+            Lead Research
           </h3>
           <p className="mt-2 max-w-[60%] text-[15px] leading-relaxed text-slate-600">
-            Draft sequences, qualify leads, and book meetings — your pipeline
-            keeps moving while you sleep.
+            Find and qualify real companies as sales leads — your pipeline
+            keeps filling while you sleep.
           </p>
           <EmailMockup />
         </div>
 
-        {/* Web Design — solid sky, wide, browser mockup */}
+        {/* Sales & Outreach — solid sky, wide, browser mockup */}
         <div className="relative col-span-1 overflow-hidden rounded-2xl bg-sky-600 p-7 pb-24 sm:col-span-2">
           <h3 className="max-w-[60%] text-xl font-semibold text-white">
-            Web Design
+            Sales &amp; Outreach
           </h3>
           <p className="mt-2 max-w-[60%] text-[15px] leading-relaxed text-white/80">
-            Hand off a brief and get a production-ready page, styled and
-            responsive, in minutes.
+            Draft sequences, follow up, and book meetings with the leads
+            already qualified for you.
           </p>
           <BrowserMockup />
         </div>

@@ -2,9 +2,9 @@ import {
   BarChartIcon,
   GearIcon,
   HeadsetIcon,
-  LayoutIcon,
   MegaphoneIcon,
   PencilIcon,
+  SearchIcon,
   type IconComponent,
 } from '../components/icons'
 import type { Database } from './database.types'
@@ -18,16 +18,16 @@ export const AGENT_TYPES: {
   icon: IconComponent
 }[] = [
   {
-    value: 'sales_outreach',
-    label: 'Sales & Outreach',
-    description: 'Draft sequences, qualify leads, and book meetings.',
-    icon: MegaphoneIcon,
+    value: 'lead_research',
+    label: 'Lead Research',
+    description: 'Find and qualify real companies as sales leads.',
+    icon: SearchIcon,
   },
   {
-    value: 'web_design',
-    label: 'Web Design',
-    description: 'Production-ready pages, styled and responsive.',
-    icon: LayoutIcon,
+    value: 'sales_outreach',
+    label: 'Sales & Outreach',
+    description: 'Contact and follow up with your qualified leads via email.',
+    icon: MegaphoneIcon,
   },
   {
     value: 'content_copy',

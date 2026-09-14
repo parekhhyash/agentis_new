@@ -23,6 +23,25 @@ export function MonitorIcon({ className }: IconProps) {
   )
 }
 
+export function SearchIcon({ className }: IconProps) {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="m20 20-4.35-4.35" />
+    </svg>
+  )
+}
+
 export function MegaphoneIcon({ className }: IconProps) {
   return (
     <svg

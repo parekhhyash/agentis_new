@@ -97,7 +97,7 @@ export default function TaskComposer({
                   >
                     <agent.icon className="shrink-0" />
                     <span className="min-w-0 flex-1 truncate">{agent.label}</span>
-                    {agent.value !== 'sales_outreach' && (
+                    {agent.value !== 'lead_research' && (
                       <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
                         Soon
                       </span>
