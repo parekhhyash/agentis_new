@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ChevronDownIcon } from '../icons'
 import type { AgentProgress } from '../../lib/salesAgentTypes'
 
 function useElapsedSeconds(startedAt: string | null): number {
@@ -32,6 +33,7 @@ export default function AgentProgressView({
 }) {
   const elapsed = useElapsedSeconds(startedAt)
   const steps = progress?.steps ?? []
+  const [expanded, setExpanded] = useState(false)
 
   return (
     <div>
@@ -46,25 +48,38 @@ export default function AgentProgressView({
       </div>
 
       {steps.length > 0 && (
-        <ul className="mt-3 max-h-48 space-y-1.5 overflow-y-auto border-l border-slate-200 pl-3">
-          {steps.map((step, i) => {
-            const isLast = i === steps.length - 1
-            return (
-              <li key={`${step.at}-${i}`} className="flex items-start gap-1.5 text-xs">
-                <span className="mt-0.5 shrink-0">
-                  {isLast ? (
-                    <span className="block h-1.5 w-1.5 animate-pulse rounded-full bg-sky-500" />
-                  ) : (
-                    <span className="text-green-600">&#10003;</span>
-                  )}
-                </span>
-                <span className={isLast ? 'font-medium text-slate-700' : 'text-slate-400'}>
-                  {step.label}
-                </span>
-              </li>
-            )
-          })}
-        </ul>
+        <>
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="mt-2 flex items-center gap-1 text-xs font-medium text-slate-400 transition-colors hover:text-slate-600"
+          >
+            <ChevronDownIcon className={`transition-transform ${expanded ? 'rotate-180' : ''}`} />
+            {expanded ? 'Hide steps' : `Show ${steps.length} step${steps.length === 1 ? '' : 's'}`}
+          </button>
+
+          {expanded && (
+            <ul className="mt-2 max-h-48 space-y-1.5 overflow-y-auto border-l border-slate-200 pl-3">
+              {steps.map((step, i) => {
+                const isLast = i === steps.length - 1
+                return (
+                  <li key={`${step.at}-${i}`} className="flex items-start gap-1.5 text-xs">
+                    <span className="mt-0.5 shrink-0">
+                      {isLast ? (
+                        <span className="block h-1.5 w-1.5 animate-pulse rounded-full bg-sky-500" />
+                      ) : (
+                        <span className="text-green-600">&#10003;</span>
+                      )}
+                    </span>
+                    <span className={isLast ? 'font-medium text-slate-700' : 'text-slate-400'}>
+                      {step.label}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </>
       )}
     </div>
   )
