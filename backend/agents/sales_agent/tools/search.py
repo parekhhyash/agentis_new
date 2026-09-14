@@ -55,7 +55,19 @@ async def search_web(query: str, max_results: int = 8) -> dict:
             return ddgs.text(query, max_results=capped_max_results, backend=_SEARCH_BACKENDS)
 
     try:
-        raw_results = await asyncio.to_thread(_run_search)
+        # ddgs's own timeout, like httpx's, only bounds a single socket
+        # read - not the whole call - so a backend that stalls mid-response
+        # could otherwise hang this past its configured timeout (same class
+        # of bug fixed in fetch_webpage's fetch, after that one hung for 7+
+        # minutes on a single slow site). This wait_for is a second,
+        # wall-clock-total backstop: the awaiting task moves on even if the
+        # orphaned background thread itself takes longer to unwind.
+        raw_results = await asyncio.wait_for(
+            asyncio.to_thread(_run_search), timeout=settings.http_timeout_seconds * 2
+        )
+    except asyncio.TimeoutError:
+        logger.warning("search_web timed out for query=%r", query)
+        return {"status": "error", "error_message": "Search took too long"}
     except DDGSException as exc:
         logger.warning("search_web failed for query=%r: %s", query, exc)
         return {"status": "error", "error_message": f"Search failed: {exc}"}

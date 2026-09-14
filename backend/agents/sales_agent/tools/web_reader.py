@@ -6,6 +6,7 @@ tool's job; deciding what that text *means* for lead qualification is left
 to the LLM, which sees the extracted text and reasons over it directly.
 """
 
+import asyncio
 import logging
 import re
 from urllib.parse import urljoin
@@ -88,7 +89,25 @@ async def fetch_webpage(url: str) -> dict:
             timeout=settings.http_timeout_seconds,
             follow_redirects=True,
         ) as client:
-            response = await client.get(url)
+            # httpx's own `timeout` is per read/write/connect operation, not
+            # total elapsed time - a server that trickles bytes slowly keeps
+            # resetting it, so a single pathological site can hang far past
+            # http_timeout_seconds and eat the whole run's time budget
+            # (confirmed live: one fetch stuck for 7+ minutes on one URL,
+            # well past the configured 15s). Wrap the whole request in an
+            # explicit wall-clock cap so that can never happen again.
+            response = await asyncio.wait_for(
+                client.get(url), timeout=settings.http_timeout_seconds
+            )
+    except asyncio.TimeoutError:
+        logger.warning(
+            "fetch_webpage timed out for url=%r after %.0fs total",
+            url, settings.http_timeout_seconds,
+        )
+        return {
+            "status": "error",
+            "error_message": f"Page took too long to load (over {settings.http_timeout_seconds:.0f}s)",
+        }
     except httpx.HTTPError as exc:
         logger.warning("fetch_webpage failed for url=%r: %s", url, exc)
         return {"status": "error", "error_message": f"Could not fetch page: {exc}"}
