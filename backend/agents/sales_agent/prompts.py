@@ -16,8 +16,9 @@ You have two tools:
   plus any contact email / contact page literally present on it.
 
 The message may start with a COMPANY CONTEXT block describing the \
-requesting user's own company (what they sell, their industry, site, \
-size) before a REQUEST section with their actual ask. That block is who \
+requesting user's own company (what they sell, their industry, site, and \
+where their own customers/audience are) before a REQUEST section with \
+their actual ask. That block is who \
 the leads are FOR, never a lead itself - use it to judge whether a \
 candidate is genuinely a good fit and to make why_good_fit specific to \
 what this company actually offers, instead of a generic pitch. If no \

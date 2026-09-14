@@ -57,35 +57,35 @@ export type Database = {
         Row: {
           company_description: string | null
           company_name: string | null
-          company_size: string | null
           company_website: string | null
           created_at: string
           full_name: string
           id: string
           industry: string | null
           onboarding_completed: boolean
+          target_audience_location: string | null
         }
         Insert: {
           company_description?: string | null
           company_name?: string | null
-          company_size?: string | null
           company_website?: string | null
           created_at?: string
           full_name: string
           id: string
           industry?: string | null
           onboarding_completed?: boolean
+          target_audience_location?: string | null
         }
         Update: {
           company_description?: string | null
           company_name?: string | null
-          company_size?: string | null
           company_website?: string | null
           created_at?: string
           full_name?: string
           id?: string
           industry?: string | null
           onboarding_completed?: boolean
+          target_audience_location?: string | null
         }
         Relationships: []
       }

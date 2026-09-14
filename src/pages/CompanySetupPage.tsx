@@ -43,7 +43,7 @@ export default function CompanySetupPage() {
         company_name: name,
         company_website: values.companyWebsite.trim() || null,
         industry: values.industry.trim() || null,
-        company_size: values.companySize || null,
+        target_audience_location: values.targetAudienceLocation || null,
         company_description: values.companyDescription.trim() || null,
         onboarding_completed: true,
       })

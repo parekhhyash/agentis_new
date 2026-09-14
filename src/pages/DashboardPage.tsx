@@ -89,7 +89,7 @@ export default function DashboardPage() {
           company_name: profile?.company_name,
           company_website: profile?.company_website,
           industry: profile?.industry,
-          company_size: profile?.company_size,
+          target_audience_location: profile?.target_audience_location,
           company_description: profile?.company_description,
         },
         controller.signal,

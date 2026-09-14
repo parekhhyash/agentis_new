@@ -13,7 +13,7 @@ export interface CompanyContext {
   company_name?: string | null
   company_website?: string | null
   industry?: string | null
-  company_size?: string | null
+  target_audience_location?: string | null
   company_description?: string | null
 }
 

@@ -35,7 +35,7 @@ _CONTEXT_FIELD_LABELS = {
     "company_name": "Name",
     "company_website": "Website",
     "industry": "Industry",
-    "company_size": "Size",
+    "target_audience_location": "Target audience location",
     "company_description": "What they do",
 }
 

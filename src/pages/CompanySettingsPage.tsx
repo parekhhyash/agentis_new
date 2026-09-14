@@ -23,7 +23,7 @@ export default function CompanySettingsPage() {
       companyName: profile.company_name ?? '',
       companyWebsite: profile.company_website ?? '',
       industry: profile.industry ?? '',
-      companySize: profile.company_size ?? '',
+      targetAudienceLocation: profile.target_audience_location ?? '',
       companyDescription: profile.company_description ?? '',
     })
   }, [profile])
@@ -57,7 +57,7 @@ export default function CompanySettingsPage() {
         company_name: name,
         company_website: values.companyWebsite.trim() || null,
         industry: values.industry.trim() || null,
-        company_size: values.companySize || null,
+        target_audience_location: values.targetAudienceLocation || null,
         company_description: values.companyDescription.trim() || null,
       })
       .eq('id', user.id)

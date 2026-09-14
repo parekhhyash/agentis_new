@@ -1,10 +1,10 @@
-const COMPANY_SIZES = ['1-10', '11-50', '51-200', '201-1000', '1000+']
+import { COUNTRIES } from '../lib/countries'
 
 export type CompanyDetailsValues = {
   companyName: string
   companyWebsite: string
   industry: string
-  companySize: string
+  targetAudienceLocation: string
   companyDescription: string
 }
 
@@ -13,7 +13,7 @@ export function emptyCompanyDetails(): CompanyDetailsValues {
     companyName: '',
     companyWebsite: '',
     industry: '',
-    companySize: '',
+    targetAudienceLocation: '',
     companyDescription: '',
   }
 }
@@ -74,19 +74,20 @@ export default function CompanyDetailsForm({
         </div>
 
         <div>
-          <label htmlFor="company-size" className="text-sm font-medium text-slate-700">
-            Company size
+          <label htmlFor="target-audience-location" className="text-sm font-medium text-slate-700">
+            Where are your customers?
           </label>
           <select
-            id="company-size"
-            value={values.companySize}
-            onChange={(e) => onChange({ companySize: e.target.value })}
+            id="target-audience-location"
+            value={values.targetAudienceLocation}
+            onChange={(e) => onChange({ targetAudienceLocation: e.target.value })}
             className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 focus:outline-none"
           >
             <option value="">Select...</option>
-            {COMPANY_SIZES.map((size) => (
-              <option key={size} value={size}>
-                {size} employees
+            <option value="Global">Global</option>
+            {COUNTRIES.map((country) => (
+              <option key={country} value={country}>
+                {country}
               </option>
             ))}
           </select>

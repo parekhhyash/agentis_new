@@ -9,7 +9,7 @@ class CompanyContext(BaseModel):
     company_name: str | None = None
     company_website: str | None = None
     industry: str | None = None
-    company_size: str | None = None
+    target_audience_location: str | None = None
     company_description: str | None = None
 
 
