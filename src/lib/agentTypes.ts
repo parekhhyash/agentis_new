@@ -2,6 +2,7 @@ import {
   BarChartIcon,
   GearIcon,
   HeadsetIcon,
+  HierarchyIcon,
   MegaphoneIcon,
   PencilIcon,
   SearchIcon,
@@ -28,6 +29,12 @@ export const AGENT_TYPES: {
     label: 'Sales & Outreach',
     description: 'Contact and follow up with your qualified leads via email.',
     icon: MegaphoneIcon,
+  },
+  {
+    value: 'manager',
+    label: 'Manager',
+    description: 'Coordinates other agents to get multi-step work done.',
+    icon: HierarchyIcon,
   },
   {
     value: 'content_copy',

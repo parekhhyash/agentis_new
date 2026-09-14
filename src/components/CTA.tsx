@@ -1,7 +1,10 @@
 import { Link } from 'react-router-dom'
+import { useAuth } from '../lib/AuthContext'
 import SectionLink from './SectionLink'
 
 export default function CTA() {
+  const { user } = useAuth()
+
   return (
     <section id="get-started" className="bg-white px-4 pt-24 sm:pt-32">
       <div className="mx-auto max-w-3xl rounded-3xl border border-sky-100 bg-sky-50 px-8 py-16 text-center sm:px-16">
@@ -13,10 +16,10 @@ export default function CTA() {
           task and watch Agentis take it from there.
         </p>
         <Link
-          to="/signup"
+          to={user ? '/dashboard' : '/signup'}
           className="mt-8 inline-flex items-center justify-center rounded-full bg-sky-600 px-7 py-3 text-[15px] font-semibold text-white transition-colors hover:bg-sky-700"
         >
-          Get started free
+          {user ? 'Go to dashboard' : 'Get started free'}
         </Link>
       </div>
 

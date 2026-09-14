@@ -100,6 +100,7 @@ export type Database = {
       agent_type:
         | "lead_research"
         | "sales_outreach"
+        | "manager"
         | "content_copy"
         | "customer_support"
         | "data_reporting"
@@ -235,6 +236,7 @@ export const Constants = {
       agent_type: [
         "lead_research",
         "sales_outreach",
+        "manager",
         "content_copy",
         "customer_support",
         "data_reporting",

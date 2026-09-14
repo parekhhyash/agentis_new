@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import authBg from '../assets/auth-bg-signup.png'
 import AuthLayout from '../components/AuthLayout'
 import { GoogleIcon } from '../components/icons'
 import { useAuth } from '../lib/AuthContext'
 
 export default function SignupPage() {
-  const { signUp } = useAuth()
+  const { user, loading, signUp } = useAuth()
   const navigate = useNavigate()
 
   const [fullName, setFullName] = useState('')
@@ -15,6 +15,10 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null)
   const [checkEmail, setCheckEmail] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+
+  if (!loading && user) {
+    return <Navigate to="/dashboard" replace />
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

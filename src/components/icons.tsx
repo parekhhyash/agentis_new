@@ -42,6 +42,28 @@ export function SearchIcon({ className }: IconProps) {
   )
 }
 
+export function HierarchyIcon({ className }: IconProps) {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <rect x="8.5" y="2.5" width="7" height="5" rx="1.5" />
+      <rect x="2.5" y="16" width="7" height="5" rx="1.5" />
+      <rect x="14.5" y="16" width="7" height="5" rx="1.5" />
+      <path d="M12 7.5v4" />
+      <path d="M6 16v-2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2" />
+    </svg>
+  )
+}
+
 export function MegaphoneIcon({ className }: IconProps) {
   return (
     <svg
