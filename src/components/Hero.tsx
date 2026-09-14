@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import heroBg from '../assets/hero-bg.png'
+import { createAgentRequest, runLeadResearchAgent } from '../lib/agentRuns'
 import { AGENT_TYPES, type AgentType } from '../lib/agentTypes'
 import { useAuth } from '../lib/AuthContext'
+import { useProfile } from '../lib/useProfile'
 import { ArrowUpIcon, ChevronDownIcon } from './icons'
 import SectionLink from './SectionLink'
 
@@ -69,19 +71,51 @@ function autoResize(el: HTMLTextAreaElement | null) {
 
 function PromptBox() {
   const { user } = useAuth()
+  const { profile } = useProfile()
   const navigate = useNavigate()
 
   const [value, setValue] = useState('')
   const [agentType, setAgentType] = useState<AgentType>('lead_research')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const selectedAgent = AGENT_TYPES.find((a) => a.value === agentType) ?? AGENT_TYPES[0]
   const SelectedIcon = selectedAgent.icon
 
-  const submit = () => {
-    if (value.trim().length === 0) return
-    navigate(user ? '/dashboard' : '/signup')
+  async function submit() {
+    const prompt = value.trim()
+    if (!prompt || submitting) return
+
+    if (!user) {
+      navigate('/signup')
+      return
+    }
+
+    setSubmitting(true)
+    const data = await createAgentRequest(user.id, agentType, prompt)
+    setSubmitting(false)
+
+    if (!data) return
+
+    // Only Lead Research has a real agent behind it right now - other
+    // categories just sit in the queue until their agents are built.
+    if (agentType === 'lead_research') {
+      // Fire-and-forget: this keeps running after we navigate away, since
+      // the abort-controller registry in lib/agentRuns.ts is a module-level
+      // singleton, not tied to this component's lifecycle.
+      void runLeadResearchAgent(data.id, prompt, {
+        company_name: profile?.company_name,
+        company_website: profile?.company_website,
+        industry: profile?.industry,
+        target_audience_location: profile?.target_audience_location,
+        company_description: profile?.company_description,
+      })
+    }
+
+    // DashboardPage defaults to selecting the most recently created
+    // request, so it'll pick this one up as soon as it mounts.
+    navigate('/dashboard')
   }
 
   return (
@@ -151,7 +185,7 @@ function PromptBox() {
           type="button"
           aria-label="Submit"
           onClick={submit}
-          disabled={value.trim().length === 0}
+          disabled={submitting || value.trim().length === 0}
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-sky-400 text-sky-500 transition-colors hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <ArrowUpIcon />

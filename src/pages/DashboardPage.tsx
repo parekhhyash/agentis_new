@@ -5,10 +5,10 @@ import ProfileMenu from '../components/dashboard/ProfileMenu'
 import RequestSidebar from '../components/dashboard/RequestSidebar'
 import TaskComposer from '../components/dashboard/TaskComposer'
 import { CloseIcon, MenuIcon, PlusIcon } from '../components/icons'
+import { createAgentRequest, runLeadResearchAgent, stopAgentRun } from '../lib/agentRuns'
 import type { AgentType } from '../lib/agentTypes'
 import { useAuth } from '../lib/AuthContext'
-import type { Json, Tables } from '../lib/database.types'
-import { cancelLeadsGeneration, generateLeads, SalesAgentApiError } from '../lib/salesAgentApi'
+import type { Tables } from '../lib/database.types'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../lib/useProfile'
 
@@ -36,8 +36,6 @@ export default function DashboardPage() {
         setSelectedId((current) => current ?? data?.[0]?.id ?? null)
       })
   }, [user])
-
-  const abortControllersRef = useRef<Map<string, AbortController>>(new Map())
 
   const requestsRef = useRef<AgentRequest[]>(requests)
   useEffect(() => {
@@ -70,63 +68,11 @@ export default function DashboardPage() {
     setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)))
   }
 
-  async function runSalesAgent(requestId: string, prompt: string) {
-    const startedAt = new Date().toISOString()
-    await supabase
-      .from('agent_requests')
-      .update({ status: 'in_progress', started_at: startedAt })
-      .eq('id', requestId)
-    updateRequest(requestId, { status: 'in_progress', started_at: startedAt })
-
-    const controller = new AbortController()
-    abortControllersRef.current.set(requestId, controller)
-
-    try {
-      const result = await generateLeads(
-        prompt,
-        requestId,
-        {
-          company_name: profile?.company_name,
-          company_website: profile?.company_website,
-          industry: profile?.industry,
-          target_audience_location: profile?.target_audience_location,
-          company_description: profile?.company_description,
-        },
-        controller.signal,
-      )
-      await supabase
-        .from('agent_requests')
-        .update({ status: 'completed', result: result as unknown as Json })
-        .eq('id', requestId)
-      updateRequest(requestId, { status: 'completed', result: result as unknown as Json })
-    } catch (err) {
-      const message =
-        err instanceof SalesAgentApiError ? err.message : 'Unexpected error running the agent.'
-      await supabase
-        .from('agent_requests')
-        .update({ status: 'failed', error: message })
-        .eq('id', requestId)
-      updateRequest(requestId, { status: 'failed', error: message })
-    } finally {
-      abortControllersRef.current.delete(requestId)
-    }
-  }
-
-  function stopSalesAgent(requestId: string) {
-    abortControllersRef.current.get(requestId)?.abort()
-    void cancelLeadsGeneration(requestId)
-  }
-
   async function handleSubmit(prompt: string) {
     if (!user) return
 
-    const { data, error } = await supabase
-      .from('agent_requests')
-      .insert({ user_id: user.id, agent_type: agentType, prompt })
-      .select()
-      .single()
-
-    if (error || !data) return
+    const data = await createAgentRequest(user.id, agentType, prompt)
+    if (!data) return
     setRequests((prev) => [data, ...prev])
     setSelectedId(data.id)
 
@@ -136,7 +82,18 @@ export default function DashboardPage() {
 
     // Fire-and-forget: a real run takes minutes, so the composer shouldn't
     // stay locked waiting for it. Status updates flow back via updateRequest.
-    void runSalesAgent(data.id, prompt)
+    void runLeadResearchAgent(
+      data.id,
+      prompt,
+      {
+        company_name: profile?.company_name,
+        company_website: profile?.company_website,
+        industry: profile?.industry,
+        target_audience_location: profile?.target_audience_location,
+        company_description: profile?.company_description,
+      },
+      (patch) => updateRequest(data.id, patch),
+    )
   }
 
   function selectRequest(id: string | null) {
@@ -238,7 +195,7 @@ export default function DashboardPage() {
             isRunning={
               selectedRequest?.status === 'in_progress' || selectedRequest?.status === 'queued'
             }
-            onStop={() => selectedRequest && stopSalesAgent(selectedRequest.id)}
+            onStop={() => selectedRequest && stopAgentRun(selectedRequest.id)}
           />
         </div>
       </main>
