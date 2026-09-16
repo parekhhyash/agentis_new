@@ -16,10 +16,14 @@ from api.models import CompanyContext
 MAX_SEARCH_CALLS = 4
 MAX_FETCH_CALLS = 10
 
-# Mirrors config.settings.agent_run_timeout_seconds, the value actually
-# enforced via asyncio.wait_for in services/agent_runner.py. Kept as a
-# separate literal (not imported from settings) to match the tool-budget
-# constants above - if you change one, change the other.
+# What the researcher is TOLD its deadline is - intentionally less than
+# config.settings.agent_run_timeout_seconds (900s), the value actually
+# enforced via asyncio.wait_for in services/agent_runner.py. The 310s gap
+# is a buffer, not a bug: it covers the structurer's own turn, ADK/network
+# overhead, and any slow-but-not-hung tool call, so a run that's honestly
+# on pace against its own stated budget doesn't get killed right at the
+# wire. If you raise this, agent_run_timeout_seconds should stay well
+# above it, not move in lockstep with it.
 AGENT_TIME_BUDGET_SECONDS = 590
 
 

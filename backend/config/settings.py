@@ -47,7 +47,15 @@ class Settings(BaseSettings):
     # wall-clock budget has to be generous regardless of which provider is
     # configured. Keep src/lib/salesAgentApi.ts's client-side timeout above
     # this value too.
-    agent_run_timeout_seconds: float = 590.0
+    #
+    # Deliberately set higher than prompts.AGENT_TIME_BUDGET_SECONDS (590s,
+    # what the researcher is actually told its deadline is) - the 310s gap
+    # is slack for the structurer's own turn, ADK/network overhead, and any
+    # slow-but-not-hung tool calls, so a run that's genuinely on pace per
+    # its own stated budget doesn't get cut off right at the wire. This is
+    # the real kill switch, not a target - the agent should still finish
+    # well before it via its own budget.
+    agent_run_timeout_seconds: float = 900.0
 
     # --- Live progress reporting -----------------------------------------
     # Optional: lets the agent push step-by-step progress (current tool
