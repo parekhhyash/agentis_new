@@ -29,6 +29,7 @@ from agents.sales_agent.prompts import (
 from agents.sales_agent.schemas import LeadGenerationResult
 from agents.sales_agent.tools.search import search_web
 from agents.sales_agent.tools.web_reader import fetch_webpage
+from api.models import CompanyContext
 from config.settings import get_settings
 
 _TOOL_CALL_LIMITS = {"search_web": MAX_SEARCH_CALLS, "fetch_webpage": MAX_FETCH_CALLS}
@@ -123,14 +124,14 @@ def get_model():
     return settings.gemini_model
 
 
-def build_sales_agent_pipeline(company_name: str | None = None) -> SequentialAgent:
+def build_sales_agent_pipeline(company_context: CompanyContext | None = None) -> SequentialAgent:
     model = get_model()
 
     researcher_agent = LlmAgent(
         name="lead_researcher",
         model=model,
         description="Searches the web and qualifies companies as sales leads.",
-        instruction=build_researcher_instruction(company_name),
+        instruction=build_researcher_instruction(company_context),
         tools=[search_web, fetch_webpage],
         before_tool_callback=_make_tool_budget_callback(),
         output_key="research_dossier",

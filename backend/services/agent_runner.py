@@ -31,35 +31,6 @@ _STAGE_LABELS = {
     "lead_structurer": "Structuring the qualified leads into the final report...",
 }
 
-_CONTEXT_FIELD_LABELS = {
-    "company_name": "Name",
-    "company_website": "Website",
-    "industry": "Industry",
-    "target_audience_location": "Target audience location",
-    "company_description": "What they do",
-}
-
-
-def _format_company_context(company_context: CompanyContext | None) -> str | None:
-    """Renders the user's own company profile as a text block to prepend to
-    the query, or None if there's nothing worth including (a brand new
-    profile with every field blank, or no profile supplied at all)."""
-    if company_context is None:
-        return None
-
-    lines = [
-        f"{label}: {value}"
-        for field, label in _CONTEXT_FIELD_LABELS.items()
-        if (value := getattr(company_context, field, None))
-    ]
-    if not lines:
-        return None
-
-    return (
-        "COMPANY CONTEXT (the user's own company - not a lead, use this to "
-        "judge fit and personalize why_good_fit):\n" + "\n".join(lines)
-    )
-
 
 async def run_sales_agent(
     query: str,
@@ -113,16 +84,14 @@ async def _run_pipeline(
 
     # Built fresh per request: agent definitions are cheap, stateless
     # config objects, and this avoids any risk of state leaking across
-    # concurrent requests. company_name (if available) also personalizes
-    # the researcher's own instruction text - see build_researcher_instruction.
-    agent = build_sales_agent_pipeline(
-        company_name=company_context.company_name if company_context else None
-    )
+    # concurrent requests. company_context (if available) is baked directly
+    # into the researcher's own instruction text - see
+    # prompts.build_researcher_instruction - rather than prepended to the
+    # message, so the query itself stays exactly what the user typed.
+    agent = build_sales_agent_pipeline(company_context=company_context)
     runner = Runner(agent=agent, app_name=_APP_NAME, session_service=session_service)
 
-    context_block = _format_company_context(company_context)
-    message_text = f"{context_block}\n\nREQUEST:\n{query}" if context_block else query
-    content = types.Content(role="user", parts=[types.Part(text=message_text)])
+    content = types.Content(role="user", parts=[types.Part(text=query)])
 
     await progress.add_step("Starting up the research agent...")
 

@@ -1,3 +1,5 @@
+from api.models import CompanyContext
+
 # Enforced in code too (see agent.py's before_tool_callback), not just
 # stated here - a before_tool_callback intercepts calls past these counts
 # and returns an error instead of letting them execute, so the researcher
@@ -21,25 +23,61 @@ MAX_FETCH_CALLS = 10
 AGENT_TIME_BUDGET_SECONDS = 590
 
 
-def build_researcher_instruction(company_name: str | None = None) -> str:
-    """`RESEARCHER_INSTRUCTION` was a fixed string naming Agentis itself as
-    the agent's home. Now that the requesting user's own company name is
-    available (see api.models.CompanyContext), the opening line names that
-    company instead - it's who the agent is actually researching leads
-    for - falling back to "Agentis" only when no company name was supplied
-    (e.g. no profile on file yet).
+# Maps CompanyContext field names to a human-readable label for the prompt.
+# company_name is handled separately (it drives the opening line's "inside
+# <name>" framing, not a bullet in this list).
+_CONTEXT_FIELD_LABELS = {
+    "company_website": "Website",
+    "industry": "Industry",
+    "target_audience_location": "Where their customers/audience are",
+    "company_description": "What they do",
+}
+
+
+def build_researcher_instruction(company_context: CompanyContext | None = None) -> str:
+    """Builds the full company profile directly into the instruction text
+    itself - not just the name, and not as a separate block the model has
+    to be told to go find later in the conversation. Every field collected
+    during onboarding (website, industry, target audience location,
+    description) is spelled out right here, up front. Falls back to
+    "Agentis" for the opening line, with no details section, only when no
+    company_context (or an empty one) was supplied.
     """
-    # rstrip a trailing period so a name like "Acme Inc." doesn't produce
-    # "inside Acme Inc.." once the sentence's own period is appended.
-    home = company_name.strip().rstrip(".") if company_name and company_name.strip() else "Agentis"
+    name = None
+    detail_lines: list[str] = []
+
+    if company_context is not None:
+        raw_name = (company_context.company_name or "").strip()
+        # rstrip a trailing period so a name like "Acme Inc." doesn't
+        # produce "inside Acme Inc.." once the sentence's own period lands.
+        name = raw_name.rstrip(".") if raw_name else None
+
+        for field, label in _CONTEXT_FIELD_LABELS.items():
+            value = getattr(company_context, field, None)
+            if value and str(value).strip():
+                detail_lines.append(f"- {label}: {str(value).strip()}")
+
+    home = name or "Agentis"
+
+    details_section = ""
+    if detail_lines:
+        details_section = (
+            f"\n\nAbout {home} - the company you're researching leads FOR, "
+            "never a lead itself:\n" + "\n".join(detail_lines) + "\n\n"
+            f"Use this to judge whether a candidate is genuinely a good "
+            f"fit for {home} and to make why_good_fit specific to what "
+            f"{home} actually offers, instead of a generic pitch."
+        )
 
     return f"""\
 You are a Lead Research agent inside {home}. Given a natural-language \
 lead-generation request, find and qualify REAL companies as sales leads - \
-FAST. You have {AGENT_TIME_BUDGET_SECONDS} seconds total for this task, \
-end to end. Speed matters as much as quality: a shorter list of \
-well-verified leads delivered on time always beats a longer list that \
-never gets returned because you ran out of time.
+FAST.{details_section}
+
+You have {AGENT_TIME_BUDGET_SECONDS} seconds total for this task, end to \
+end. Speed matters as much as quality: a shorter list of well-verified \
+leads delivered on time always beats a longer list that never gets \
+returned because you ran out of time.
 
 TOOLS
 - search_web(query, max_results): search the web for candidate companies.
@@ -55,20 +93,14 @@ either limit, STOP calling tools and go write your output (see the format \
 below). If a call fails, drop it and move on immediately - never retry \
 the same URL or query "just in case."
 
-If a COMPANY CONTEXT block appears before REQUEST in the message, that's \
-the requesting company (never a lead itself) - use it to judge fit and \
-make why_good_fit specific to what they actually sell, not a generic \
-pitch. If no COMPANY CONTEXT block is present, work from the request \
-alone.
-
 ## Step 1 - Plan (no tool calls yet)
 
-From the request (and COMPANY CONTEXT, if present), note: industry, \
-geography, company size/stage, the use case, and how many leads were \
-requested (assume 10 if unstated). Then decide your target investigate \
-count for this run: requested count + 2, capped at {MAX_FETCH_CALLS - 2}. \
-That's how many candidates you'll fetch in Step 3 - decide it now so you \
-don't drift over budget later.
+From the request (and the company info above, if present), note: \
+industry, geography, company size/stage, the use case, and how many \
+leads were requested (assume 10 if unstated). Then decide your target \
+investigate count for this run: requested count + 2, capped at \
+{MAX_FETCH_CALLS - 2}. That's how many candidates you'll fetch in Step 3 \
+- decide it now so you don't drift over budget later.
 
 ## Step 2 - Search (aim for 2-3 calls, never more than {MAX_SEARCH_CALLS})
 
