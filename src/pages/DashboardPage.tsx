@@ -9,10 +9,20 @@ import { createAgentRequest, runLeadResearchAgent, stopAgentRun } from '../lib/a
 import type { AgentType } from '../lib/agentTypes'
 import { useAuth } from '../lib/AuthContext'
 import type { Tables } from '../lib/database.types'
+import { CLIENT_TIMEOUT_MESSAGE, STOPPED_BY_USER_MESSAGE } from '../lib/salesAgentApi'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../lib/useProfile'
 
 type AgentRequest = Tables<'agent_requests'>
+
+const CLIENT_SIDE_FAILURE_MESSAGES = new Set([CLIENT_TIMEOUT_MESSAGE, STOPPED_BY_USER_MESSAGE])
+
+// A little past the backend's own real timeout (900s) - the backend is the
+// source of truth for how a run actually ended (see finalize_request in
+// request_store.py), so a row this browser marked 'failed' on its own
+// timeout is still worth re-checking until the backend has had its full
+// window to write its own final answer.
+const CLIENT_SIDE_FAILURE_GRACE_MS = 950_000
 
 export default function DashboardPage() {
   const { user } = useAuth()
@@ -45,14 +55,29 @@ export default function DashboardPage() {
   // The backend pushes live progress straight to Supabase as it runs (see
   // ProgressTracker in the Python service) - poll the in-progress rows so
   // the chat view can show it updating instead of just a static spinner.
+  //
+  // Also keep polling a row this browser itself just marked 'failed' on a
+  // client-side timeout/stop: the backend may still be running (its own
+  // timeout is longer than the frontend's on purpose - see
+  // salesAgentApi.ts) and can correct that guess later via finalize_request
+  // once it actually finishes. Without this, a run that times out on the
+  // client but succeeds on the backend gets stuck showing "cancelled"
+  // forever, even though real results are sitting in Supabase.
   useEffect(() => {
     const interval = setInterval(async () => {
-      const inProgressIds = requestsRef.current
-        .filter((r) => r.status === 'in_progress')
+      const watchIds = requestsRef.current
+        .filter((r) => {
+          if (r.status === 'in_progress') return true
+          if (r.status === 'failed' && r.error && CLIENT_SIDE_FAILURE_MESSAGES.has(r.error)) {
+            const startedAt = r.started_at ? new Date(r.started_at).getTime() : null
+            return startedAt !== null && Date.now() - startedAt < CLIENT_SIDE_FAILURE_GRACE_MS
+          }
+          return false
+        })
         .map((r) => r.id)
-      if (inProgressIds.length === 0) return
+      if (watchIds.length === 0) return
 
-      const { data } = await supabase.from('agent_requests').select('*').in('id', inProgressIds)
+      const { data } = await supabase.from('agent_requests').select('*').in('id', watchIds)
       if (!data) return
       setRequests((prev) => prev.map((r) => data.find((d) => d.id === r.id) ?? r))
     }, 2000)

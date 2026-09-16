@@ -9,6 +9,14 @@ const REQUEST_TIMEOUT_MS = 920_000
 
 export class SalesAgentApiError extends Error {}
 
+// Exported so callers (DashboardPage's polling) can recognize a failure as
+// client-side in origin - i.e. this browser gave up, not the backend - and
+// know it's still worth re-checking the row later in case the backend was
+// still running and eventually writes a different, real final status via
+// finalize_request.
+export const STOPPED_BY_USER_MESSAGE = 'Stopped by you.'
+export const CLIENT_TIMEOUT_MESSAGE = 'The request took too long and was cancelled.'
+
 export interface CompanyContext {
   company_name?: string | null
   company_website?: string | null
@@ -57,7 +65,7 @@ export async function generateLeads(
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') {
       throw new SalesAgentApiError(
-        stoppedByCaller ? 'Stopped by you.' : 'The request took too long and was cancelled.',
+        stoppedByCaller ? STOPPED_BY_USER_MESSAGE : CLIENT_TIMEOUT_MESSAGE,
       )
     }
     throw new SalesAgentApiError(

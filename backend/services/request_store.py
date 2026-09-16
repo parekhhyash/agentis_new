@@ -42,11 +42,11 @@ async def finalize_request(
     if not settings.supabase_url or not settings.supabase_service_role_key:
         return
 
-    body: dict[str, Any] = {"status": status}
-    if result is not None:
-        body["result"] = result
-    if error is not None:
-        body["error"] = error
+    # Always set both keys, not just the one that's meaningful for this
+    # outcome - a run that later succeeds after this browser already wrote
+    # a client-side "failed" guess (see DashboardPage's polling) needs its
+    # stale error cleared, not left dangling next to a completed status.
+    body: dict[str, Any] = {"status": status, "result": result, "error": error}
 
     url = f"{settings.supabase_url}/rest/v1/agent_requests"
     headers = {
