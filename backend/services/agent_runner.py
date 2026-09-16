@@ -113,8 +113,11 @@ async def _run_pipeline(
 
     # Built fresh per request: agent definitions are cheap, stateless
     # config objects, and this avoids any risk of state leaking across
-    # concurrent requests.
-    agent = build_sales_agent_pipeline()
+    # concurrent requests. company_name (if available) also personalizes
+    # the researcher's own instruction text - see build_researcher_instruction.
+    agent = build_sales_agent_pipeline(
+        company_name=company_context.company_name if company_context else None
+    )
     runner = Runner(agent=agent, app_name=_APP_NAME, session_service=session_service)
 
     context_block = _format_company_context(company_context)

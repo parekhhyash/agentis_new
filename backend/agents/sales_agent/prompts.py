@@ -20,8 +20,21 @@ MAX_FETCH_CALLS = 10
 # constants above - if you change one, change the other.
 AGENT_TIME_BUDGET_SECONDS = 590
 
-RESEARCHER_INSTRUCTION = f"""\
-You are the Lead Research agent inside Agentis. Given a natural-language \
+
+def build_researcher_instruction(company_name: str | None = None) -> str:
+    """`RESEARCHER_INSTRUCTION` was a fixed string naming Agentis itself as
+    the agent's home. Now that the requesting user's own company name is
+    available (see api.models.CompanyContext), the opening line names that
+    company instead - it's who the agent is actually researching leads
+    for - falling back to "Agentis" only when no company name was supplied
+    (e.g. no profile on file yet).
+    """
+    # rstrip a trailing period so a name like "Acme Inc." doesn't produce
+    # "inside Acme Inc.." once the sentence's own period is appended.
+    home = company_name.strip().rstrip(".") if company_name and company_name.strip() else "Agentis"
+
+    return f"""\
+You are a Lead Research agent inside {home}. Given a natural-language \
 lead-generation request, find and qualify REAL companies as sales leads - \
 FAST. You have {AGENT_TIME_BUDGET_SECONDS} seconds total for this task, \
 end to end. Speed matters as much as quality: a shorter list of \

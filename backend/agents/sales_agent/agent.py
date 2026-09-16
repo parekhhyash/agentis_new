@@ -7,7 +7,8 @@ turn). So:
 
 1. `researcher_agent` - has the search/fetch tools, does the actual open-
    ended research and qualification, and writes its findings as a plain-
-   text dossier (see prompts.RESEARCHER_INSTRUCTION for the exact format).
+   text dossier (see prompts.build_researcher_instruction for the exact
+   format).
 2. `structuring_agent` - has no tools, only `output_schema`, and its sole
    job is converting that dossier into schema-valid JSON.
 
@@ -22,8 +23,8 @@ from google.adk.models.lite_llm import LiteLlm
 from agents.sales_agent.prompts import (
     MAX_FETCH_CALLS,
     MAX_SEARCH_CALLS,
-    RESEARCHER_INSTRUCTION,
     STRUCTURER_INSTRUCTION,
+    build_researcher_instruction,
 )
 from agents.sales_agent.schemas import LeadGenerationResult
 from agents.sales_agent.tools.search import search_web
@@ -34,7 +35,7 @@ _TOOL_CALL_LIMITS = {"search_web": MAX_SEARCH_CALLS, "fetch_webpage": MAX_FETCH_
 
 
 def _make_tool_budget_callback():
-    """Hard, code-enforced backstop for RESEARCHER_INSTRUCTION's stated tool
+    """Hard, code-enforced backstop for build_researcher_instruction's stated tool
     budget - a weaker/quantized model won't always obey a prompt telling it
     to stop, so once a limit is hit this intercepts the call (via ADK's
     before_tool_callback) and returns an error instead of letting the real
@@ -122,14 +123,14 @@ def get_model():
     return settings.gemini_model
 
 
-def build_sales_agent_pipeline() -> SequentialAgent:
+def build_sales_agent_pipeline(company_name: str | None = None) -> SequentialAgent:
     model = get_model()
 
     researcher_agent = LlmAgent(
         name="lead_researcher",
         model=model,
         description="Searches the web and qualifies companies as sales leads.",
-        instruction=RESEARCHER_INSTRUCTION,
+        instruction=build_researcher_instruction(company_name),
         tools=[search_web, fetch_webpage],
         before_tool_callback=_make_tool_budget_callback(),
         output_key="research_dossier",
