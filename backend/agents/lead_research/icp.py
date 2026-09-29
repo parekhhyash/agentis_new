@@ -44,6 +44,7 @@ class ICPAnalyzer:
             if icp.discovery_queries:
                 icp.num_leads = min(icp.num_leads, budget.max_leads)
                 return icp
+            logger.warning("ICP analysis attempt %d had no discovery_queries; keys=%s", attempt + 1, sorted(data))
             user += "\n\nYou returned no discovery_queries. Include them."
         raise ResearchFailedError("Could not understand the lead request well enough to start searching")
 

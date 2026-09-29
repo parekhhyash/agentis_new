@@ -34,12 +34,43 @@ class ICP(BaseModel):
         except (TypeError, ValueError):
             return 10
 
+    @field_validator("summary", "use_case", mode="before")
+    @classmethod
+    def _coerce_text(cls, value: object) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, list):
+            return "; ".join(str(v) for v in value)
+        return str(value)
+
+    @field_validator("company_size", mode="before")
+    @classmethod
+    def _coerce_size(cls, value: object) -> str | None:
+        if value is None or value == "":
+            return None
+        if isinstance(value, list):
+            return ", ".join(str(v) for v in value) or None
+        return str(value)
+
     @field_validator("discovery_queries", mode="before")
     @classmethod
     def _coerce_queries(cls, value: object) -> list:
+        # Models vary the item shape ("q"/"text" keys, bare strings); keep
+        # whatever carries a query and drop the rest instead of failing the ICP.
+        if isinstance(value, str):
+            value = [value]
         if not isinstance(value, list):
             return []
-        return [{"query": item} if isinstance(item, str) else item for item in value]
+        queries = []
+        for item in value:
+            if isinstance(item, str):
+                item = {"query": item}
+            if not isinstance(item, dict):
+                continue
+            text = next((item[k] for k in ("query", "q", "text", "search", "description") if isinstance(item.get(k), str)), None)
+            if text and text.strip():
+                queries.append({"query": text.strip(), "angle": str(item.get("angle") or "company")})
+        return queries
 
     @field_validator(
         "industries", "geographies", "must_have", "nice_to_have", "exclusions",

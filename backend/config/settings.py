@@ -38,6 +38,14 @@ class Settings(BaseSettings):
     llm_fast_model: str | None = None
     llm_strong_model: str | None = None
     llm_timeout_seconds: float = 60.0
+    # Extra max_tokens headroom on every call for models that think before
+    # answering (Gemini Flash, gpt-oss, DeepSeek): their hidden reasoning counts
+    # against max_tokens, so without this they can run out before any JSON.
+    llm_reasoning_token_allowance: int = 4096
+    # Reasoning effort requested from those models ("low" keeps each call to
+    # seconds instead of ~1 min; the tasks are extraction/classification).
+    # Empty = provider default.
+    llm_reasoning_effort: Literal["", "low", "medium", "high"] = "low"
 
     # --- Lead research ------------------------------------------------
     exa_api_key: str | None = None

@@ -77,7 +77,9 @@ Set in `.env`:
 - `EXA_API_KEY` (required) from https://dashboard.exa.ai/api-keys
 - an LLM key matching `LLM_PROVIDER`: `GOOGLE_API_KEY` (gemini), `GROQ_API_KEY`
   (groq) or `OPENROUTER_API_KEY` (openrouter). Optionally `LLM_FAST_MODEL` /
-  `LLM_STRONG_MODEL` to use a cheaper model for screening.
+  `LLM_STRONG_MODEL` to use a cheaper model for screening, and
+  `LLM_REASONING_EFFORT` (default `low`) / `LLM_REASONING_TOKEN_ALLOWANCE` for
+  models that think before answering.
 - budgets via `LEAD_RESEARCH_BUDGET__<FIELD>` (see `.env.example`).
 
 ## Run & test
