@@ -78,7 +78,7 @@ Set in `.env`:
 - an LLM key matching `LLM_PROVIDER`: `GOOGLE_API_KEY` (gemini), `GROQ_API_KEY`
   (groq) or `OPENROUTER_API_KEY` (openrouter). Optionally `LLM_FAST_MODEL` /
   `LLM_STRONG_MODEL` to use a cheaper model for screening, and
-  `LLM_REASONING_EFFORT` (default `low`) / `LLM_REASONING_TOKEN_ALLOWANCE` for
+  `LLM_REASONING_EFFORT` (default `none`) / `LLM_REASONING_TOKEN_ALLOWANCE` for
   models that think before answering.
 - budgets via `LEAD_RESEARCH_BUDGET__<FIELD>` (see `.env.example`).
 
@@ -90,8 +90,8 @@ python -m pytest tests
 ```
 
 `POST /sales-agent/generate-leads` with `{"query": "...", "company_context": {...}}`.
-The pipeline stops itself after 5 minutes by default; `AGENT_RUN_TIMEOUT_SECONDS`
-(900s) is only a hard kill switch. A missing/invalid `EXA_API_KEY` returns 503.
+The pipeline stops itself after 12 minutes by default; `AGENT_RUN_TIMEOUT_SECONDS`
+(1200s) is only a hard kill switch. A missing/invalid `EXA_API_KEY` returns 503.
 
 ## Deploying (Render)
 

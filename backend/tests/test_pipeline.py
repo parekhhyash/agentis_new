@@ -277,12 +277,17 @@ def test_time_budget_stops_research_but_still_returns_results():
             return await super().complete_json(**kwargs)
 
     llm = SlowLLM(num_leads=3)
-    agent, _, _ = _agent(llm=llm, clock=clock, budget=ResearchBudget(research_concurrency=1))
+    budget = ResearchBudget(research_concurrency=1, max_total_runtime_minutes=5)
+    agent, search, _ = _agent(llm=llm, clock=clock, budget=budget)
     result = asyncio.run(agent.run("Find 3 fintech clients", SELLER))
 
     assert len([c for c in llm.calls if c.startswith("research:")]) < 4
-    assert result.leads_found < 3
+    assert 0 < result.leads_found < 3
     assert "time budget" in (result.notes or "")
+    # Research ran past the point where contacts would fit, yet contact search
+    # still runs for the leads that were found.
+    assert any(category == "people" for _, category in search.calls)
+    assert "skipped" not in (result.notes or "")
 
 
 def test_no_candidates_returns_empty_result_with_reason():

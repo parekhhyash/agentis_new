@@ -136,13 +136,15 @@ def build_llm_client(settings: Any) -> LiteLLMClient:
         if provider in ("groq", "gemini") and effort:
             # drop_params: models litellm doesn't know support reasoning get the
             # call without it instead of an UnsupportedParamsError.
-            extra.update(reasoning_effort=effort, drop_params=True)
+            groq_effort = "low" if effort == "none" else effort  # gpt-oss has no "off"
+            extra.update(reasoning_effort=groq_effort if provider == "groq" else effort, drop_params=True)
         if provider == "openrouter":
             body: dict[str, Any] = {}
             if effort:
                 # OpenRouter's unified reasoning control; providers/models
-                # without reasoning ignore it.
-                body["reasoning"] = {"effort": effort}
+                # without reasoning ignore it. Models with on/off thinking
+                # (DeepSeek) ignore effort levels, so "none" must disable it.
+                body["reasoning"] = {"enabled": False} if effort == "none" else {"effort": effort}
             if chosen == settings.openrouter_model and settings.openrouter_provider_order:
                 # Pin the default model to the cheap route we validated; overrides
                 # use OpenRouter's normal routing since the pinned provider may not

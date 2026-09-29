@@ -98,14 +98,22 @@ def _settings(**overrides):
     return Settings(_env_file=None, **overrides)
 
 
-def test_openrouter_requests_low_reasoning_and_keeps_provider_pin():
+def test_openrouter_disables_reasoning_by_default_and_keeps_provider_pin():
     from agents.lead_research.llm import build_llm_client
 
     client = build_llm_client(_settings(llm_provider="openrouter", openrouter_api_key="k"))
     body = client._specs["strong"].extra["extra_body"]
 
-    assert body["reasoning"] == {"effort": "low"}
+    assert body["reasoning"] == {"enabled": False}
     assert body["provider"]["order"] == ["open-inference"]
+
+
+def test_openrouter_passes_explicit_reasoning_effort():
+    from agents.lead_research.llm import build_llm_client
+
+    client = build_llm_client(_settings(llm_provider="openrouter", openrouter_api_key="k", llm_reasoning_effort="low"))
+
+    assert client._specs["fast"].extra["extra_body"]["reasoning"] == {"effort": "low"}
 
 
 def test_reasoning_effort_can_be_disabled():

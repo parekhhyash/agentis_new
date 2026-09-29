@@ -150,17 +150,26 @@ class LeadResearchAgent:
             for decision in wave:
                 await self._step(f"Researching: {decision.candidate.company_name}")
 
-            results = await asyncio.gather(
-                *(self._researcher.research(state, icp, d, budget) for d in wave), return_exceptions=True
-            )
+            # The wave may not run into the time reserved for contact research:
+            # companies still in progress at the deadline are abandoned, the
+            # finished ones are kept.
+            tasks = {asyncio.ensure_future(self._researcher.research(state, icp, d, budget)): d for d in wave}
+            deadline = max(1.0, state.time_left() - budget.contact_time_reserve_seconds)
+            done, pending = await asyncio.wait(tasks, timeout=deadline)
+            for task in pending:
+                task.cancel()
+            if pending:
+                await asyncio.gather(*pending, return_exceptions=True)
+                logger.info("Research deadline hit; abandoned %d compan(ies)", len(pending))
             researched += len(wave)
-            for decision, result in zip(wave, results):
-                if isinstance(result, LeadResearchError):
-                    raise result
-                if isinstance(result, BaseException):
-                    logger.warning("Research crashed for %s: %r", decision.candidate.domain, result)
-                elif isinstance(result, ResearchedCompany):
-                    state.researched_companies.append(result)
+            for task in done:
+                decision = tasks[task]
+                if task.exception() is not None:
+                    if isinstance(task.exception(), LeadResearchError):
+                        raise task.exception()
+                    logger.warning("Research crashed for %s: %r", decision.candidate.domain, task.exception())
+                elif isinstance(task.result(), ResearchedCompany):
+                    state.researched_companies.append(task.result())
 
         if len(state.qualified()) < budget.requested_leads:
             state.stop_reason = "all shortlisted companies were researched"
@@ -169,28 +178,34 @@ class LeadResearchAgent:
         if not final:
             return
         budget = state.budget
-        if state.out_of_time():
-            state.notes.append("Contact research was skipped because the time budget ran out.")
-            return
         roles = state.icp.target_roles if state.icp else []
         semaphore = asyncio.Semaphore(budget.contact_concurrency)
         await self._step("Finding decision-makers at the qualified companies...")
 
         async def run(company: ResearchedCompany) -> None:
             async with semaphore:
-                if state.out_of_time():
-                    return
                 contacts = await self._contacts.find(state, company.lead, roles, budget)
                 state.contacts[company.candidate.domain] = contacts
                 company.lead.contacts = contacts
                 company.lead.qualification_detail.contact_found = bool(contacts)
 
-        results = await asyncio.gather(*(run(c) for c in final), return_exceptions=True)
-        for result in results:
-            if isinstance(result, LeadResearchError):
-                raise result
-            if isinstance(result, BaseException):
-                logger.warning("Contact research crashed: %r", result)
+        # Contacts are what make a lead actionable and cost only a few searches
+        # (no LLM), so they always get their reserved window, even when research
+        # ran right up to the runtime limit.
+        window = max(state.time_left(), budget.contact_time_reserve_seconds)
+        tasks = [asyncio.ensure_future(run(c)) for c in final]
+        done, pending = await asyncio.wait(tasks, timeout=window)
+        for task in pending:
+            task.cancel()
+        if pending:
+            await asyncio.gather(*pending, return_exceptions=True)
+            state.notes.append(f"Contact research ran out of time for {len(pending)} compan{'y' if len(pending) == 1 else 'ies'}.")
+        for task in done:
+            error = task.exception()
+            if isinstance(error, LeadResearchError):
+                raise error
+            if error is not None:
+                logger.warning("Contact research crashed: %r", error)
 
     def _finish(self, state: ResearchState) -> LeadResearchResult:
         result = ResultFormatter.format(state)

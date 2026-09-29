@@ -17,12 +17,12 @@ type AgentRequest = Tables<'agent_requests'>
 
 const CLIENT_SIDE_FAILURE_MESSAGES = new Set([CLIENT_TIMEOUT_MESSAGE, STOPPED_BY_USER_MESSAGE])
 
-// A little past the backend's own real timeout (900s) - the backend is the
+// A little past the backend's own real timeout (1200s) - the backend is the
 // source of truth for how a run actually ended (see finalize_request in
 // request_store.py), so a row this browser marked 'failed' on its own
 // timeout is still worth re-checking until the backend has had its full
 // window to write its own final answer.
-const CLIENT_SIDE_FAILURE_GRACE_MS = 950_000
+const CLIENT_SIDE_FAILURE_GRACE_MS = 1_250_000
 
 export default function DashboardPage() {
   const { user } = useAuth()

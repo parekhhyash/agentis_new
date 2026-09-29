@@ -8,7 +8,7 @@ class ResearchBudget(BaseModel):
     (LEAD_RESEARCH_BUDGET__<FIELD>) and scaled down per request so a
     5-lead ask never pays for a 30-lead search."""
 
-    max_total_runtime_minutes: float = 5.0
+    max_total_runtime_minutes: float = 12.0
     max_discovery_queries: int = 10
     max_discovery_results: int = 150
     max_unique_candidates: int = 100
@@ -22,10 +22,12 @@ class ResearchBudget(BaseModel):
 
     filter_batch_size: int = 20
     filter_min_confidence: float = 0.5
-    research_concurrency: int = 4
+    research_concurrency: int = 6
     contact_concurrency: int = 4
     max_page_chars: int = 3500
-    contact_time_reserve_seconds: float = 45.0
+    # Kept free for contact research when research stops; contacts also get at
+    # least this long even if research ran right up to the runtime limit.
+    contact_time_reserve_seconds: float = 90.0
 
     requested_leads: int = Field(default=10, exclude=True)
 

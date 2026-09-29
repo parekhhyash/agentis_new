@@ -98,7 +98,8 @@ class ContactResearcher:
 
         for group in role_groups:
             strong = [c for c, s in scored.values() if s >= 70]
-            if len(strong) >= budget.max_contacts_per_company or state.out_of_time():
+            # No time check here: the caller bounds the whole contact phase.
+            if len(strong) >= budget.max_contacts_per_company:
                 break
             hits = await tracked_search(
                 self._search,

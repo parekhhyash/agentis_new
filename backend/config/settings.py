@@ -42,10 +42,11 @@ class Settings(BaseSettings):
     # answering (Gemini Flash, gpt-oss, DeepSeek): their hidden reasoning counts
     # against max_tokens, so without this they can run out before any JSON.
     llm_reasoning_token_allowance: int = 4096
-    # Reasoning effort requested from those models ("low" keeps each call to
-    # seconds instead of ~1 min; the tasks are extraction/classification).
+    # Reasoning requested from those models. The tasks are extraction and
+    # classification, and thinking made each call take 1-2 minutes, so it is
+    # off by default ("none"; Groq's gpt-oss can't disable it and uses "low").
     # Empty = provider default.
-    llm_reasoning_effort: Literal["", "low", "medium", "high"] = "low"
+    llm_reasoning_effort: Literal["", "none", "low", "medium", "high"] = "none"
 
     # --- Lead research ------------------------------------------------
     exa_api_key: str | None = None
@@ -54,10 +55,10 @@ class Settings(BaseSettings):
     lead_research_budget: ResearchBudget = Field(default_factory=ResearchBudget)
 
     # Hard kill switch around a whole run. The pipeline stops itself at
-    # lead_research_budget.max_total_runtime_minutes (5 min default); this
+    # lead_research_budget.max_total_runtime_minutes (12 min default); this
     # only fires if something hangs past that. Keep src/lib/salesAgentApi.ts's
     # client-side timeout above this value.
-    agent_run_timeout_seconds: float = 900.0
+    agent_run_timeout_seconds: float = 1200.0
 
     # --- Live progress reporting -----------------------------------------
     # Optional: lets the agent push step-by-step progress (current tool
