@@ -15,16 +15,16 @@ const logos: Logo[] = [
 
 function LogoItem({ logo }: { logo: Logo }) {
   return logo.src ? (
-    <img src={logo.src} alt={logo.name} className="h-7 w-auto opacity-60 grayscale" />
+    <img src={logo.src} alt={logo.name} className="h-7 w-auto brightness-0" />
   ) : (
-    <span className={`whitespace-nowrap text-slate-400 ${logo.className ?? ''}`}>{logo.name}</span>
+    <span className={`whitespace-nowrap text-slate-900 ${logo.className ?? ''}`}>{logo.name}</span>
   )
 }
 
 export default function LogoMarquee() {
   return (
     <div className="flex flex-col items-center gap-6 sm:flex-row sm:gap-10">
-      <span className="shrink-0 text-sm font-medium text-slate-500">Used by teams at</span>
+      <span className="shrink-0 text-sm font-medium text-slate-900">Used by teams at</span>
       <div className="group relative w-full overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
         {/* Two identical halves: sliding by -50% lands exactly on the start of the copy. */}
         <div className="flex w-max animate-marquee items-center group-hover:[animation-play-state:paused] motion-reduce:animate-none">
