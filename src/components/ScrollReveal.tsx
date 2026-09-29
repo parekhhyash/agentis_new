@@ -75,7 +75,7 @@ export default function ScrollReveal() {
   }, [])
 
   return (
-    <section ref={sectionRef} className="relative bg-white" style={{ height: '250vh' }}>
+    <section ref={sectionRef} className="relative bg-zinc-50" style={{ height: '250vh' }}>
       <div className="sticky top-0 flex h-screen items-center justify-center overflow-hidden px-6">
         <Rings className="-top-24 -left-24 w-72 sm:-top-32 sm:-left-32 sm:w-[28rem] opacity-90" turn={progress * 60} />
         <Rings className="-right-28 -bottom-28 w-80 opacity-80 sm:-right-40 sm:-bottom-40 sm:w-[34rem]" turn={-progress * 45} />
