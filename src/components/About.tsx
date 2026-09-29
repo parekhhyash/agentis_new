@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
+import LogoMarquee from './LogoMarquee'
+
 const stats = [
   { target: 12000, suffix: '+', label: 'tasks completed autonomously' },
   { target: 40, suffix: '%', label: 'average time saved per team' },
@@ -105,6 +107,10 @@ export default function About() {
           </div>
           <p className="mt-2 text-sm text-slate-500">agents on the clock</p>
         </div>
+      </div>
+
+      <div className="mx-auto mt-20 max-w-5xl">
+        <LogoMarquee />
       </div>
     </section>
   )

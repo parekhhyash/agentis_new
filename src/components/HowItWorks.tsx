@@ -21,30 +21,32 @@ const steps = [
 
 export default function HowItWorks() {
   return (
-    <section id="how-it-works" className="bg-slate-50 px-4 py-24 sm:py-32">
-      <div className="mx-auto max-w-2xl text-center">
-        <span className="text-sm font-semibold tracking-[0.2em] text-sky-600 uppercase">
-          How it works
-        </span>
-        <h2 className="font-display mt-4 text-4xl text-slate-900 sm:text-5xl">
-          From idea to done, in three steps
-        </h2>
-      </div>
+    <section id="how-it-works" className="bg-white px-4 py-12 sm:px-6 sm:py-16">
+      <div className="mx-auto max-w-6xl rounded-[2rem] bg-zinc-100 px-6 py-16 sm:px-12 sm:py-24">
+        <div className="mx-auto max-w-2xl text-center">
+          <span className="text-sm font-semibold tracking-[0.2em] text-sky-600 uppercase">
+            How it works
+          </span>
+          <h2 className="font-display mt-4 text-4xl text-slate-900 sm:text-5xl">
+            From idea to done, in three steps
+          </h2>
+        </div>
 
-      <div className="mx-auto mt-16 grid max-w-5xl grid-cols-1 gap-12 sm:grid-cols-3 sm:gap-8">
-        {steps.map((step) => (
-          <div key={step.number} className="text-center sm:text-left">
-            <span className="font-display text-5xl text-slate-300">
-              {step.number}
-            </span>
-            <h3 className="mt-4 text-xl font-semibold text-slate-900">
-              {step.title}
-            </h3>
-            <p className="mt-3 text-[15px] leading-relaxed text-slate-600">
-              {step.description}
-            </p>
-          </div>
-        ))}
+        <div className="mx-auto mt-16 grid max-w-5xl grid-cols-1 gap-12 sm:grid-cols-3 sm:gap-8">
+          {steps.map((step) => (
+            <div key={step.number} className="text-center sm:text-left">
+              <span className="font-display text-5xl text-slate-300">
+                {step.number}
+              </span>
+              <h3 className="mt-4 text-xl font-semibold text-slate-900">
+                {step.title}
+              </h3>
+              <p className="mt-3 text-[15px] leading-relaxed text-slate-600">
+                {step.description}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   )

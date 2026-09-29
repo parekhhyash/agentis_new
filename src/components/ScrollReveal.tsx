@@ -14,6 +14,34 @@ function wordColor(t: number) {
   return `rgb(${rgb.join(',')})`
 }
 
+// Concentric rings, one dashed; `turn` rotates the set slightly as the
+// section scrolls so the background drifts with the text reveal.
+function Rings({ className, turn }: { className: string; turn: number }) {
+  return (
+    <svg
+      viewBox="0 0 400 400"
+      fill="none"
+      aria-hidden="true"
+      className={`pointer-events-none absolute ${className}`}
+      style={{ transform: `rotate(${turn}deg)` }}
+    >
+      {[190, 150, 110, 70].map((r, i) => (
+        <circle
+          key={r}
+          cx="200"
+          cy="200"
+          r={r}
+          strokeWidth="1.25"
+          className={i % 2 === 0 ? 'stroke-sky-200' : 'stroke-slate-200'}
+          strokeDasharray={i === 1 ? '4 10' : undefined}
+        />
+      ))}
+      <circle cx="200" cy="10" r="4" className="fill-sky-200" />
+      <circle cx="350" cy="200" r="3" className="fill-slate-300" />
+    </svg>
+  )
+}
+
 export default function ScrollReveal() {
   const sectionRef = useRef<HTMLDivElement>(null)
   const [progress, setProgress] = useState(0)
@@ -48,8 +76,14 @@ export default function ScrollReveal() {
 
   return (
     <section ref={sectionRef} className="relative bg-white" style={{ height: '250vh' }}>
-      <div className="sticky top-0 flex h-screen items-center justify-center px-6">
-        <p className="font-display max-w-4xl text-center text-3xl leading-snug text-balance sm:text-4xl md:text-5xl">
+      <div className="sticky top-0 flex h-screen items-center justify-center overflow-hidden px-6">
+        <Rings className="-top-24 -left-24 w-72 opacity-60 sm:-top-32 sm:-left-32 sm:w-[28rem]" turn={progress * 60} />
+        <Rings className="-right-28 -bottom-28 w-80 opacity-50 sm:-right-40 sm:-bottom-40 sm:w-[34rem]" turn={-progress * 45} />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute top-1/2 left-1/2 h-[28rem] w-[28rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-sky-100/40 blur-3xl"
+        />
+        <p className="font-display relative max-w-4xl text-center text-3xl leading-snug text-balance sm:text-4xl md:text-5xl">
           {words.map((word, i) => (
             <span
               key={i}
