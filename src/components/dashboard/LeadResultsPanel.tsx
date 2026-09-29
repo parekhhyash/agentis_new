@@ -1,3 +1,4 @@
+import { downloadLeadsCsv } from '../../lib/leadExport'
 import {
   isLeadResearchResult,
   type AnyLeadResult,
@@ -53,7 +54,7 @@ function LeadRows({ lead }: { lead: ResearchLead }) {
                 <div className="mt-1">
                   <FitBadge label={lead.qualification} />
                 </div>
-                {lead.company_emails.length > 0 && (
+                {(lead.company_emails.length > 0 || lead.contact_page) && (
                   <div className="mt-1 text-xs text-slate-500">
                     General:{' '}
                     {lead.company_emails.map((email) => (
@@ -61,6 +62,11 @@ function LeadRows({ lead }: { lead: ResearchLead }) {
                         {email}
                       </a>
                     ))}
+                    {lead.contact_page && (
+                      <a href={lead.contact_page} target="_blank" rel="noreferrer" className="block text-sky-600 hover:underline">
+                        Contact page
+                      </a>
+                    )}
                   </div>
                 )}
               </td>
@@ -79,6 +85,11 @@ function LeadRows({ lead }: { lead: ResearchLead }) {
               <>
                 <div className="font-medium text-slate-800">{contact.name}</div>
                 <div className="text-xs text-slate-500">{contact.title}</div>
+                {!contact.linkedin_url && (
+                  <a href={contact.source_url} target="_blank" rel="noreferrer" className="text-xs text-slate-400 hover:underline">
+                    named on their site
+                  </a>
+                )}
               </>
             ) : (
               <span className="text-slate-400">Not found</span>
@@ -89,10 +100,21 @@ function LeadRows({ lead }: { lead: ResearchLead }) {
           </td>
           <td className={cell}>
             {contact?.email ? (
-              <a href={`mailto:${contact.email}`} className="break-all text-sky-600 hover:underline">
-                {contact.email}
-                {!contact.email_verified && <span className="ml-1 text-xs text-slate-400">(unverified)</span>}
-              </a>
+              <>
+                <a href={`mailto:${contact.email}`} className="break-all text-sky-600 hover:underline">
+                  {contact.email}
+                </a>
+                {contact.email_source_url && (
+                  <a
+                    href={contact.email_source_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block text-xs text-slate-400 hover:underline"
+                  >
+                    listed on their site
+                  </a>
+                )}
+              </>
             ) : (
               <span className="text-slate-400">—</span>
             )}
@@ -158,10 +180,21 @@ function LeadEvidence({ lead }: { lead: ResearchLead }) {
 function ResearchResults({ result }: { result: LeadResearchResult }) {
   return (
     <div>
-      <p className="text-xs text-slate-500">
-        {result.leads_found} of {result.requested_leads} lead{result.requested_leads === 1 ? '' : 's'}
-        {result.icp.summary && ` · ${result.icp.summary}`}
-      </p>
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-xs text-slate-500">
+          {result.leads_found} of {result.requested_leads} lead{result.requested_leads === 1 ? '' : 's'}
+          {result.icp.summary && ` · ${result.icp.summary}`}
+        </p>
+        {result.leads.length > 0 && (
+          <button
+            type="button"
+            onClick={() => downloadLeadsCsv(result)}
+            className="shrink-0 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+          >
+            Export CSV
+          </button>
+        )}
+      </div>
       {result.notes && <p className="mt-1 text-xs text-amber-700">{result.notes}</p>}
 
       {result.leads.length > 0 && (

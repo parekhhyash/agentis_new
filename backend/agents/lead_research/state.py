@@ -46,6 +46,7 @@ class ResearchedCompany:
     fit: Literal["strong", "possible", "poor"]
     lead: Lead
     confidence: float
+    pages: list[ScrapedPage] = field(default_factory=list)  # company pages read, homepage first
 
 
 @dataclass

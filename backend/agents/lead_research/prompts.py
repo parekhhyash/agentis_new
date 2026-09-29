@@ -150,3 +150,21 @@ NEW SOURCES:
 
 Return the complete updated assessment in the same format, keeping still-valid earlier evidence with its original labels. need_more must be [].
 {_RESEARCH_FORMAT}"""
+
+
+SITE_PEOPLE_SYSTEM = (
+    "You list the people named on a company's own web pages. Copy each name and job title exactly "
+    "as written on the page; never guess, complete or translate them. Respond with a single JSON object only."
+)
+
+
+def site_people_user(company_name: str, page_blocks: list[str]) -> str:
+    pages = "\n\n".join(page_blocks)
+    return f"""COMPANY: {company_name}
+
+PAGES:
+{pages}
+
+List people the pages name as working at {company_name} (founders, executives, team leads), with the job title the page gives them there.
+Skip customers, investors, testimonials, advisors and anyone without a stated title.
+Output: {{"people": [{{"name": "...", "title": "...", "source": "P1"}}]}} - [] if none. Max 10."""

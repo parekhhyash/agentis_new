@@ -18,6 +18,10 @@ class ResearchBudget(BaseModel):
     max_signal_searches_per_company: int = 1
     max_contact_searches_per_company: int = 3
     max_contacts_per_company: int = 3
+    # When Exa's people search finds fewer than max_contacts_per_company, read
+    # the company's homepage/team page for named decision-makers (1 cheap LLM
+    # call + at most 1 extra page per company).
+    site_contact_extraction: bool = True
     max_leads: int = 25
 
     filter_batch_size: int = 20

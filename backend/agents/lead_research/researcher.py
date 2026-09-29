@@ -278,4 +278,4 @@ class DeepResearcher:
             contact_page=next((page.contact_page for page in pages if page.contact_page), None),
             sources=list(dict.fromkeys(cited)),
         )
-        return ResearchedCompany(candidate=candidate, fit=fit, lead=lead, confidence=decision.confidence)
+        return ResearchedCompany(candidate=candidate, fit=fit, lead=lead, confidence=decision.confidence, pages=pages)

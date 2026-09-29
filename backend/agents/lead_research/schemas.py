@@ -99,7 +99,8 @@ class Contact(BaseModel):
     company: str
     linkedin_url: str | None = None
     email: str | None = None
-    email_verified: bool = False
+    email_verified: bool = False  # deliverability-checked; we never do this, so always False
+    email_source_url: str | None = None  # company page where this person's email is published
     source_url: str
 
 

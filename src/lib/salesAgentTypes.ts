@@ -11,6 +11,8 @@ export interface LeadContact {
   linkedin_url: string | null
   email: string | null
   email_verified: boolean
+  // Company page where this person's email is published (never constructed).
+  email_source_url?: string | null
   source_url: string
 }
 

@@ -28,6 +28,16 @@ def _score(url: str, anchor: str, keywords: tuple[str, ...]) -> int:
     return score
 
 
+def page_category(url: str) -> str | None:
+    """The PAGE_CATEGORIES entry a URL's path looks like, if any."""
+    best, best_score = None, 0
+    for category, keywords in PAGE_CATEGORIES.items():
+        score = _score(url, "", keywords)
+        if score > best_score:
+            best, best_score = category, score
+    return best
+
+
 class URLSelector:
     """Picks at most one on-site page per information need, from links the
     scraper already extracted - no extra search spend to find subpages."""

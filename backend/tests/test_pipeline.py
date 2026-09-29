@@ -98,7 +98,15 @@ class FakeScraper:
         domain = re.sub(r"^https?://(www\.)?", "", url).split("/")[0]
         if url.rstrip("/").endswith("/careers"):
             return ScrapedPage(url=url, final_url=url, title="Careers", text="We are hiring 20 customer support agents.")
-        links = [(f"https://{domain}/careers", "Careers"), (f"https://{domain}/about", "About")]
+        if url.rstrip("/").endswith("/team"):
+            return ScrapedPage(
+                url=url,
+                final_url=url,
+                title="Team",
+                text="Meet the team. Priya Nair - Co-founder & CEO. Rahul Mehta, Designer. Write to Jane at jane.doe@ or priya@.",
+                emails=[f"priya@{domain}", f"jane.doe@{domain}"],
+            )
+        links = [(f"https://{domain}/careers", "Careers"), (f"https://{domain}/about", "About"), (f"https://{domain}/team", "Our team")]
         return ScrapedPage(
             url=url,
             final_url=f"https://{domain}/",
@@ -183,6 +191,20 @@ class FakeLLM:
             update = "YOUR PREVIOUS ASSESSMENT" in user
             self.calls.append(f"research:{company}:{'update' if update else 'initial'}")
             return LLMResult(data=_assessment(company, update), tokens=800)
+        if system == prompts.SITE_PEOPLE_SYSTEM:
+            company = re.search(r"COMPANY: (.+)", user).group(1)
+            self.calls.append(f"site_people:{company}")
+            team = re.search(r"\[(P\d+)\] \S+/team", user)
+            if team is None:
+                return LLMResult(data={"people": []}, tokens=100)
+            label = team.group(1)
+            people = [
+                {"name": "Priya Nair", "title": "Co-founder & CEO", "source": label},
+                {"name": "Rahul Mehta", "title": "Designer", "source": label},  # not a decision-maker
+                {"name": "Vikram Rao", "title": "COO", "source": label},  # invented - not on the page
+                {"name": "Priya Nair", "title": "CEO", "source": "P9"},  # cites a page that doesn't exist
+            ]
+            return LLMResult(data={"people": people}, tokens=150)
         raise AssertionError("unexpected prompt")
 
 
@@ -230,7 +252,6 @@ def test_full_run_returns_evidence_backed_qualified_leads():
     assert alpha.relevant_signals == ["Hiring support agents"]
     assert all(e.source_url.startswith("https://") for e in alpha.evidence)
     assert "https://exa.ai/library/company/alpha.com" in alpha.sources
-    assert alpha.company_emails == ["hello@alpha.com"]
     assert alpha.qualification == "Strong potential fit"
 
     # Beta needed its careers page; homepage alone was insufficient.
@@ -243,12 +264,30 @@ def test_full_run_returns_evidence_backed_qualified_leads():
     assert epsilon.qualification == "Possible fit"
     assert epsilon.qualification_detail.growth_signal is None  # claimed growth with no cited signal
 
-    # Contacts: only people the source ties to Alpha in a relevant current role; no emails invented.
+    # Contacts: Exa people tied to Alpha in a relevant current role, then the
+    # founder named on Alpha's own team page. Invented or irrelevant people
+    # from the page extraction are dropped.
     contacts = {c.name: c for c in alpha.contacts}
-    assert set(contacts) == {"Jane Doe", "Bob Rao"}
-    assert all(c.email is None and not c.email_verified for c in alpha.contacts)
+    assert list(contacts) == ["Jane Doe", "Bob Rao", "Priya Nair"]
+    priya = contacts["Priya Nair"]
+    assert priya.title == "Co-founder & CEO" and priya.linkedin_url is None
+    assert priya.source_url == "https://alpha.com/team"
+    # Emails only where the company's site publishes that person's address.
+    assert contacts["Jane Doe"].email == "jane.doe@alpha.com"
+    assert contacts["Jane Doe"].email_source_url == "https://alpha.com/team"
+    assert priya.email == "priya@alpha.com"
+    assert contacts["Bob Rao"].email is None
+    assert not any(c.email_verified for c in alpha.contacts)
+    assert alpha.company_emails == ["hello@alpha.com"]  # assigned addresses leave the general list
     assert alpha.qualification_detail.contact_found is True
-    assert beta.contacts == [] and beta.qualification_detail.contact_found is False
+
+    # Beta: no Exa people, but its team page names the founder. Jane's
+    # address stays general since Jane doesn't work there.
+    assert [c.name for c in beta.contacts] == ["Priya Nair"]
+    assert beta.contacts[0].email == "priya@beta.co.in"
+    assert beta.company_emails == ["hello@beta.co.in", "jane.doe@beta.co.in"]
+    assert beta.contact_page == "https://beta.co.in/contact"
+    assert not any("Vikram" in c.name for lead in result.leads for c in lead.contacts)
 
     assert result.usage.llm_calls == len(llm.calls)
     assert result.usage.searches == len(search.calls)

@@ -18,6 +18,7 @@ from agents.lead_research.researcher import DeepResearcher
 from agents.lead_research.schemas import LeadResearchResult
 from agents.lead_research.scraper import ContentFetcher
 from agents.lead_research.search_provider import SearchProvider
+from agents.lead_research.site_contacts import SiteContactExtractor, attach_published_emails, merge_contacts
 from agents.lead_research.state import Candidate, FilterDecision, ResearchedCompany, ResearchState
 
 logger = logging.getLogger(__name__)
@@ -63,6 +64,7 @@ class LeadResearchAgent:
         self._filter = CandidateFilter(llm)
         self._researcher = DeepResearcher(llm, fetcher, search)
         self._contacts = ContactResearcher(search)
+        self._site_contacts = SiteContactExtractor(llm, fetcher)
 
     async def run(self, request: str, company_context: dict[str, Any] | None = None) -> LeadResearchResult:
         context = company_context or {}
@@ -185,6 +187,10 @@ class LeadResearchAgent:
         async def run(company: ResearchedCompany) -> None:
             async with semaphore:
                 contacts = await self._contacts.find(state, company.lead, roles, budget)
+                if budget.site_contact_extraction and len(contacts) < budget.max_contacts_per_company:
+                    site = await self._site_contacts.extract(state, company, roles, budget)
+                    contacts = merge_contacts(contacts, site, budget.max_contacts_per_company)
+                attach_published_emails(company, contacts)
                 state.contacts[company.candidate.domain] = contacts
                 company.lead.contacts = contacts
                 company.lead.qualification_detail.contact_found = bool(contacts)
