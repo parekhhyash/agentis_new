@@ -1,4 +1,4 @@
-import type { LeadGenerationResult } from './salesAgentTypes'
+import type { LeadResearchResult } from './salesAgentTypes'
 
 const BASE_URL = import.meta.env.VITE_SALES_AGENT_API_URL ?? 'http://localhost:8000'
 
@@ -30,7 +30,7 @@ export async function generateLeads(
   requestId?: string,
   companyContext?: CompanyContext,
   externalSignal?: AbortSignal,
-): Promise<LeadGenerationResult> {
+): Promise<LeadResearchResult> {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
 
@@ -82,7 +82,7 @@ export async function generateLeads(
     throw new SalesAgentApiError(`Agent request failed (${response.status}): ${detail}`)
   }
 
-  return response.json() as Promise<LeadGenerationResult>
+  return response.json() as Promise<LeadResearchResult>
 }
 
 // Best-effort: tells the backend to stop the run at its next checkpoint so

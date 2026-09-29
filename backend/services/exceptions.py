@@ -8,3 +8,7 @@ class AgentOutputError(Exception):
 
 class AgentCancelledError(Exception):
     """The caller requested cancellation before the agent run finished."""
+
+
+class AgentConfigurationError(Exception):
+    """A provider the agent depends on (search, LLM) isn't configured or rejected our credentials."""

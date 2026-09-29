@@ -1,122 +1,239 @@
-import type { Lead, LeadGenerationResult } from '../../lib/salesAgentTypes'
+import {
+  isLeadResearchResult,
+  type AnyLeadResult,
+  type LeadResearchResult,
+  type LegacyLead,
+  type LegacyLeadGenerationResult,
+  type ResearchLead,
+} from '../../lib/salesAgentTypes'
 
-function ScoreBadge({ score }: { score: number }) {
-  const color =
-    score >= 70
-      ? 'bg-green-100 text-green-700'
-      : score >= 40
-        ? 'bg-amber-100 text-amber-700'
-        : 'bg-slate-100 text-slate-600'
+function hostname(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return url
+  }
+}
 
+function FitBadge({ label }: { label: string }) {
+  const strong = label.toLowerCase().startsWith('strong')
   return (
-    <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${color}`}>
-      {score}/100
+    <span
+      className={`inline-block shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+        strong ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+      }`}
+    >
+      {label}
     </span>
   )
 }
 
-function LeadCard({ lead }: { lead: Lead }) {
+function ExternalLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a href={href} target="_blank" rel="noreferrer" className="text-sky-600 hover:underline">
+      {children}
+    </a>
+  )
+}
+
+function LeadRows({ lead }: { lead: ResearchLead }) {
+  const contacts = lead.contacts.length > 0 ? lead.contacts : [null]
+  const span = contacts.length
+  const cell = 'border-t border-slate-100 px-2 py-2.5 align-top break-words'
+
+  return (
+    <>
+      {contacts.map((contact, i) => (
+        <tr key={contact ? contact.source_url : 'none'}>
+          {i === 0 && (
+            <>
+              <td rowSpan={span} className={cell}>
+                <div className="font-semibold text-slate-900">{lead.company_name}</div>
+                <ExternalLink href={lead.website}>{hostname(lead.website)}</ExternalLink>
+                <div className="mt-1">
+                  <FitBadge label={lead.qualification} />
+                </div>
+                {lead.company_emails.length > 0 && (
+                  <div className="mt-1 text-xs text-slate-500">
+                    General:{' '}
+                    {lead.company_emails.map((email) => (
+                      <a key={email} href={`mailto:${email}`} className="block break-all text-sky-600 hover:underline">
+                        {email}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </td>
+              <td rowSpan={span} className={`${cell} text-slate-700`}>
+                {lead.industry ?? '—'}
+                {lead.location && <div className="text-xs text-slate-500">{lead.location}</div>}
+                {lead.employee_count && <div className="text-xs text-slate-500">{lead.employee_count} employees</div>}
+              </td>
+              <td rowSpan={span} className={`${cell} text-slate-700`}>
+                {lead.why_relevant || '—'}
+              </td>
+            </>
+          )}
+          <td className={cell}>
+            {contact ? (
+              <>
+                <div className="font-medium text-slate-800">{contact.name}</div>
+                <div className="text-xs text-slate-500">{contact.title}</div>
+              </>
+            ) : (
+              <span className="text-slate-400">Not found</span>
+            )}
+          </td>
+          <td className={cell}>
+            {contact?.linkedin_url ? <ExternalLink href={contact.linkedin_url}>Profile</ExternalLink> : <span className="text-slate-400">—</span>}
+          </td>
+          <td className={cell}>
+            {contact?.email ? (
+              <a href={`mailto:${contact.email}`} className="break-all text-sky-600 hover:underline">
+                {contact.email}
+                {!contact.email_verified && <span className="ml-1 text-xs text-slate-400">(unverified)</span>}
+              </a>
+            ) : (
+              <span className="text-slate-400">—</span>
+            )}
+          </td>
+        </tr>
+      ))}
+    </>
+  )
+}
+
+function LeadEvidence({ lead }: { lead: ResearchLead }) {
+  return (
+    <details className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+      <summary className="cursor-pointer font-medium text-slate-800">
+        {lead.company_name} <span className="font-normal text-slate-500">· evidence & sources</span>
+      </summary>
+      {lead.relevant_signals.length > 0 && (
+        <div className="mt-2">
+          <div className="text-xs text-slate-400">Signals</div>
+          <ul className="list-disc pl-5 text-slate-700">
+            {lead.relevant_signals.map((signal) => (
+              <li key={signal}>{signal}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {lead.evidence.length > 0 && (
+        <div className="mt-2">
+          <div className="text-xs text-slate-400">Evidence</div>
+          <ul className="space-y-1">
+            {lead.evidence.map((item) => (
+              <li key={`${item.claim}-${item.source_url}`} className="text-slate-700">
+                {item.claim}{' '}
+                <span className={`text-xs ${item.status === 'verified' ? 'text-green-700' : 'text-amber-700'}`}>
+                  ({item.status})
+                </span>{' '}
+                <ExternalLink href={item.source_url}>{hostname(item.source_url)}</ExternalLink>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {lead.contacts.length > 0 && (
+        <div className="mt-2 text-xs text-slate-500">
+          Contact sources:{' '}
+          {lead.contacts.map((c, i) => (
+            <span key={c.source_url}>
+              {i > 0 && ', '}
+              <ExternalLink href={c.source_url}>{c.name}</ExternalLink>
+            </span>
+          ))}
+        </div>
+      )}
+      {lead.contact_page && (
+        <div className="mt-1 text-xs">
+          <ExternalLink href={lead.contact_page}>Company contact page</ExternalLink>
+        </div>
+      )}
+    </details>
+  )
+}
+
+function ResearchResults({ result }: { result: LeadResearchResult }) {
+  return (
+    <div>
+      <p className="text-xs text-slate-500">
+        {result.leads_found} of {result.requested_leads} lead{result.requested_leads === 1 ? '' : 's'}
+        {result.icp.summary && ` · ${result.icp.summary}`}
+      </p>
+      {result.notes && <p className="mt-1 text-xs text-amber-700">{result.notes}</p>}
+
+      {result.leads.length > 0 && (
+        <>
+          <div className="mt-3 overflow-x-auto rounded-xl border border-slate-200">
+            <table className="w-full min-w-[600px] table-fixed text-left text-sm">
+              <thead className="bg-slate-50 text-xs font-medium text-slate-500">
+                <tr>
+                  <th className="w-[21%] px-2 py-2">Company</th>
+                  <th className="w-[15%] px-2 py-2">Industry</th>
+                  <th className="w-[25%] px-2 py-2">Why relevant</th>
+                  <th className="w-[17%] px-2 py-2">Contact</th>
+                  <th className="w-[11%] px-2 py-2">LinkedIn</th>
+                  <th className="w-[11%] px-2 py-2">Email</th>
+                </tr>
+              </thead>
+              <tbody>
+                {result.leads.map((lead) => (
+                  <LeadRows key={lead.website} lead={lead} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-3 space-y-2">
+            {result.leads.map((lead) => (
+              <LeadEvidence key={lead.website} lead={lead} />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function LegacyLeadCard({ lead }: { lead: LegacyLead }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h4 className="font-semibold text-slate-900">{lead.company_name}</h4>
-          {lead.website && (
-            <a
-              href={lead.website}
-              target="_blank"
-              rel="noreferrer"
-              className="text-xs text-sky-600 hover:underline"
-            >
-              {lead.website}
-            </a>
-          )}
+          {lead.website && <ExternalLink href={lead.website}>{lead.website}</ExternalLink>}
         </div>
-        <ScoreBadge score={lead.qualification_score} />
+        <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+          {lead.qualification_score}/100
+        </span>
       </div>
-
-      {lead.description && (
-        <p className="mt-2 text-sm text-slate-600">{lead.description}</p>
-      )}
-
-      <dl className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-        {lead.industry && (
-          <div>
-            <dt className="text-xs text-slate-400">Industry</dt>
-            <dd className="text-slate-700">{lead.industry}</dd>
-          </div>
-        )}
-        {lead.location && (
-          <div>
-            <dt className="text-xs text-slate-400">Location</dt>
-            <dd className="text-slate-700">{lead.location}</dd>
-          </div>
-        )}
-        {lead.company_size && (
-          <div>
-            <dt className="text-xs text-slate-400">Company size</dt>
-            <dd className="text-slate-700">{lead.company_size}</dd>
-          </div>
-        )}
-        {lead.potential_pain_point && (
-          <div>
-            <dt className="text-xs text-slate-400">Potential pain point</dt>
-            <dd className="text-slate-700">{lead.potential_pain_point}</dd>
-          </div>
-        )}
-      </dl>
-
+      {lead.description && <p className="mt-2 text-sm text-slate-600">{lead.description}</p>}
       {lead.why_good_fit && (
         <p className="mt-3 rounded-lg bg-sky-50 p-2.5 text-sm text-sky-900">
           <span className="font-medium">Why a good fit: </span>
           {lead.why_good_fit}
         </p>
       )}
-
-      <p className="mt-3 text-sm text-slate-600">
-        <span className="font-medium text-slate-700">Reasoning: </span>
-        {lead.reasoning}
-      </p>
-
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
         {lead.business_email && (
           <a href={`mailto:${lead.business_email}`} className="text-sky-600 hover:underline">
             {lead.business_email}
           </a>
         )}
-        {lead.contact_page && (
-          <a
-            href={lead.contact_page}
-            target="_blank"
-            rel="noreferrer"
-            className="text-sky-600 hover:underline"
-          >
-            Contact page
-          </a>
-        )}
+        {lead.contact_page && <ExternalLink href={lead.contact_page}>Contact page</ExternalLink>}
         {lead.sources.map((src) => (
-          <a
-            key={src}
-            href={src}
-            target="_blank"
-            rel="noreferrer"
-            className="truncate text-slate-400 hover:text-slate-600 hover:underline"
-          >
+          <ExternalLink key={src} href={src}>
             source
-          </a>
+          </ExternalLink>
         ))}
       </div>
-
-      {lead.inferred_fields.length > 0 && (
-        <p className="mt-2 text-xs text-slate-400">
-          Inferred (not directly confirmed): {lead.inferred_fields.join(', ')}
-        </p>
-      )}
     </div>
   )
 }
 
-export default function LeadResultsPanel({ result }: { result: LeadGenerationResult }) {
+function LegacyResults({ result }: { result: LegacyLeadGenerationResult }) {
   return (
     <div>
       <p className="text-xs text-slate-500">
@@ -124,15 +241,16 @@ export default function LeadResultsPanel({ result }: { result: LeadGenerationRes
         {result.criteria.industry && ` · ${result.criteria.industry}`}
         {result.criteria.geography && ` · ${result.criteria.geography}`}
       </p>
-      {result.notes && (
-        <p className="mt-1 text-xs text-amber-700">{result.notes}</p>
-      )}
-
+      {result.notes && <p className="mt-1 text-xs text-amber-700">{result.notes}</p>}
       <div className="mt-3 space-y-3">
         {result.leads.map((lead, i) => (
-          <LeadCard key={`${lead.company_name}-${i}`} lead={lead} />
+          <LegacyLeadCard key={`${lead.company_name}-${i}`} lead={lead} />
         ))}
       </div>
     </div>
   )
+}
+
+export default function LeadResultsPanel({ result }: { result: AnyLeadResult }) {
+  return isLeadResearchResult(result) ? <ResearchResults result={result} /> : <LegacyResults result={result} />
 }

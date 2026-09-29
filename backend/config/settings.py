@@ -4,6 +4,8 @@ from typing import Literal
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from agents.lead_research.budget import ResearchBudget
+
 
 class Settings(BaseSettings):
     """Central config. All values are read from the environment (or a local
@@ -11,7 +13,7 @@ class Settings(BaseSettings):
     the agent code itself.
     """
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore", env_nested_delimiter="__")
 
     # --- LLM provider -------------------------------------------------
     # Which provider the agents use. Swapping this (plus the matching API
@@ -27,34 +29,26 @@ class Settings(BaseSettings):
 
     openrouter_api_key: str | None = None
     openrouter_model: str = "openrouter/deepseek/deepseek-v4-flash-0731"
+    # Pins OPENROUTER_MODEL to these providers (comma-separated); empty = normal routing.
+    openrouter_provider_order: str = "open-inference"
 
-    # --- Tool safeguards ------------------------------------------------
-    # Kept modest because every search/fetch result gets folded into the
-    # conversation history for every subsequent LLM turn - Groq's free-tier
-    # TPM cap (8000 tokens/min for gpt-oss-120b) is easy to blow through on
-    # a multi-lead research run otherwise.
-    max_search_results_per_query: int = 5
-    max_page_text_chars: int = 4000
-    http_timeout_seconds: float = 15.0
+    # Optional per-tier overrides (litellm model strings for the same provider).
+    # "fast" screens candidates in bulk; "strong" does ICP analysis and
+    # per-company qualification. Both default to the provider's model above.
+    llm_fast_model: str | None = None
+    llm_strong_model: str | None = None
+    llm_timeout_seconds: float = 60.0
 
-    # --- Run-level safeguards -------------------------------------------
-    # Raised from 280s after a real run on OpenRouter/DeepSeek V4 Flash
-    # timed out mid-research (confirmed via Render logs: still doing
-    # correct tool calls, just not done yet). Unlike Groq's LPU-accelerated
-    # inference, a model routed through OpenRouter to a third-party
-    # provider has ordinary LLM latency per call, and a multi-lead research
-    # loop needs many sequential search/fetch/reason round trips - so the
-    # wall-clock budget has to be generous regardless of which provider is
-    # configured. Keep src/lib/salesAgentApi.ts's client-side timeout above
-    # this value too.
-    #
-    # Deliberately set higher than prompts.AGENT_TIME_BUDGET_SECONDS (590s,
-    # what the researcher is actually told its deadline is) - the 310s gap
-    # is slack for the structurer's own turn, ADK/network overhead, and any
-    # slow-but-not-hung tool calls, so a run that's genuinely on pace per
-    # its own stated budget doesn't get cut off right at the wire. This is
-    # the real kill switch, not a target - the agent should still finish
-    # well before it via its own budget.
+    # --- Lead research ------------------------------------------------
+    exa_api_key: str | None = None
+    scraper_respect_robots: bool = True
+    # Every field is overridable, e.g. LEAD_RESEARCH_BUDGET__MAX_TOTAL_RUNTIME_MINUTES=4
+    lead_research_budget: ResearchBudget = Field(default_factory=ResearchBudget)
+
+    # Hard kill switch around a whole run. The pipeline stops itself at
+    # lead_research_budget.max_total_runtime_minutes (5 min default); this
+    # only fires if something hangs past that. Keep src/lib/salesAgentApi.ts's
+    # client-side timeout above this value.
     agent_run_timeout_seconds: float = 900.0
 
     # --- Live progress reporting -----------------------------------------

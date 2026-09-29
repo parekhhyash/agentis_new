@@ -1,7 +1,7 @@
 import { AGENT_LABELS } from '../../lib/agentTypes'
 import type { Tables } from '../../lib/database.types'
 import { relativeTime } from '../../lib/relativeTime'
-import type { AgentProgress, LeadGenerationResult } from '../../lib/salesAgentTypes'
+import type { AgentProgress, AnyLeadResult } from '../../lib/salesAgentTypes'
 import AgentProgressView from './AgentProgressView'
 import LeadResultsPanel from './LeadResultsPanel'
 
@@ -20,7 +20,11 @@ export default function ChatConversation({ request }: { request: AgentRequest })
       </div>
 
       <div className="flex justify-start">
-        <div className="w-full max-w-2xl rounded-2xl rounded-tl-sm border border-slate-200 bg-white px-4 py-3">
+        <div
+          className={`w-full rounded-2xl rounded-tl-sm border border-slate-200 bg-white px-4 py-3 ${
+            request.status === 'completed' ? '' : 'max-w-2xl'
+          }`}
+        >
           {request.status === 'queued' && <p className="text-sm text-slate-500">Queued&hellip;</p>}
 
           {request.status === 'in_progress' && (
@@ -31,7 +35,7 @@ export default function ChatConversation({ request }: { request: AgentRequest })
           )}
 
           {request.status === 'completed' && request.result != null && (
-            <LeadResultsPanel result={request.result as unknown as LeadGenerationResult} />
+            <LeadResultsPanel result={request.result as unknown as AnyLeadResult} />
           )}
 
           {request.status === 'failed' && (
