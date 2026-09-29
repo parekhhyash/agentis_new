@@ -6,7 +6,7 @@ from agents.lead_research.budget import ResearchBudget
 from agents.lead_research.cache import TTLCache
 from agents.lead_research.scraper import ContentFetcher, WebScraper
 from agents.lead_research.search_provider import PageContent
-from agents.lead_research.state import ResearchState
+from agents.lead_research.state import ResearchState, ScrapedPage
 
 HOMEPAGE = """<html><head><title>Alpha Fintech</title><script>var tracking = 1;</script></head>
 <body>
@@ -117,3 +117,27 @@ def test_fetcher_falls_back_to_search_contents_and_caches_per_run():
     assert first is not None and first.via == "exa" and first.text == "Zeta sells loans."
     assert second is first
     assert search.calls == 1 and state.usage.scrapes == 1
+    assert (state.usage.pages_by_our_scraper, state.usage.pages_by_exa, state.usage.pages_failed) == (0, 1, 0)
+
+
+class _EmptySearch:
+    async def get_contents(self, urls, *, max_characters):
+        return []
+
+
+class _WorkingScraper:
+    async def scrape(self, url):
+        return ScrapedPage(url=url, final_url=url, title="Ok", text="Plenty of text.")
+
+
+def test_fetcher_counts_pages_by_source():
+    state = ResearchState(objective="x", company_context={}, budget=ResearchBudget())
+    ours = ContentFetcher(_WorkingScraper(), _EmptySearch(), max_chars=500)  # type: ignore[arg-type]
+    neither = ContentFetcher(_BlockedScraper(), _EmptySearch(), max_chars=500)  # type: ignore[arg-type]
+
+    asyncio.run(ours.fetch("https://eta.com/", state))
+    asyncio.run(ours.fetch("https://eta.com/about", state))
+    assert asyncio.run(neither.fetch("https://theta.com/", state)) is None
+
+    assert state.usage.scrapes == 3
+    assert (state.usage.pages_by_our_scraper, state.usage.pages_by_exa, state.usage.pages_failed) == (2, 0, 1)

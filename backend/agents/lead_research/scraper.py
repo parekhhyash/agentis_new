@@ -256,6 +256,13 @@ class ContentFetcher:
         page = await self._scraper.scrape(url)
         if page is None and self._search is not None:
             page = await self._fetch_via_search(url)
+        if page is None:
+            state.usage.pages_failed += 1
+        elif page.via == "exa":
+            state.usage.pages_by_exa += 1
+        else:
+            state.usage.pages_by_our_scraper += 1
+        logger.info("Page %s: %s", url, {"scraper": "our scraper", "exa": "Exa fallback"}[page.via] if page else "failed")
         if page is not None:
             state.scraped_pages[key] = page
         return page

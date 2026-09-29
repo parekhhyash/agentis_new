@@ -141,7 +141,10 @@ class ICPSummary(BaseModel):
 
 class ResearchUsage(BaseModel):
     searches: int = 0
-    scrapes: int = 0
+    scrapes: int = 0  # pages requested; split by outcome below
+    pages_by_our_scraper: int = 0
+    pages_by_exa: int = 0  # our scraper failed, Exa /contents supplied the text
+    pages_failed: int = 0  # neither produced usable text
     llm_calls: int = 0
     tokens: int = 0
     runtime_seconds: float = 0.0
