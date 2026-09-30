@@ -76,8 +76,10 @@ export default function About() {
     return () => observer.disconnect()
   }, [])
 
+  // relative z-10 with no background: sits above the scroll-reveal rings that
+  // extend up into this section, while the rings still show behind it.
   return (
-    <section id="about" className="bg-white px-4 py-24 sm:py-32">
+    <section id="about" className="relative z-10 px-4 py-24 sm:py-32">
       <div className="mx-auto max-w-3xl text-center">
         <span className="text-sm font-semibold tracking-[0.2em] text-sky-600 uppercase">
           About Agentis

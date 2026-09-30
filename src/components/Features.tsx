@@ -58,7 +58,7 @@ function Sparkline() {
 
 export default function Features() {
   return (
-    <section id="features" className="bg-white px-4 py-24 sm:py-32">
+    <section id="features" className="relative z-10 px-4 py-24 sm:py-32">
       <div className="mx-auto max-w-2xl text-center">
         <span className="text-sm font-semibold tracking-[0.2em] text-sky-600 uppercase">
           Agents

@@ -31,7 +31,7 @@ function Rings({ className, turn }: { className: string; turn: number }) {
           cx="200"
           cy="200"
           r={r}
-          strokeWidth="1.25"
+          strokeWidth="1.5"
           className={i % 2 === 0 ? 'stroke-sky-200' : 'stroke-slate-200'}
           strokeDasharray={i === 1 ? '4 10' : undefined}
         />
@@ -80,8 +80,8 @@ export default function ScrollReveal() {
           the rings run past the section's top and bottom into the
           neighbouring sections instead of being cut off at its edges. */}
       <div className="sticky top-0 flex h-screen items-center justify-center overflow-x-clip px-6">
-        <Rings className="-top-32 -left-24 w-72 opacity-90 sm:-top-44 sm:-left-28 sm:w-[28rem]" turn={progress * 60} />
-        <Rings className="-right-28 -bottom-36 w-80 opacity-80 sm:-right-36 sm:-bottom-52 sm:w-[34rem]" turn={-progress * 45} />
+        <Rings className="-top-32 -left-24 w-72 sm:-top-44 sm:-left-28 sm:w-[28rem]" turn={progress * 60} />
+        <Rings className="-right-28 -bottom-36 w-80 sm:-right-36 sm:-bottom-52 sm:w-[34rem]" turn={-progress * 45} />
         <div
           aria-hidden="true"
           className="pointer-events-none absolute top-1/2 left-1/2 h-[28rem] w-[28rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-sky-100/40 blur-3xl"
