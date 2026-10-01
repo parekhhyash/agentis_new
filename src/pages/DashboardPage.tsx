@@ -33,6 +33,23 @@ export default function DashboardPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
+  // The conversation scrolls; the composer below it doesn't. A visible
+  // scrollbar (e.g. on Windows) narrows the scroll area and shifts its
+  // centred column left of the composer's. Measure the scrollbar and give
+  // the composer row the same gap so both columns line up exactly.
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [scrollbarWidth, setScrollbarWidth] = useState(0)
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const measure = () => setScrollbarWidth(el.offsetWidth - el.clientWidth)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
   useEffect(() => {
     if (!user) return
 
@@ -194,7 +211,7 @@ export default function DashboardPage() {
           <span className="font-display text-lg text-slate-900">Agentis</span>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto [scrollbar-gutter:stable]">
           {selectedRequest ? (
             <div className="mx-auto max-w-3xl px-6 py-8">
               <ChatConversation request={selectedRequest} />
@@ -212,16 +229,18 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div className="mx-auto w-full max-w-3xl px-6 pb-6">
-          <TaskComposer
-            agentType={agentType}
-            onAgentTypeChange={setAgentType}
-            onSubmit={handleSubmit}
-            isRunning={
-              selectedRequest?.status === 'in_progress' || selectedRequest?.status === 'queued'
-            }
-            onStop={() => selectedRequest && stopAgentRun(selectedRequest.id)}
-          />
+        <div style={{ paddingRight: scrollbarWidth }}>
+          <div className="mx-auto w-full max-w-3xl px-6 pb-6">
+            <TaskComposer
+              agentType={agentType}
+              onAgentTypeChange={setAgentType}
+              onSubmit={handleSubmit}
+              isRunning={
+                selectedRequest?.status === 'in_progress' || selectedRequest?.status === 'queued'
+              }
+              onStop={() => selectedRequest && stopAgentRun(selectedRequest.id)}
+            />
+          </div>
         </div>
       </main>
     </div>
