@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 
+import AgentCluster from './AgentCluster'
+
 function PromptVisual() {
   return (
     <div className="w-[82%] max-w-72 rounded-2xl bg-white p-4 shadow-lg ring-1 shadow-slate-900/5 ring-slate-200">
@@ -123,6 +125,8 @@ export default function HowItWorks() {
           </div>
         ))}
       </div>
+
+      <AgentCluster />
     </section>
   )
 }
