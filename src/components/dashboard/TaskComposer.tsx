@@ -47,7 +47,7 @@ export default function TaskComposer({
   }
 
   return (
-    <div className="relative w-full rounded-2xl border border-slate-300 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.06),0_8px_24px_rgba(15,23,42,0.10)] transition focus-within:border-brand-blue/60 focus-within:ring-4 focus-within:ring-brand-blue/10 sm:p-5">
+    <div className="relative w-full rounded-2xl border border-slate-300 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.06),0_8px_24px_rgba(15,23,42,0.10)] sm:p-5">
       <textarea
         ref={textareaRef}
         rows={1}
