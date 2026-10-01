@@ -16,7 +16,12 @@ function wordColor(t: number) {
 
 // Concentric rings, one dashed; `turn` rotates the set slightly as the
 // section scrolls so the background drifts with the text reveal.
-function Rings({ className, turn }: { className: string; turn: number }) {
+const TONES = {
+  sky: { stroke: 'stroke-sky-200', dot: 'fill-sky-200' },
+  indigo: { stroke: 'stroke-indigo-200', dot: 'fill-violet-300' },
+}
+
+function Rings({ className, turn, tone = 'sky' }: { className: string; turn: number; tone?: keyof typeof TONES }) {
   return (
     <svg
       viewBox="0 0 400 400"
@@ -32,11 +37,11 @@ function Rings({ className, turn }: { className: string; turn: number }) {
           cy="200"
           r={r}
           strokeWidth="1.5"
-          className={i % 2 === 0 ? 'stroke-sky-200' : 'stroke-slate-200'}
+          className={i % 2 === 0 ? TONES[tone].stroke : 'stroke-slate-200'}
           strokeDasharray={i === 1 ? '4 10' : undefined}
         />
       ))}
-      <circle cx="200" cy="10" r="4" className="fill-sky-200" />
+      <circle cx="200" cy="10" r="4" className={TONES[tone].dot} />
       <circle cx="350" cy="200" r="3" className="fill-slate-300" />
     </svg>
   )
@@ -81,10 +86,10 @@ export default function ScrollReveal() {
           neighbouring sections instead of being cut off at its edges. */}
       <div className="sticky top-0 flex h-screen items-center justify-center overflow-x-clip px-6">
         <Rings className="-top-32 -left-24 w-72 sm:-top-44 sm:-left-28 sm:w-[28rem]" turn={progress * 60} />
-        <Rings className="-right-28 -bottom-36 w-80 sm:-right-36 sm:-bottom-52 sm:w-[34rem]" turn={-progress * 45} />
+        <Rings className="-right-28 -bottom-36 w-80 sm:-right-36 sm:-bottom-52 sm:w-[34rem]" turn={-progress * 45} tone="indigo" />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute top-1/2 left-1/2 h-[28rem] w-[28rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-sky-100/40 blur-3xl"
+          className="pointer-events-none absolute top-1/2 left-1/2 h-[28rem] w-[28rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-br from-sky-100/50 to-violet-100/40 blur-3xl"
         />
         <p className="font-display relative max-w-4xl text-center text-3xl leading-snug text-balance sm:text-4xl md:text-5xl">
           {words.map((word, i) => (

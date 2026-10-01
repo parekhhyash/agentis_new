@@ -40,13 +40,13 @@ function RoutingVisual() {
             height="30"
             rx="5"
             transform={`rotate(${(360 / PILLS) * i} 100 100)`}
-            className="fill-sky-600"
+            className="fill-indigo-500"
             style={{ opacity: 0.2 + 0.8 * (i / (PILLS - 1)) }}
           />
         ))}
       </svg>
       <span className="absolute inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 shadow-md ring-1 ring-slate-200">
-        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-sky-500" />
+        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-500" />
         Lead research
       </span>
     </div>
@@ -67,7 +67,7 @@ function ReviewVisual() {
           </svg>
           Ready to ship
         </span>
-        <span className="text-[11px] font-medium text-sky-600">Approve</span>
+        <span className="text-[11px] font-medium text-teal-600">Approve</span>
       </div>
     </div>
   )
@@ -101,7 +101,7 @@ export default function HowItWorks() {
   return (
     <section id="how-it-works" className="bg-white px-4 py-24 sm:py-32">
       <div className="mx-auto max-w-2xl text-center">
-        <span className="text-sm font-semibold tracking-[0.2em] text-sky-600 uppercase">
+        <span className="text-sm font-semibold tracking-[0.2em] text-teal-600 uppercase">
           How it works
         </span>
         <h2 className="font-display mt-4 text-4xl text-slate-900 sm:text-5xl">
