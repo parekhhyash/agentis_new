@@ -99,7 +99,7 @@ const steps: { number: string; title: string; description: string; visual: React
 
 export default function HowItWorks() {
   return (
-    <section id="how-it-works" className="bg-white px-4 py-24 sm:py-32">
+    <section id="how-it-works" className="bg-white px-4 py-24 sm:px-6 sm:py-32">
       <div className="mx-auto max-w-2xl text-center">
         <span className="text-sm font-semibold tracking-[0.2em] text-brand-blue uppercase">
           How it works
@@ -109,7 +109,7 @@ export default function HowItWorks() {
         </h2>
       </div>
 
-      <div className="mx-auto mt-16 grid max-w-6xl grid-cols-1 gap-12 sm:grid-cols-3 sm:gap-6 lg:gap-10">
+      <div className="mx-auto mt-16 grid max-w-[78rem] grid-cols-1 gap-12 sm:grid-cols-3 sm:gap-6 lg:gap-10">
         {steps.map((step) => (
           <div key={step.number}>
             <div className="flex aspect-[10/9] items-center justify-center rounded-3xl bg-zinc-100">

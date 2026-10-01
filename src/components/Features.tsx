@@ -83,7 +83,7 @@ function ReportMockup() {
 
 export default function Features() {
   return (
-    <section id="features" className="relative z-10 px-4 py-24 sm:py-32">
+    <section id="features" className="relative z-10 px-4 py-24 sm:px-6 sm:py-32">
       <div className="mx-auto max-w-2xl text-center">
         <span className="text-sm font-semibold tracking-[0.2em] text-brand-blue uppercase">
           Agents
@@ -97,7 +97,7 @@ export default function Features() {
         </p>
       </div>
 
-      <div className="mx-auto mt-16 grid max-w-5xl grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mx-auto mt-16 grid max-w-[78rem] grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {/* Lead Research — white, wide, email mockup */}
         <div className="relative col-span-1 overflow-hidden rounded-2xl border border-slate-200 bg-white p-7 pb-24 shadow-sm sm:col-span-2">
           <h3 className="max-w-[60%] text-xl font-semibold text-slate-900">

@@ -110,7 +110,7 @@ function CardRow({ items }: { items: Testimonial[] }) {
 export default function Testimonials() {
   return (
     <section id="testimonials" className="relative z-10 px-4 py-12 sm:px-6 sm:py-16">
-      <div className="relative isolate mx-auto max-w-6xl overflow-hidden rounded-[2rem] bg-brand-sky/10 py-20 ring-1 ring-slate-900/5 ring-inset [clip-path:inset(0_round_2rem)] sm:py-24">
+      <div className="relative isolate mx-auto max-w-[78rem] overflow-hidden rounded-[2rem] bg-brand-sky/10 py-20 ring-1 ring-slate-900/5 ring-inset [clip-path:inset(0_round_2rem)] sm:py-24">
         {/* Two slow-drifting colour glows and a dot grid. The clip-path above keeps
             the animated blurs inside the rounded corners (overflow alone leaks there). */}
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
