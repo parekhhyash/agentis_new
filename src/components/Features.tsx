@@ -41,17 +41,42 @@ function ChatMockup() {
   )
 }
 
-function Sparkline() {
-  const bars = [40, 65, 45, 80, 60, 95, 75]
+// Points (0-100) for the report's chart, drawn into a 200x64 viewBox.
+const REPORT_POINTS = [18, 30, 24, 42, 36, 58, 52, 74]
+
+function ReportMockup() {
+  const xy = REPORT_POINTS.map((p, i) => [(i * 200) / (REPORT_POINTS.length - 1), 60 - (p / 100) * 52] as const)
+  const line = xy.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`).join(' ')
+  const [lastX, lastY] = xy[xy.length - 1]
   return (
-    <div className="mt-6 flex h-16 items-end gap-2">
-      {bars.map((h, i) => (
-        <div
-          key={i}
-          className="w-3 rounded-full bg-white/70"
-          style={{ height: `${h}%` }}
-        />
-      ))}
+    <div className="pointer-events-none absolute -right-4 -bottom-6 w-60 rotate-2 rounded-xl border border-white/40 bg-white p-4 shadow-xl sm:w-72">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-semibold text-slate-900">Weekly report</span>
+        <span className="rounded-full bg-brand-pink/40 px-2 py-0.5 text-[10px] font-medium text-slate-700">
+          Mon 9:00
+        </span>
+      </div>
+      <div className="mt-3 flex items-baseline gap-2">
+        <span className="font-display text-3xl text-slate-900">+40%</span>
+        <span className="text-[11px] text-slate-500">pipeline vs last week</span>
+      </div>
+      <svg viewBox="0 0 200 64" className="mt-2 h-auto w-full" aria-hidden="true">
+        <path d={`${line} L200 64 L0 64 Z`} className="fill-brand-pink/50" />
+        <path d={line} fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="stroke-pink-600" />
+        <circle cx={lastX} cy={lastY} r="3.5" className="fill-pink-600" />
+      </svg>
+      <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+        {[
+          ['Leads', '128'],
+          ['Replies', '34'],
+          ['Meetings', '9'],
+        ].map(([label, value]) => (
+          <div key={label} className="rounded-lg bg-slate-50 py-1.5">
+            <div className="text-xs font-semibold text-slate-900">{value}</div>
+            <div className="text-[9px] text-slate-500">{label}</div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -123,19 +148,16 @@ export default function Features() {
           <ChatMockup />
         </div>
 
-        {/* Data & Reporting — solid pink with dark text, wide, sparkline + stat */}
-        <div className="relative col-span-1 overflow-hidden rounded-2xl bg-brand-pink p-7 sm:col-span-2">
-          <h3 className="text-xl font-semibold text-slate-900">
+        {/* Data & Reporting — deep pink (white text stays readable), wide, report mockup */}
+        <div className="relative col-span-1 min-h-80 overflow-hidden rounded-2xl bg-pink-600 p-7 pb-56 sm:col-span-2 sm:pb-7">
+          <h3 className="text-xl font-semibold text-white">
             Data &amp; Reporting
           </h3>
-          <p className="mt-2 max-w-sm text-[15px] leading-relaxed text-slate-700">
+          <p className="mt-2 max-w-[55%] text-[15px] leading-relaxed text-white/85">
             Turn raw numbers into a clean weekly report, no spreadsheet
             wrangling required.
           </p>
-          <div className="mt-4 flex items-end justify-between">
-            <span className="font-display text-4xl text-slate-900">+40%</span>
-            <Sparkline />
-          </div>
+          <ReportMockup />
         </div>
 
         {/* Operations — white, full width banner */}

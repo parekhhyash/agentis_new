@@ -1,13 +1,16 @@
 const PER_SIDE = 9
 
-// Solid brand colours, no gradients.
+// Card faces cycle through the site palette: sky, pink/rose, purple, blue, yellow.
 const FACES = [
-  'bg-brand-sky',
-  'bg-brand-pink',
-  'bg-brand-violet',
-  'bg-brand-yellow',
-  'bg-brand-blue',
-  'bg-brand-orchid',
+  'from-sky-300 to-sky-500',
+  'from-pink-300 to-rose-500',
+  'from-violet-400 to-purple-600',
+  'from-amber-200 to-amber-400',
+  'from-indigo-400 to-blue-600',
+  'from-pink-200 to-pink-400',
+  'from-rose-300 to-red-400',
+  'from-sky-200 to-indigo-400',
+  'from-fuchsia-300 to-violet-500',
 ]
 
 type Card = { side: -1 | 1; k: number; left: number; angle: number; height: number; face: string }
@@ -46,7 +49,7 @@ export default function CardFan({ className = '' }: { className?: string }) {
       {CARDS.map((card) => (
         <div
           key={`${card.side}-${card.k}`}
-          className={`absolute bottom-0 rounded-t-[1.75rem] rounded-b-md ${card.face} shadow-[inset_0_0_0_1px_rgba(255,255,255,0.3)]`}
+          className={`absolute bottom-0 overflow-hidden rounded-t-[1.75rem] rounded-b-md bg-gradient-to-br ${card.face} shadow-[0_0_0_1px_rgba(255,255,255,0.25)_inset]`}
           style={{
             left: `${card.left}%`,
             width: '13%',
@@ -56,7 +59,10 @@ export default function CardFan({ className = '' }: { className?: string }) {
             // Left cards turn their inner edge away; right cards mirror it.
             transform: `translateY(14%) rotateY(${card.side * card.angle}deg)`,
           }}
-        />
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-white/35 via-transparent to-black/10" />
+          <div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-white/25 to-transparent" />
+        </div>
       ))}
     </div>
   )
