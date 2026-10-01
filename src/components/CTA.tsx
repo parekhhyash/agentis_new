@@ -68,9 +68,9 @@ export default function CTA() {
         </Link>
       </div>
 
-      <CardFan className="mx-auto mt-16 max-w-6xl sm:mt-20" />
+      <CardFan className="mx-auto mt-16 max-w-[78rem] sm:mt-20" />
 
-      <footer className="mx-auto mt-20 max-w-6xl pb-12 sm:mt-28">
+      <footer className="mx-auto mt-20 max-w-[78rem] pb-12 sm:mt-28">
         <div className="grid gap-12 lg:grid-cols-[1.4fr_3fr]">
           <div>
             <span className="font-display text-2xl text-slate-900">Agentis</span>
