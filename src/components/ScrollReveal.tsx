@@ -17,8 +17,8 @@ function wordColor(t: number) {
 // Concentric rings, one dashed; `turn` rotates the set slightly as the
 // section scrolls so the background drifts with the text reveal.
 const TONES = {
-  sky: { stroke: 'stroke-sky-200', dot: 'fill-sky-200' },
-  indigo: { stroke: 'stroke-indigo-200', dot: 'fill-violet-300' },
+  sky: { stroke: 'stroke-brand-sky/45', dot: 'fill-brand-sky/60' },
+  orchid: { stroke: 'stroke-brand-orchid/45', dot: 'fill-brand-orchid/60' },
 }
 
 function Rings({ className, turn, tone = 'sky' }: { className: string; turn: number; tone?: keyof typeof TONES }) {
@@ -86,10 +86,10 @@ export default function ScrollReveal() {
           neighbouring sections instead of being cut off at its edges. */}
       <div className="sticky top-0 flex h-screen items-center justify-center overflow-x-clip px-6">
         <Rings className="-top-32 -left-24 w-72 sm:-top-44 sm:-left-28 sm:w-[28rem]" turn={progress * 60} />
-        <Rings className="-right-28 -bottom-36 w-80 sm:-right-36 sm:-bottom-52 sm:w-[34rem]" turn={-progress * 45} tone="indigo" />
+        <Rings className="-right-28 -bottom-36 w-80 sm:-right-36 sm:-bottom-52 sm:w-[34rem]" turn={-progress * 45} tone="orchid" />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute top-1/2 left-1/2 h-[28rem] w-[28rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-br from-sky-100/50 to-violet-100/40 blur-3xl"
+          className="pointer-events-none absolute top-1/2 left-1/2 h-[28rem] w-[28rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-sky/10 blur-3xl"
         />
         <p className="font-display relative max-w-4xl text-center text-3xl leading-snug text-balance sm:text-4xl md:text-5xl">
           {words.map((word, i) => (

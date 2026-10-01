@@ -81,7 +81,7 @@ export default function About() {
   return (
     <section id="about" className="relative z-10 px-4 py-24 sm:py-32">
       <div className="mx-auto max-w-3xl text-center">
-        <span className="text-sm font-semibold tracking-[0.2em] text-sky-600 uppercase">
+        <span className="text-sm font-semibold tracking-[0.2em] text-brand-blue uppercase">
           About Agentis
         </span>
         <h2 className="font-display mt-4 text-balance text-4xl text-slate-900 sm:text-5xl">

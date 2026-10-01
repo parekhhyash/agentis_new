@@ -4,7 +4,7 @@ function EmailMockup() {
       <div className="h-2 w-3/4 rounded-full bg-slate-200" />
       <div className="mt-2 h-2 w-full rounded-full bg-slate-100" />
       <div className="mt-2 h-2 w-5/6 rounded-full bg-slate-100" />
-      <div className="mt-4 inline-block rounded-full bg-indigo-600 px-3 py-1 text-[11px] font-semibold text-white">
+      <div className="mt-4 inline-block rounded-full bg-brand-blue px-3 py-1 text-[11px] font-semibold text-white">
         Send
       </div>
     </div>
@@ -19,7 +19,7 @@ function BrowserMockup() {
         <span className="h-2 w-2 rounded-full bg-slate-300" />
         <span className="h-2 w-2 rounded-full bg-slate-300" />
       </div>
-      <div className="h-16 bg-gradient-to-br from-violet-200 via-indigo-100 to-white" />
+      <div className="h-16 bg-brand-sky/25" />
     </div>
   )
 }
@@ -33,7 +33,7 @@ function ChatMockup() {
         </div>
       </div>
       <div className="mt-2 flex justify-end">
-        <div className="max-w-[75%] rounded-lg rounded-br-sm bg-sky-600 px-3 py-1.5 text-[11px] text-white shadow-sm">
+        <div className="max-w-[75%] rounded-lg rounded-br-sm bg-brand-blue px-3 py-1.5 text-[11px] text-white shadow-sm">
           Found it — out for delivery today
         </div>
       </div>
@@ -48,7 +48,7 @@ function Sparkline() {
       {bars.map((h, i) => (
         <div
           key={i}
-          className="w-3 rounded-full bg-white/30"
+          className="w-3 rounded-full bg-white/70"
           style={{ height: `${h}%` }}
         />
       ))}
@@ -60,7 +60,7 @@ export default function Features() {
   return (
     <section id="features" className="relative z-10 px-4 py-24 sm:py-32">
       <div className="mx-auto max-w-2xl text-center">
-        <span className="text-sm font-semibold tracking-[0.2em] text-indigo-600 uppercase">
+        <span className="text-sm font-semibold tracking-[0.2em] text-brand-blue uppercase">
           Agents
         </span>
         <h2 className="font-display mt-4 text-4xl text-slate-900 sm:text-5xl">
@@ -85,8 +85,8 @@ export default function Features() {
           <EmailMockup />
         </div>
 
-        {/* Sales & Outreach — indigo to violet, wide, browser mockup */}
-        <div className="relative col-span-1 overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 p-7 pb-24 sm:col-span-2">
+        {/* Sales & Outreach — solid violet, wide, browser mockup */}
+        <div className="relative col-span-1 overflow-hidden rounded-2xl bg-brand-violet p-7 pb-24 sm:col-span-2">
           <h3 className="max-w-[60%] text-xl font-semibold text-white">
             Sales &amp; Outreach
           </h3>
@@ -100,7 +100,7 @@ export default function Features() {
         {/* Content & Copy — white, narrow, decorative blob */}
         <div className="relative col-span-1 overflow-hidden rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
           <div
-            className="pointer-events-none absolute -top-6 -right-6 h-28 w-28 rounded-full bg-gradient-to-br from-violet-200 to-indigo-50 blur-sm"
+            className="pointer-events-none absolute -top-6 -right-6 h-28 w-28 rounded-full bg-brand-yellow/40 blur-sm"
             aria-hidden
           />
           <h3 className="relative text-lg font-semibold text-slate-900">
@@ -123,17 +123,17 @@ export default function Features() {
           <ChatMockup />
         </div>
 
-        {/* Data & Reporting — pink to rose, wide, sparkline + stat */}
-        <div className="relative col-span-1 overflow-hidden rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 p-7 sm:col-span-2">
-          <h3 className="text-xl font-semibold text-white">
+        {/* Data & Reporting — solid pink with dark text, wide, sparkline + stat */}
+        <div className="relative col-span-1 overflow-hidden rounded-2xl bg-brand-pink p-7 sm:col-span-2">
+          <h3 className="text-xl font-semibold text-slate-900">
             Data &amp; Reporting
           </h3>
-          <p className="mt-2 max-w-sm text-[15px] leading-relaxed text-white/80">
+          <p className="mt-2 max-w-sm text-[15px] leading-relaxed text-slate-700">
             Turn raw numbers into a clean weekly report, no spreadsheet
             wrangling required.
           </p>
           <div className="mt-4 flex items-end justify-between">
-            <span className="font-display text-4xl text-white">+40%</span>
+            <span className="font-display text-4xl text-slate-900">+40%</span>
             <Sparkline />
           </div>
         </div>
@@ -158,7 +158,7 @@ export default function Features() {
                 your team's week.
               </p>
             </div>
-            <span className="shrink-0 rounded-full bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700">
+            <span className="shrink-0 rounded-full bg-brand-yellow px-4 py-2 text-sm font-semibold text-slate-900">
               Always on
             </span>
           </div>

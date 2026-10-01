@@ -30,7 +30,7 @@ const socials: { label: string; href: string; icon: ReactNode }[] = [
   },
 ]
 
-const linkClass = 'text-[15px] text-slate-700 transition-colors hover:text-indigo-600'
+const linkClass = 'text-[15px] text-slate-700 transition-colors hover:text-brand-blue'
 
 function FooterColumn({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -51,7 +51,7 @@ export default function CTA() {
         <h2 className="font-display text-balance text-5xl leading-[1.05] text-slate-900 sm:text-7xl">
           Describe it.
           <br />
-          <span className="bg-gradient-to-r from-sky-500 via-violet-500 to-pink-500 bg-clip-text text-transparent">
+          <span className="text-brand-blue">
             Consider it done.
           </span>
         </h2>
@@ -61,7 +61,7 @@ export default function CTA() {
         </p>
         <Link
           to={user ? '/dashboard' : '/signup'}
-          className="mt-8 inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-7 py-3 text-[15px] font-semibold text-white shadow-lg shadow-indigo-500/20 transition hover:-translate-y-0.5 hover:bg-indigo-600"
+          className="mt-8 inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-7 py-3 text-[15px] font-semibold text-white shadow-lg shadow-brand-violet/20 transition hover:-translate-y-0.5 hover:bg-brand-violet"
         >
           {user ? 'Go to dashboard' : 'Get started free'}
           <span aria-hidden="true">→</span>
@@ -86,7 +86,7 @@ export default function CTA() {
                     target="_blank"
                     rel="noreferrer"
                     aria-label={s.label}
-                    className="text-slate-900 transition-colors hover:text-indigo-600"
+                    className="text-slate-900 transition-colors hover:text-brand-blue"
                   >
                     <svg
                       viewBox="0 0 24 24"

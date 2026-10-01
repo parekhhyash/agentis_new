@@ -11,6 +11,15 @@
 @theme {
   --font-display: 'Lastik', 'Georgia', serif;
   --font-sans: 'Instrument Sans', system-ui, sans-serif;
+
+  /* Brand palette - use these (e.g. bg-brand-blue, text-brand-pink/40)
+     rather than ad-hoc Tailwind hues, and prefer solid fills to gradients. */
+  --color-brand-blue: #3d7ffd;
+  --color-brand-sky: #51b6fd;
+  --color-brand-violet: #6632fa;
+  --color-brand-orchid: #d680d0;
+  --color-brand-pink: #fcaed7;
+  --color-brand-yellow: #fbd104;
   --animate-marquee: marquee 40s linear infinite;
   --animate-marquee-slow: marquee 60s linear infinite;
   --animate-aurora: aurora 18s ease-in-out infinite alternate;
