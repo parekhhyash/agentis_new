@@ -50,6 +50,15 @@ html {
   scroll-padding-top: 110px;
 }
 
+/* Tailwind v4 dropped the pointer cursor on buttons; restore it for every
+   clickable button (disabled ones keep the default arrow). */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
 /* Smaller laptop screens (roughly 1024-1535px) report a logical width in
    the same range as much larger monitors, so the type/spacing scale tuned
    for those monitors reads oversized here. Scale everything down slightly
