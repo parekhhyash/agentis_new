@@ -55,17 +55,6 @@ export default function CTA() {
             Consider it done.
           </span>
         </h2>
-        <p className="mx-auto mt-6 max-w-md text-lg text-slate-600">
-          Start free. No credit card, no setup calls — describe your first task and watch Agentis
-          take it from there.
-        </p>
-        <Link
-          to={user ? '/dashboard' : '/signup'}
-          className="mt-8 inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-7 py-3 text-[15px] font-semibold text-white shadow-lg shadow-brand-violet/20 transition hover:-translate-y-0.5 hover:bg-brand-violet"
-        >
-          {user ? 'Go to dashboard' : 'Get started free'}
-          <span aria-hidden="true">→</span>
-        </Link>
       </div>
 
       <CardFan className="mx-auto mt-16 max-w-[78rem] sm:mt-20" />
