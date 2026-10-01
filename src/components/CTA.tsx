@@ -51,7 +51,7 @@ export default function CTA() {
         <h2 className="font-display text-balance text-5xl leading-[1.05] text-slate-900 sm:text-7xl">
           Describe it.
           <br />
-          <span className="bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-sky-500 via-violet-500 to-pink-500 bg-clip-text text-transparent">
             Consider it done.
           </span>
         </h2>

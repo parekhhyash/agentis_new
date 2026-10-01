@@ -61,13 +61,13 @@ function ReviewVisual() {
       <div className="mt-2 h-2 w-5/6 rounded-full bg-slate-100" />
       <div className="mt-2 h-2 w-3/4 rounded-full bg-slate-100" />
       <div className="mt-5 flex items-center justify-between">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-900 px-3 py-1.5 text-[11px] font-medium text-white">
-          <svg viewBox="0 0 16 16" className="h-3 w-3 text-emerald-400" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-violet-500 to-pink-500 px-3 py-1.5 text-[11px] font-medium text-white">
+          <svg viewBox="0 0 16 16" className="h-3 w-3 text-amber-200" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
             <path d="m3.5 8.5 3 3 6-7" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           Ready to ship
         </span>
-        <span className="text-[11px] font-medium text-teal-600">Approve</span>
+        <span className="text-[11px] font-medium text-pink-600">Approve</span>
       </div>
     </div>
   )
@@ -101,7 +101,7 @@ export default function HowItWorks() {
   return (
     <section id="how-it-works" className="bg-white px-4 py-24 sm:py-32">
       <div className="mx-auto max-w-2xl text-center">
-        <span className="text-sm font-semibold tracking-[0.2em] text-teal-600 uppercase">
+        <span className="text-sm font-semibold tracking-[0.2em] text-rose-500 uppercase">
           How it works
         </span>
         <h2 className="font-display mt-4 text-4xl text-slate-900 sm:text-5xl">

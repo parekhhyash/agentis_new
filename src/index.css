@@ -14,9 +14,6 @@
   --animate-marquee: marquee 40s linear infinite;
   --animate-marquee-slow: marquee 60s linear infinite;
   --animate-aurora: aurora 18s ease-in-out infinite alternate;
-  --animate-sway: sway 6s ease-in-out infinite alternate;
-  --animate-progress: progress 6.5s linear forwards;
-  --animate-quote-in: quote-in 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 
   @keyframes aurora {
     0% {
@@ -27,37 +24,6 @@
     }
     100% {
       transform: translate(-6%, 8%) scale(0.95);
-    }
-  }
-
-  @keyframes sway {
-    from {
-      transform: rotateY(-5deg);
-    }
-    to {
-      transform: rotateY(5deg);
-    }
-  }
-
-  @keyframes progress {
-    from {
-      transform: scaleX(0);
-    }
-    to {
-      transform: scaleX(1);
-    }
-  }
-
-  @keyframes quote-in {
-    from {
-      opacity: 0;
-      transform: translateY(14px);
-      filter: blur(6px);
-    }
-    to {
-      opacity: 1;
-      transform: none;
-      filter: none;
     }
   }
 

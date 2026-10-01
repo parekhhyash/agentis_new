@@ -123,8 +123,8 @@ export default function Features() {
           <ChatMockup />
         </div>
 
-        {/* Data & Reporting — teal to sky, wide, sparkline + stat */}
-        <div className="relative col-span-1 overflow-hidden rounded-2xl bg-gradient-to-br from-teal-500 to-sky-600 p-7 sm:col-span-2">
+        {/* Data & Reporting — pink to rose, wide, sparkline + stat */}
+        <div className="relative col-span-1 overflow-hidden rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 p-7 sm:col-span-2">
           <h3 className="text-xl font-semibold text-white">
             Data &amp; Reporting
           </h3>
@@ -158,7 +158,7 @@ export default function Features() {
                 your team's week.
               </p>
             </div>
-            <span className="shrink-0 rounded-full bg-teal-50 px-4 py-2 text-sm font-semibold text-teal-700">
+            <span className="shrink-0 rounded-full bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700">
               Always on
             </span>
           </div>
