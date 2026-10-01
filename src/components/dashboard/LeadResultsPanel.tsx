@@ -37,6 +37,20 @@ function ExternalLink({ href, children }: { href: string; children: React.ReactN
   )
 }
 
+// Lets a long address wrap after the "@" (care@ / mamaearth.in) before
+// breaking anywhere else.
+function EmailText({ email }: { email: string }) {
+  const at = email.indexOf('@')
+  if (at < 0) return <>{email}</>
+  return (
+    <>
+      {email.slice(0, at + 1)}
+      <wbr />
+      {email.slice(at + 1)}
+    </>
+  )
+}
+
 function LeadRows({ lead }: { lead: ResearchLead }) {
   const contacts = lead.contacts.length > 0 ? lead.contacts : [null]
   const span = contacts.length
@@ -54,20 +68,15 @@ function LeadRows({ lead }: { lead: ResearchLead }) {
                 <div className="mt-1">
                   <FitBadge label={lead.qualification} />
                 </div>
-                {(lead.company_emails.length > 0 || lead.contact_page) && (
-                  <div className="mt-1 text-xs text-slate-500">
-                    General:{' '}
-                    {lead.company_emails.map((email) => (
-                      <a key={email} href={`mailto:${email}`} className="block break-all text-sky-600 hover:underline">
-                        {email}
-                      </a>
-                    ))}
-                    {lead.contact_page && (
-                      <a href={lead.contact_page} target="_blank" rel="noreferrer" className="block text-sky-600 hover:underline">
-                        Contact page
-                      </a>
-                    )}
-                  </div>
+                {lead.contact_page && (
+                  <a
+                    href={lead.contact_page}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-1 block text-xs text-sky-600 hover:underline"
+                  >
+                    Contact page
+                  </a>
                 )}
               </td>
               <td rowSpan={span} className={`${cell} text-slate-700`}>
@@ -99,10 +108,10 @@ function LeadRows({ lead }: { lead: ResearchLead }) {
             {contact?.linkedin_url ? <ExternalLink href={contact.linkedin_url}>Profile</ExternalLink> : <span className="text-slate-400">—</span>}
           </td>
           <td className={cell}>
-            {contact?.email ? (
+            {contact?.email && (
               <>
-                <a href={`mailto:${contact.email}`} className="break-all text-sky-600 hover:underline">
-                  {contact.email}
+                <a href={`mailto:${contact.email}`} className="text-[13px] [overflow-wrap:anywhere] text-sky-600 hover:underline">
+                  <EmailText email={contact.email} />
                 </a>
                 {contact.email_source_url && (
                   <a
@@ -115,7 +124,20 @@ function LeadRows({ lead }: { lead: ResearchLead }) {
                   </a>
                 )}
               </>
-            ) : (
+            )}
+            {/* Company inboxes (hello@, support@...) once per company, labelled so
+                they aren't mistaken for this person's address. */}
+            {i === 0 && lead.company_emails.length > 0 && (
+              <div className={contact?.email ? 'mt-2' : undefined}>
+                <div className="text-[11px] text-slate-400">General</div>
+                {lead.company_emails.map((email) => (
+                  <a key={email} href={`mailto:${email}`} className="block text-[13px] [overflow-wrap:anywhere] text-sky-600 hover:underline">
+                    <EmailText email={email} />
+                  </a>
+                ))}
+              </div>
+            )}
+            {!contact?.email && !(i === 0 && lead.company_emails.length > 0) && (
               <span className="text-slate-400">—</span>
             )}
           </td>
@@ -203,12 +225,12 @@ function ResearchResults({ result }: { result: LeadResearchResult }) {
             <table className="w-full min-w-[600px] table-fixed text-left text-sm">
               <thead className="bg-slate-50 text-xs font-medium text-slate-500">
                 <tr>
-                  <th className="w-[21%] px-2 py-2">Company</th>
-                  <th className="w-[15%] px-2 py-2">Industry</th>
-                  <th className="w-[25%] px-2 py-2">Why relevant</th>
+                  <th className="w-[20%] px-2 py-2">Company</th>
+                  <th className="w-[13%] px-2 py-2">Industry</th>
+                  <th className="w-[22%] px-2 py-2">Why relevant</th>
                   <th className="w-[17%] px-2 py-2">Contact</th>
-                  <th className="w-[11%] px-2 py-2">LinkedIn</th>
-                  <th className="w-[11%] px-2 py-2">Email</th>
+                  <th className="w-[9%] px-2 py-2">LinkedIn</th>
+                  <th className="w-[19%] px-2 py-2">Email</th>
                 </tr>
               </thead>
               <tbody>
