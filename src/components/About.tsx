@@ -81,7 +81,7 @@ function Heatmap({ cols, active, className }: { cols: number; active: boolean; c
 function TasksTile({ active }: { active: boolean }) {
   const value = useCountUp(12000, active)
   return (
-    <Tile className="col-span-1 justify-between gap-6 bg-brand-blush lg:col-span-4 lg:flex-row lg:items-end">
+    <Tile className="col-span-1 justify-between gap-6 bg-brand-blue lg:col-span-4 lg:flex-row lg:items-end">
       <div className="order-2 lg:order-1 lg:shrink-0">
         <Stat value={`${value.toLocaleString()}+`} label="tasks completed autonomously" tone="light" />
       </div>
@@ -132,7 +132,7 @@ function TimeSavedTile({ active }: { active: boolean }) {
 
 function AlwaysOnTile() {
   return (
-    <Tile className="col-span-1 bg-brand-violet lg:col-span-2">
+    <Tile className="col-span-1 bg-brand-blush lg:col-span-2">
       <div className="mb-4 flex items-center justify-between sm:mb-auto">
         <svg viewBox="0 0 100 100" className="h-16 w-16 sm:h-24 sm:w-24" aria-hidden="true">
           {Array.from({ length: 24 }, (_, i) => (
@@ -153,10 +153,10 @@ function AlwaysOnTile() {
           </g>
           <circle cx="50" cy="50" r="4" className="fill-white" />
         </svg>
-        <span className="inline-flex items-center gap-1.5 self-start rounded-full bg-white/15 px-2.5 py-1 text-xs font-medium text-white">
+        <span className="inline-flex items-center gap-1.5 self-start rounded-full bg-white px-2.5 py-1 text-xs font-medium text-slate-800">
           <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/70 motion-reduce:animate-none" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-pink-400 motion-reduce:animate-none" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-pink-500" />
           </span>
           Live
         </span>
