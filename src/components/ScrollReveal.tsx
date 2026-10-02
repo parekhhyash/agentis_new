@@ -91,7 +91,7 @@ export default function ScrollReveal() {
           aria-hidden="true"
           className="pointer-events-none absolute top-1/2 left-1/2 h-[28rem] w-[28rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-sky/10 blur-3xl"
         />
-        <p className="font-display relative max-w-4xl text-left text-3xl leading-snug text-pretty sm:text-4xl md:text-5xl">
+        <p className="font-display relative max-w-4xl text-center text-3xl leading-snug text-balance sm:text-4xl md:text-5xl">
           {words.map((word, i) => (
             <span
               key={i}
