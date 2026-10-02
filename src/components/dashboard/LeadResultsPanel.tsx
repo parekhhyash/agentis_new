@@ -80,12 +80,12 @@ function LeadRows({ lead }: { lead: ResearchLead }) {
                 )}
               </td>
               <td rowSpan={span} className={`${cell} text-slate-700`}>
-                {lead.industry ?? '—'}
+                {lead.industry ?? '–'}
                 {lead.location && <div className="text-xs text-slate-500">{lead.location}</div>}
                 {lead.employee_count && <div className="text-xs text-slate-500">{lead.employee_count} employees</div>}
               </td>
               <td rowSpan={span} className={`${cell} text-slate-700`}>
-                {lead.why_relevant || '—'}
+                {lead.why_relevant || '–'}
               </td>
             </>
           )}
@@ -105,7 +105,7 @@ function LeadRows({ lead }: { lead: ResearchLead }) {
             )}
           </td>
           <td className={cell}>
-            {contact?.linkedin_url ? <ExternalLink href={contact.linkedin_url}>Profile</ExternalLink> : <span className="text-slate-400">—</span>}
+            {contact?.linkedin_url ? <ExternalLink href={contact.linkedin_url}>Profile</ExternalLink> : <span className="text-slate-400">–</span>}
           </td>
           <td className={cell}>
             {contact?.email && (
@@ -138,7 +138,7 @@ function LeadRows({ lead }: { lead: ResearchLead }) {
               </div>
             )}
             {!contact?.email && !(i === 0 && lead.company_emails.length > 0) && (
-              <span className="text-slate-400">—</span>
+              <span className="text-slate-400">–</span>
             )}
           </td>
         </tr>

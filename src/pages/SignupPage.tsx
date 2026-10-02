@@ -60,7 +60,7 @@ export default function SignupPage() {
 
       {checkEmail ? (
         <div className="mt-8 rounded-xl border border-sky-100 bg-sky-50 p-5 text-[15px] text-slate-700">
-          Almost there — we sent a confirmation link to{' '}
+          Almost there! We sent a confirmation link to{' '}
           <span className="font-medium">{email}</span>. Click it to activate
           your account and sign in.
         </div>

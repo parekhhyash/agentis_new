@@ -48,7 +48,7 @@ export default function AgentCluster() {
     <div className="group mx-auto mt-10 flex max-w-[78rem] flex-col items-center justify-center gap-8 rounded-3xl bg-zinc-100 px-6 py-14 text-center sm:flex-row sm:gap-12 sm:py-16 sm:text-left">
       <Cluster />
       <p className="max-w-md text-lg leading-snug text-slate-900 sm:text-xl">
-        Every agent your business needs, in one workspace — from finding leads to answering
+        Every agent your business needs, in one workspace: from finding leads to answering
         customers to the Monday report.
       </p>
     </div>

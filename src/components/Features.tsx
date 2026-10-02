@@ -11,15 +11,74 @@ function EmailMockup() {
   )
 }
 
-function BrowserMockup() {
+const SEQUENCE = [
+  { step: 'Intro email', when: 'Mon', status: 'Opened', dot: 'bg-brand-sky' },
+  { step: 'Follow-up', when: 'Thu', status: 'Replied', dot: 'bg-brand-yellow' },
+  { step: 'Call invite', when: 'Fri', status: 'Booked', dot: 'bg-emerald-400' },
+]
+
+function SequenceMockup() {
   return (
-    <div className="pointer-events-none absolute -right-4 -bottom-6 w-48 -rotate-2 overflow-hidden rounded-xl border border-white/30 bg-white shadow-xl sm:w-60">
-      <div className="flex items-center gap-1.5 border-b border-slate-100 px-3 py-2">
-        <span className="h-2 w-2 rounded-full bg-slate-300" />
-        <span className="h-2 w-2 rounded-full bg-slate-300" />
-        <span className="h-2 w-2 rounded-full bg-slate-300" />
+    <div className="pointer-events-none absolute -right-4 -bottom-6 w-60 -rotate-2 rounded-xl bg-white p-4 shadow-xl sm:w-72">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-semibold text-slate-900">Outreach sequence</span>
+        <span className="text-[10px] whitespace-nowrap text-slate-400">3 steps</span>
       </div>
-      <div className="h-16 bg-brand-sky/25" />
+      <ol className="mt-3 space-y-2">
+        {SEQUENCE.map((s, i) => (
+          <li key={s.step} className="flex items-center gap-2.5">
+            <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold text-slate-900 ${s.dot}`}>
+              {i + 1}
+            </span>
+            <span className="flex-1 text-[11px] text-slate-700">{s.step}</span>
+            <span className="text-[10px] text-slate-400">{s.when}</span>
+            <span className="w-12 rounded-full bg-slate-100 py-0.5 text-center text-[9px] font-medium text-slate-600">
+              {s.status}
+            </span>
+          </li>
+        ))}
+      </ol>
+      <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-brand-violet/10 px-2.5 py-1.5 text-[10px] font-semibold text-brand-violet">
+        <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+          <rect x="2.5" y="3.5" width="11" height="10" rx="1.5" />
+          <path d="M2.5 6.5h11M5.5 2v3M10.5 2v3" strokeLinecap="round" />
+        </svg>
+        Meeting booked · Fri 3:00 PM
+      </div>
+    </div>
+  )
+}
+
+const DRAFTS = [
+  { kind: 'Blog post', lines: ['w-full', 'w-11/12', 'w-4/5'] },
+  { kind: 'Ad copy', lines: ['w-5/6', 'w-2/3'] },
+  { kind: 'LinkedIn post', lines: ['w-full', 'w-3/4'] },
+]
+
+function DraftsMockup() {
+  return (
+    <div className="relative mt-6 h-44" aria-hidden="true">
+      {DRAFTS.map((d, i) => (
+        <div
+          key={d.kind}
+          className="absolute inset-x-0 rounded-xl bg-white p-3 shadow-lg"
+          style={{ top: `${i * 34}px`, transform: `rotate(${[-2, 1.5, -1][i]}deg) scale(${0.92 + i * 0.04})`, zIndex: i }}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-semibold text-slate-900">{d.kind}</span>
+            {i === DRAFTS.length - 1 && (
+              <span className="rounded-full bg-brand-mauve/15 px-2 py-0.5 text-[9px] font-medium text-brand-mauve">
+                On-brand tone
+              </span>
+            )}
+          </div>
+          <div className="mt-2 space-y-1.5">
+            {d.lines.map((w, j) => (
+              <div key={j} className={`h-1.5 rounded-full bg-slate-200 ${w}`} />
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
@@ -34,7 +93,7 @@ function ChatMockup() {
       </div>
       <div className="mt-2 flex justify-end">
         <div className="max-w-[75%] rounded-lg rounded-br-sm bg-brand-blue px-3 py-1.5 text-[11px] text-white shadow-sm">
-          Found it — out for delivery today
+          Found it, out for delivery today
         </div>
       </div>
     </div>
@@ -92,8 +151,8 @@ export default function Features() {
           One team, every function
         </h2>
         <p className="mt-6 text-lg leading-relaxed text-slate-600">
-          Each agent specializes in a single job, the way a great hire would
-          — and they all report to you.
+          Each agent specializes in a single job, the way a great hire would,
+          and they all report to you.
         </p>
       </div>
 
@@ -104,37 +163,34 @@ export default function Features() {
             Lead Research
           </h3>
           <p className="mt-2 max-w-[60%] text-[15px] leading-relaxed text-slate-600">
-            Find and qualify real companies as sales leads — your pipeline
+            Find and qualify real companies as sales leads, so your pipeline
             keeps filling while you sleep.
           </p>
           <EmailMockup />
         </div>
 
-        {/* Sales & Outreach — solid violet, wide, browser mockup */}
-        <div className="relative col-span-1 overflow-hidden rounded-2xl bg-brand-violet p-7 pb-24 sm:col-span-2">
+        {/* Sales & Outreach — solid violet, wide, outreach sequence mockup */}
+        <div className="relative col-span-1 min-h-72 overflow-hidden rounded-2xl bg-brand-violet p-7 pb-48 sm:col-span-2 sm:pb-7">
           <h3 className="max-w-[60%] text-xl font-semibold text-white">
             Sales &amp; Outreach
           </h3>
-          <p className="mt-2 max-w-[60%] text-[15px] leading-relaxed text-white/80">
+          <p className="mt-2 max-w-[55%] text-[15px] leading-relaxed text-white/80">
             Draft sequences, follow up, and book meetings with the leads
             already qualified for you.
           </p>
-          <BrowserMockup />
+          <SequenceMockup />
         </div>
 
-        {/* Content & Copy — white, narrow, decorative blob */}
-        <div className="relative col-span-1 overflow-hidden rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
-          <div
-            className="pointer-events-none absolute -top-6 -right-6 h-28 w-28 rounded-full bg-brand-yellow/40 blur-sm"
-            aria-hidden
-          />
-          <h3 className="relative text-lg font-semibold text-slate-900">
+        {/* Content & Copy — mauve, narrow, stacked drafts mockup */}
+        <div className="relative col-span-1 overflow-hidden rounded-2xl bg-brand-mauve p-7">
+          <h3 className="text-lg font-semibold text-white">
             Content &amp; Copy
           </h3>
-          <p className="relative mt-2 text-[15px] leading-relaxed text-slate-600">
+          <p className="mt-2 text-[15px] leading-relaxed text-white/85">
             Blog posts, ad copy, and social captions that sound like your
             brand, not a template.
           </p>
+          <DraftsMockup />
         </div>
 
         {/* Customer Support — white, narrow, chat mockup framed inside */}

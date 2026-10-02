@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 const text =
-  "Agentis isn't another tool you have to learn. It's a team that already knows how to sell, design, support, and report — ready the moment you describe what you need. You stay in control. The work just gets done."
+  "Agentis isn't another tool you have to learn. It's a team that already knows how to sell, design, support, and report, ready the moment you describe what you need. You stay in control. The work just gets done."
 
 const words = text.split(' ')
 

@@ -94,7 +94,7 @@ const steps: { number: string; title: string; description: string; visual: React
     number: '03',
     title: 'Review and ship',
     description:
-      'Get finished work back for approval, tweak if needed, and publish — no back-and-forth.',
+      'Get finished work back for approval, tweak if needed, and publish. No back-and-forth.',
     visual: <ReviewVisual />,
   },
 ]
