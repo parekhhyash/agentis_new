@@ -62,7 +62,9 @@ function Navbar({ dark }: { dark: boolean }) {
         <div className="flex items-center gap-1.5">
           <Link
             to={user ? '/dashboard' : '/signup'}
-            className="rounded-full bg-white px-5 py-2.5 text-[15px] font-medium text-blue-500 shadow-sm transition-opacity hover:opacity-90"
+            className={`rounded-full px-5 py-2.5 text-[15px] font-medium shadow-sm transition-colors duration-300 ${
+              solid ? 'bg-brand-blue text-white hover:bg-brand-blue/90' : 'bg-white text-blue-500 hover:opacity-90'
+            }`}
           >
             {user ? 'Dashboard' : 'Get started'}
           </Link>
