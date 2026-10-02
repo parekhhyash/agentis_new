@@ -144,14 +144,14 @@ function AlwaysOnTile() {
               y2={i % 6 === 0 ? 16 : 12}
               strokeWidth={i % 6 === 0 ? 3 : 2}
               strokeLinecap="round"
-              className="stroke-slate-900/35"
+              className="stroke-white/50"
               transform={`rotate(${i * 15} 50 50)`}
             />
           ))}
           <g className="origin-center animate-[spin_12s_linear_infinite] motion-reduce:animate-none">
-            <line x1="50" y1="50" x2="50" y2="22" strokeWidth="3" strokeLinecap="round" className="stroke-slate-900" />
+            <line x1="50" y1="50" x2="50" y2="22" strokeWidth="3" strokeLinecap="round" className="stroke-white" />
           </g>
-          <circle cx="50" cy="50" r="4" className="fill-slate-900" />
+          <circle cx="50" cy="50" r="4" className="fill-white" />
         </svg>
         <span className="inline-flex items-center gap-1.5 self-start rounded-full bg-white px-2.5 py-1 text-xs font-medium text-slate-800">
           <span className="relative flex h-1.5 w-1.5">
@@ -162,7 +162,7 @@ function AlwaysOnTile() {
         </span>
       </div>
       <div className="mt-auto pt-4">
-        <Stat value="24/7" label="agents on the clock" tone="dark" />
+        <Stat value="24/7" label="agents on the clock" tone="light" />
       </div>
     </Tile>
   )
