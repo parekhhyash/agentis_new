@@ -35,7 +35,7 @@ function Stat({ value, label, tone }: { value: ReactNode; label: string; tone: '
       <div className={`font-display text-4xl tabular-nums sm:text-6xl ${tone === 'light' ? 'text-white' : 'text-slate-900'}`}>
         {value}
       </div>
-      <p className={`mt-1 text-sm sm:text-[15px] ${tone === 'light' ? 'text-white/85' : 'text-slate-700'}`}>{label}</p>
+      <p className={`mt-1 text-sm sm:text-[15px] ${tone === 'light' ? 'font-medium text-white' : 'text-slate-700'}`}>{label}</p>
     </div>
   )
 }
@@ -81,7 +81,7 @@ function Heatmap({ cols, active, className }: { cols: number; active: boolean; c
 function TasksTile({ active }: { active: boolean }) {
   const value = useCountUp(12000, active)
   return (
-    <Tile className="col-span-1 justify-between gap-6 bg-brand-blue lg:col-span-4 lg:flex-row lg:items-end">
+    <Tile className="col-span-1 justify-between gap-6 bg-brand-blush lg:col-span-4 lg:flex-row lg:items-end">
       <div className="order-2 lg:order-1 lg:shrink-0">
         <Stat value={`${value.toLocaleString()}+`} label="tasks completed autonomously" tone="light" />
       </div>
