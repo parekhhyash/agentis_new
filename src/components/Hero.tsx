@@ -5,7 +5,7 @@ import { createAgentRequest, runLeadResearchAgent } from '../lib/agentRuns'
 import { AGENT_TYPES, type AgentType } from '../lib/agentTypes'
 import { useAuth } from '../lib/AuthContext'
 import { useProfile } from '../lib/useProfile'
-import { ArrowUpIcon, ChevronDownIcon } from './icons'
+import { ArrowUpIcon, ChevronDownIcon, CloseIcon, MenuIcon } from './icons'
 import SectionLink from './SectionLink'
 
 const navLinks = [
@@ -17,43 +17,84 @@ const navLinks = [
 
 function Navbar({ dark }: { dark: boolean }) {
   const { user } = useAuth()
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  // Close the mobile menu if the viewport grows past the breakpoint.
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)')
+    const close = () => mq.matches && setMenuOpen(false)
+    mq.addEventListener('change', close)
+    return () => mq.removeEventListener('change', close)
+  }, [])
+
+  // The open menu always sits on a white panel, so use dark text then.
+  const solid = dark || menuOpen
 
   return (
     <nav
-      className={`fixed top-6 left-1/2 z-20 flex w-[95%] max-w-3xl -translate-x-1/2 items-center justify-between gap-6 rounded-full border px-3 py-2 pl-6 shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-2xl transition-colors duration-300 ${
-        dark
-          ? 'border-slate-200 bg-white/80'
-          : 'border-white/40 bg-white/25'
-      }`}
+      className={`fixed top-6 left-1/2 z-20 w-[95%] max-w-3xl -translate-x-1/2 border shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-2xl transition-colors duration-300 ${
+        menuOpen ? 'rounded-3xl' : 'rounded-full'
+      } ${solid ? 'border-slate-200 bg-white/90' : 'border-white/40 bg-white/25'}`}
     >
-      <span
-        className={`font-display text-xl transition-colors duration-300 ${dark ? 'text-slate-900' : 'text-white'}`}
-      >
-        Agentis
-      </span>
+      <div className="flex items-center justify-between gap-6 px-3 py-2 pl-6">
+        <span
+          className={`font-display text-xl transition-colors duration-300 ${solid ? 'text-slate-900' : 'text-white'}`}
+        >
+          Agentis
+        </span>
 
-      <div
-        className={`hidden items-center gap-8 text-[15px] font-semibold transition-colors duration-300 md:flex ${
-          dark ? 'text-slate-700' : 'text-white'
-        }`}
-      >
-        {navLinks.map((link) => (
-          <SectionLink
-            key={link.label}
-            id={link.id}
-            className={`transition-colors ${dark ? 'hover:text-slate-950' : 'hover:text-white/80'}`}
+        <div
+          className={`hidden items-center gap-8 text-[15px] font-semibold transition-colors duration-300 md:flex ${
+            dark ? 'text-slate-700' : 'text-white'
+          }`}
+        >
+          {navLinks.map((link) => (
+            <SectionLink
+              key={link.label}
+              id={link.id}
+              className={`transition-colors ${dark ? 'hover:text-slate-950' : 'hover:text-white/80'}`}
+            >
+              {link.label}
+            </SectionLink>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <Link
+            to={user ? '/dashboard' : '/signup'}
+            className="rounded-full bg-white px-5 py-2.5 text-[15px] font-medium text-blue-500 shadow-sm transition-opacity hover:opacity-90"
           >
-            {link.label}
-          </SectionLink>
-        ))}
+            {user ? 'Dashboard' : 'Get started'}
+          </Link>
+          <button
+            type="button"
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={menuOpen}
+            aria-controls="mobile-nav"
+            onClick={() => setMenuOpen((open) => !open)}
+            className={`rounded-full p-2.5 transition-colors md:hidden ${
+              solid ? 'text-slate-800 hover:bg-slate-100' : 'text-white hover:bg-white/15'
+            }`}
+          >
+            {menuOpen ? <CloseIcon /> : <MenuIcon />}
+          </button>
+        </div>
       </div>
 
-      <Link
-        to={user ? '/dashboard' : '/signup'}
-        className="rounded-full bg-white px-5 py-2.5 text-[15px] font-medium text-blue-500 shadow-sm transition-opacity hover:opacity-90"
-      >
-        {user ? 'Dashboard' : 'Get started'}
-      </Link>
+      {menuOpen && (
+        <div id="mobile-nav" className="border-t border-slate-100 px-3 pt-2 pb-3 md:hidden">
+          {navLinks.map((link) => (
+            <SectionLink
+              key={link.label}
+              id={link.id}
+              onClick={() => setMenuOpen(false)}
+              className="block rounded-xl px-3 py-3 text-[15px] font-semibold text-slate-800 hover:bg-slate-50"
+            >
+              {link.label}
+            </SectionLink>
+          ))}
+        </div>
+      )}
     </nav>
   )
 }

@@ -10,10 +10,13 @@ export default function SectionLink({
   id,
   className,
   children,
+  onClick,
 }: {
   id: string
   className?: string
   children: ReactNode
+  /** Runs after the scroll starts, e.g. to close a menu. */
+  onClick?: () => void
 }) {
   return (
     <a
@@ -22,6 +25,7 @@ export default function SectionLink({
       onClick={(e) => {
         e.preventDefault()
         document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
+        onClick?.()
       }}
     >
       {children}
