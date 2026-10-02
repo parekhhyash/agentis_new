@@ -180,7 +180,7 @@ export default function Features() {
         </p>
       </div>
 
-      <div className="mx-auto mt-16 grid max-w-[78rem] grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mx-auto mt-16 grid max-w-[78rem] min-[1680px]:max-w-[86rem] grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {/* Lead Research — white, wide, qualified-leads mockup */}
         <div className="relative col-span-1 min-h-72 overflow-hidden rounded-2xl border border-slate-200 bg-white p-7 pb-52 shadow-sm sm:col-span-2 sm:pb-7">
           <h3 className="max-w-[60%] text-xl font-semibold text-slate-900">

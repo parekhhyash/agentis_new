@@ -111,7 +111,7 @@ export default function HowItWorks() {
         </h2>
       </div>
 
-      <div className="mx-auto mt-16 grid max-w-[78rem] grid-cols-1 gap-12 sm:grid-cols-3 sm:gap-6 lg:gap-10">
+      <div className="mx-auto mt-16 grid max-w-[78rem] min-[1680px]:max-w-[86rem] grid-cols-1 gap-12 sm:grid-cols-3 sm:gap-6 lg:gap-10">
         {steps.map((step) => (
           <div key={step.number}>
             <div className="flex aspect-[10/9] items-center justify-center rounded-3xl bg-zinc-100">
