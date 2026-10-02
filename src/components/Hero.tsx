@@ -34,7 +34,7 @@ function Navbar({ dark }: { dark: boolean }) {
     <nav
       className={`fixed top-6 left-1/2 z-20 w-[95%] max-w-3xl -translate-x-1/2 border shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-2xl transition-colors duration-300 ${
         menuOpen ? 'rounded-3xl' : 'rounded-full'
-      } ${solid ? 'border-slate-200 bg-white/90' : 'border-white/40 bg-white/25'}`}
+      } ${solid ? 'border-slate-300 bg-white/90' : 'border-white/40 bg-white/25'}`}
     >
       <div className="flex items-center justify-between gap-6 px-3 py-2 pl-6">
         <span

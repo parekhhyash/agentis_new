@@ -1,11 +1,35 @@
-function EmailMockup() {
+const LEADS = [
+  { name: 'Mamaearth', meta: 'D2C beauty · Gurugram', fit: 'Strong fit', tone: 'bg-emerald-50 text-emerald-700', initial: 'M', tile: 'bg-brand-pink' },
+  { name: 'DrinkPrime', meta: 'Consumer · Bengaluru', fit: 'Strong fit', tone: 'bg-emerald-50 text-emerald-700', initial: 'D', tile: 'bg-brand-sky' },
+  { name: 'OZi', meta: 'Kids retail · Mumbai', fit: 'Possible', tone: 'bg-amber-50 text-amber-700', initial: 'O', tile: 'bg-brand-yellow' },
+]
+
+function LeadsMockup() {
   return (
-    <div className="pointer-events-none absolute -right-4 -bottom-6 w-48 rotate-3 rounded-xl border border-slate-200 bg-white p-4 shadow-xl sm:w-56">
-      <div className="h-2 w-3/4 rounded-full bg-slate-200" />
-      <div className="mt-2 h-2 w-full rounded-full bg-slate-100" />
-      <div className="mt-2 h-2 w-5/6 rounded-full bg-slate-100" />
-      <div className="mt-4 inline-block rounded-full bg-brand-blue px-3 py-1 text-[11px] font-semibold text-white">
-        Send
+    <div className="pointer-events-none absolute -right-4 -bottom-6 w-60 rotate-2 rounded-xl border border-slate-200 bg-white p-4 shadow-xl sm:w-72">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-semibold text-slate-900">Qualified leads</span>
+        <span className="rounded-full bg-brand-blue/10 px-2 py-0.5 text-[10px] font-medium text-brand-blue">5 of 5 found</span>
+      </div>
+      <ul className="mt-3 space-y-2.5">
+        {LEADS.map((l) => (
+          <li key={l.name} className="flex items-center gap-2.5">
+            <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[11px] font-semibold text-slate-900 ${l.tile}`}>
+              {l.initial}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[11px] font-semibold text-slate-900">{l.name}</span>
+              <span className="block truncate text-[9px] text-slate-400">{l.meta}</span>
+            </span>
+            <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold whitespace-nowrap ${l.tone}`}>{l.fit}</span>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-3 flex items-center gap-1.5 border-t border-slate-100 pt-2.5 text-[10px] text-slate-500">
+        <svg viewBox="0 0 16 16" className="h-3 w-3 text-brand-blue" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+          <path d="M6.5 9.5 9.5 6.5M7 4.5l1-1a2.5 2.5 0 0 1 3.5 3.5l-1 1M9 11.5l-1 1A2.5 2.5 0 0 1 4.5 9l1-1" strokeLinecap="round" />
+        </svg>
+        Every claim linked to a source
       </div>
     </div>
   )
@@ -157,16 +181,16 @@ export default function Features() {
       </div>
 
       <div className="mx-auto mt-16 grid max-w-[78rem] grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Lead Research — white, wide, email mockup */}
-        <div className="relative col-span-1 overflow-hidden rounded-2xl border border-slate-200 bg-white p-7 pb-24 shadow-sm sm:col-span-2">
+        {/* Lead Research — white, wide, qualified-leads mockup */}
+        <div className="relative col-span-1 min-h-72 overflow-hidden rounded-2xl border border-slate-200 bg-white p-7 pb-52 shadow-sm sm:col-span-2 sm:pb-7">
           <h3 className="max-w-[60%] text-xl font-semibold text-slate-900">
             Lead Research
           </h3>
-          <p className="mt-2 max-w-[60%] text-[15px] leading-relaxed text-slate-600">
+          <p className="mt-2 max-w-[55%] text-[15px] leading-relaxed text-slate-600">
             Find and qualify real companies as sales leads, so your pipeline
             keeps filling while you sleep.
           </p>
-          <EmailMockup />
+          <LeadsMockup />
         </div>
 
         {/* Sales & Outreach — solid violet, wide, outreach sequence mockup */}
@@ -236,7 +260,11 @@ export default function Features() {
                 your team's week.
               </p>
             </div>
-            <span className="shrink-0 rounded-full bg-brand-yellow px-4 py-2 text-sm font-semibold text-slate-900">
+            <span className="inline-flex shrink-0 items-center gap-2 rounded-full bg-brand-blue px-4 py-2 text-sm font-semibold text-white">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/70 motion-reduce:animate-none" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+              </span>
               Always on
             </span>
           </div>
