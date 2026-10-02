@@ -40,68 +40,92 @@ function Stat({ value, label, tone }: { value: ReactNode; label: string; tone: '
   )
 }
 
-const FEED = [
-  { task: 'Qualified 5 D2C leads', when: '2m ago' },
-  { task: 'Drafted a 3-step outreach sequence', when: '9m ago' },
-  { task: 'Sent the Monday report', when: '1h ago' },
-]
+// Deterministic "activity" levels (0-4) for the tasks heatmap, busier towards
+// the most recent weeks on the right.
+function activity(col: number, row: number) {
+  const n = Math.sin(col * 12.9898 + row * 78.233) * 43758.5453
+  const noise = n - Math.floor(n)
+  const trend = col / 18
+  return Math.min(4, Math.floor((noise * 0.7 + trend * 0.6) * 5))
+}
+
+const LEVELS = ['bg-white/10', 'bg-white/25', 'bg-white/45', 'bg-white/70', 'bg-white']
+
+function Heatmap({ cols, active, className }: { cols: number; active: boolean; className: string }) {
+  return (
+    <div
+      aria-hidden="true"
+      className={`grid grid-flow-col grid-rows-7 gap-1 sm:gap-1.5 ${className}`}
+      style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+    >
+      {Array.from({ length: cols * 7 }, (_, i) => {
+        const col = Math.floor(i / 7)
+        const level = activity(col + (18 - cols), i % 7)
+        return (
+          <span
+            key={i}
+            className={`aspect-square rounded-[3px] ${LEVELS[level]}`}
+            style={{
+              opacity: active ? 1 : 0,
+              transform: active ? 'none' : 'scale(0.4)',
+              transition: 'opacity 0.4s ease-out, transform 0.4s ease-out',
+              transitionDelay: `${col * 45}ms`,
+            }}
+          />
+        )
+      })}
+    </div>
+  )
+}
 
 function TasksTile({ active }: { active: boolean }) {
   const value = useCountUp(12000, active)
   return (
-    <Tile className="col-span-1 bg-brand-blue lg:col-span-4">
-      <Stat value={`${value.toLocaleString()}+`} label="tasks completed autonomously" tone="light" />
-      <ul className="mt-6 hidden space-y-2 sm:block" aria-hidden="true">
-        {FEED.map((item, i) => (
-          <li
-            key={item.task}
-            className="flex items-center gap-3 rounded-xl bg-white/12 px-3 py-2 text-sm text-white backdrop-blur-sm"
-            style={{
-              opacity: active ? 1 : 0,
-              transform: active ? 'none' : 'translateY(10px)',
-              transition: 'opacity 0.6s ease-out, transform 0.6s ease-out',
-              transitionDelay: `${300 + i * 180}ms`,
-            }}
-          >
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-brand-blue">
-              <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="m3.5 8.5 3 3 6-7" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </span>
-            <span className="flex-1 truncate">{item.task}</span>
-            <span className="text-xs text-white/70">{item.when}</span>
-          </li>
-        ))}
-      </ul>
+    <Tile className="col-span-1 justify-between gap-6 bg-brand-blue lg:col-span-4 lg:flex-row lg:items-end">
+      <div className="order-2 lg:order-1 lg:shrink-0">
+        <Stat value={`${value.toLocaleString()}+`} label="tasks completed autonomously" tone="light" />
+      </div>
+      <Heatmap cols={10} active={active} className="order-1 w-full lg:hidden" />
+      <Heatmap cols={18} active={active} className="order-2 hidden w-full max-w-md lg:grid" />
     </Tile>
   )
 }
 
-const RING_R = 42
-const RING_C = 2 * Math.PI * RING_R
+const HOURS_BEFORE = 10
+const HOURS_AFTER = 6
 
 function TimeSavedTile({ active }: { active: boolean }) {
   const value = useCountUp(40, active)
-  return (
-    <Tile className="col-span-1 bg-brand-pink lg:col-span-2">
-      <svg viewBox="0 0 100 100" className="mb-4 h-16 w-16 -rotate-90 sm:mb-auto sm:h-24 sm:w-24" aria-hidden="true">
-        <circle cx="50" cy="50" r={RING_R} fill="none" strokeWidth="10" className="stroke-white/60" />
-        <circle
-          cx="50"
-          cy="50"
-          r={RING_R}
-          fill="none"
-          strokeWidth="10"
-          strokeLinecap="round"
-          className="stroke-slate-900"
-          strokeDasharray={RING_C}
-          strokeDashoffset={active ? RING_C * 0.6 : RING_C}
-          style={{ transition: 'stroke-dashoffset 1.6s cubic-bezier(0.22, 1, 0.36, 1)' }}
-        />
-      </svg>
-      <div className="mt-auto pt-4">
-        <Stat value={`${value}%`} label="average time saved per team" tone="dark" />
+  const bar = (label: string, short: string, hours: number, fill: string, width: number, delay: number) => (
+    <div>
+      <div className="flex items-baseline justify-between gap-2 text-xs text-slate-800 sm:text-[13px]">
+        <span>
+          <span className="sm:hidden">{short}</span>
+          <span className="hidden sm:inline">{label}</span>
+        </span>
+        <span className="font-semibold whitespace-nowrap tabular-nums">
+          {hours} h<span className="hidden sm:inline">/week</span>
+        </span>
       </div>
+      <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-white/50">
+        <div
+          className={`h-full rounded-full ${fill}`}
+          style={{
+            width: active ? `${width}%` : '0%',
+            transition: 'width 1.2s cubic-bezier(0.22, 1, 0.36, 1)',
+            transitionDelay: `${delay}ms`,
+          }}
+        />
+      </div>
+    </div>
+  )
+  return (
+    <Tile className="col-span-1 justify-between gap-6 bg-brand-pink lg:col-span-2">
+      <div className="space-y-3" aria-hidden="true">
+        {bar('Without Agentis', 'Before', HOURS_BEFORE, 'bg-slate-900/25', 100, 100)}
+        {bar('With Agentis', 'After', HOURS_AFTER, 'bg-slate-900', (HOURS_AFTER / HOURS_BEFORE) * 100, 500)}
+      </div>
+      <Stat value={`${value}%`} label="average time saved per team" tone="dark" />
     </Tile>
   )
 }
