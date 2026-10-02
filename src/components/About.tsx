@@ -98,7 +98,7 @@ function TimeSavedTile({ active }: { active: boolean }) {
   const value = useCountUp(40, active)
   const bar = (label: string, short: string, hours: number, fill: string, width: number, delay: number) => (
     <div>
-      <div className="flex items-baseline justify-between gap-2 text-xs text-slate-800 sm:text-[13px]">
+      <div className="flex items-baseline justify-between gap-2 text-xs font-medium text-slate-900 sm:text-[13px]">
         <span>
           <span className="sm:hidden">{short}</span>
           <span className="hidden sm:inline">{label}</span>
@@ -107,7 +107,7 @@ function TimeSavedTile({ active }: { active: boolean }) {
           {hours} h<span className="hidden sm:inline">/week</span>
         </span>
       </div>
-      <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-white/50">
+      <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-slate-900/10">
         <div
           className={`h-full rounded-full ${fill}`}
           style={{
@@ -120,9 +120,9 @@ function TimeSavedTile({ active }: { active: boolean }) {
     </div>
   )
   return (
-    <Tile className="col-span-1 justify-between gap-6 bg-brand-pink lg:col-span-2">
+    <Tile className="col-span-1 justify-between gap-6 bg-brand-yellow lg:col-span-2">
       <div className="space-y-3" aria-hidden="true">
-        {bar('Without Agentis', 'Before', HOURS_BEFORE, 'bg-slate-900/25', 100, 100)}
+        {bar('Without Agentis', 'Before', HOURS_BEFORE, 'bg-white', 100, 100)}
         {bar('With Agentis', 'After', HOURS_AFTER, 'bg-slate-900', (HOURS_AFTER / HOURS_BEFORE) * 100, 500)}
       </div>
       <Stat value={`${value}%`} label="average time saved per team" tone="dark" />
