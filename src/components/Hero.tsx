@@ -263,11 +263,11 @@ export default function Hero() {
       <Navbar dark={scrolledPastHero} />
 
       <main className="flex min-h-screen flex-col items-center justify-center px-4 pt-24 pb-16">
-        <h1 className="font-display text-center text-6xl leading-[1.1] text-white sm:text-7xl 2xl:text-8xl">
-          Agentis
+        <h1 className="font-display max-w-4xl text-center text-5xl leading-[1.05] text-balance text-white sm:text-6xl 2xl:text-7xl">
+          Your next hire is a whole AI team.
         </h1>
 
-        <p className="mt-3 max-w-2xl text-center text-lg font-medium text-white/85 sm:text-xl">
+        <p className="mt-5 max-w-2xl text-center text-lg font-medium text-balance text-white/85 sm:text-xl">
           Turn sales, marketing, design, finance, and operations into
           AI-powered agents.
         </p>
