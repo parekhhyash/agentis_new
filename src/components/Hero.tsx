@@ -264,7 +264,9 @@ export default function Hero() {
 
       <main className="flex min-h-screen flex-col items-center justify-center px-4 pt-24 pb-16">
         <h1 className="font-display max-w-4xl text-center text-5xl leading-[1.05] text-balance text-white sm:text-6xl 2xl:text-7xl">
-          Less busywork. More business.
+          Less busywork.
+          <br />
+          More business.
         </h1>
 
         <p className="mt-5 max-w-2xl text-center text-lg font-medium text-balance text-white/85 sm:text-xl">
