@@ -36,7 +36,7 @@ export default function ProfileMenu({
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute bottom-full left-2 z-20 mb-1 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white py-1.5 shadow-lg">
+          <div className="absolute bottom-full left-2 z-20 mb-1 w-56 overflow-hidden rounded-xl border border-slate-200 bg-surface py-1.5 shadow-lg">
             <button
               type="button"
               onClick={() => {
@@ -63,7 +63,7 @@ export default function ProfileMenu({
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center gap-2.5 rounded-lg p-2 text-left transition-colors hover:bg-slate-100"
       >
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-100 text-xs font-semibold text-sky-700">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-100 text-xs font-semibold text-sky-700 dark:bg-brand-sky/20 dark:text-brand-sky">
           {initialsFor(fullName)}
         </span>
         <span className="min-w-0 flex-1">

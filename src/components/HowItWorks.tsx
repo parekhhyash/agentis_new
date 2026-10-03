@@ -4,7 +4,7 @@ import AgentCluster from './AgentCluster'
 
 function PromptVisual() {
   return (
-    <div className="w-[82%] max-w-72 rounded-2xl bg-white p-4 shadow-lg ring-1 shadow-slate-900/5 ring-slate-200">
+    <div className="w-[82%] max-w-72 rounded-2xl bg-surface p-4 shadow-lg ring-1 shadow-slate-900/5 ring-slate-200">
       <p className="text-[13px] leading-relaxed text-slate-700">
         Find 20 D2C skincare brands in India and draft an intro for each
         <span className="ml-0.5 inline-block h-4 w-px animate-pulse bg-brand-blue align-middle" />
@@ -47,7 +47,7 @@ function RoutingVisual() {
           />
         ))}
       </svg>
-      <span className="absolute inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 shadow-md ring-1 ring-slate-200">
+      <span className="absolute inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-[11px] font-semibold text-slate-700 shadow-md ring-1 ring-slate-200">
         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand-violet" />
         Lead research
       </span>
@@ -57,7 +57,7 @@ function RoutingVisual() {
 
 function ReviewVisual() {
   return (
-    <div className="w-[76%] max-w-64 rounded-2xl bg-white p-4 shadow-lg ring-1 shadow-slate-900/5 ring-slate-200">
+    <div className="w-[76%] max-w-64 rounded-2xl bg-surface p-4 shadow-lg ring-1 shadow-slate-900/5 ring-slate-200">
       <div className="h-2 w-2/3 rounded-full bg-slate-200" />
       <div className="mt-2.5 h-2 w-full rounded-full bg-slate-100" />
       <div className="mt-2 h-2 w-5/6 rounded-full bg-slate-100" />
@@ -69,7 +69,7 @@ function ReviewVisual() {
           </svg>
           Ready to ship
         </span>
-        <span className="text-[11px] font-medium text-brand-violet">Approve</span>
+        <span className="text-[11px] font-medium text-brand-violet dark:text-[#a98bff]">Approve</span>
       </div>
     </div>
   )
@@ -101,7 +101,7 @@ const steps: { number: string; title: string; description: string; visual: React
 
 export default function HowItWorks() {
   return (
-    <section id="how-it-works" className="bg-white px-4 py-24 sm:px-6 sm:py-32">
+    <section id="how-it-works" className="bg-page px-4 py-24 sm:px-6 sm:py-32">
       <div className="mx-auto max-w-2xl text-center">
         <span className="text-sm font-semibold tracking-[0.2em] text-brand-blue uppercase">
           How it works

@@ -1,5 +1,9 @@
 @import 'tailwindcss';
 
+/* Dark mode is class based (.dark on <html>), set by src/lib/theme.tsx and
+   by the inline script in index.html before first paint. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @font-face {
   font-family: 'Lastik';
   src: url('/fonts/lastik-regular.otf') format('opentype');
@@ -22,6 +26,13 @@
   --color-brand-yellow: #fbd104;
   --color-brand-mauve: #b972a1;
   --color-brand-blush: #f5abe6;
+
+  /* Theme-aware surfaces. `surface` is for cards/panels (white in light
+     mode); `page` is the page background. `ink` is dark text that must stay
+     dark in both themes, e.g. on the yellow and pink tiles. */
+  --color-surface: #ffffff;
+  --color-page: #ffffff;
+  --color-ink: #0f172a;
   --animate-marquee: marquee 40s linear infinite;
   --animate-marquee-slow: marquee 60s linear infinite;
   --animate-aurora: aurora 18s ease-in-out infinite alternate;
@@ -75,7 +86,46 @@ html,
 body,
 #root {
   height: 100%;
-  background: #fff;
+  background: var(--color-page);
+}
+
+/* Dark theme: the neutral scales flip (slate-900 text becomes light, the
+   slate-50/100/200 fills and borders become dark), so existing classes
+   follow the theme without per-element dark: variants. Brand colours stay. */
+.dark {
+  color-scheme: dark;
+  --color-page: #1c1c1c;
+  --color-surface: #242424;
+
+  --color-slate-50: #1c1c1c;
+  --color-slate-100: #2a2a2a;
+  --color-slate-200: #333333;
+  --color-slate-300: #474747;
+  --color-slate-400: #8a8a8a;
+  --color-slate-500: #a3a3a3;
+  --color-slate-600: #c2c2c2;
+  --color-slate-700: #d6d6d6;
+  --color-slate-800: #e6e6e6;
+  --color-slate-900: #f2f2f2;
+  --color-slate-950: #fafafa;
+
+  --color-zinc-100: #262626;
+
+  /* Pale status tints become translucent washes, and their dark text
+     shades lighten so they stay readable on #1c1c1c. */
+  --color-sky-50: rgb(81 182 253 / 0.12);
+  --color-red-50: rgb(239 68 68 / 0.14);
+  --color-red-600: #f87171;
+  --color-red-700: #fca5a5;
+  --color-green-50: rgb(34 197 94 / 0.14);
+  --color-green-100: rgb(34 197 94 / 0.2);
+  --color-green-600: #4ade80;
+  --color-green-700: #86efac;
+  --color-emerald-50: rgb(16 185 129 / 0.16);
+  --color-emerald-700: #6ee7b7;
+  --color-amber-50: rgb(245 158 11 / 0.14);
+  --color-amber-100: rgb(245 158 11 / 0.2);
+  --color-amber-700: #fcd34d;
 }
 
 body {

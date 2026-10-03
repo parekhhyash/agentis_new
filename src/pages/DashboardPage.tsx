@@ -5,6 +5,7 @@ import ProfileMenu from '../components/dashboard/ProfileMenu'
 import RequestSidebar from '../components/dashboard/RequestSidebar'
 import TaskComposer from '../components/dashboard/TaskComposer'
 import { CloseIcon, MenuIcon, PlusIcon } from '../components/icons'
+import ThemeToggle from '../components/ThemeToggle'
 import { createAgentRequest, runLeadResearchAgent, stopAgentRun } from '../lib/agentRuns'
 import type { AgentType } from '../lib/agentTypes'
 import { useAuth } from '../lib/AuthContext'
@@ -150,18 +151,19 @@ export default function DashboardPage() {
     <div className="relative flex h-screen overflow-hidden bg-slate-50">
       {sidebarOpen && (
         <div
-          className="absolute inset-0 z-10 bg-slate-900/20 sm:hidden"
+          className="absolute inset-0 z-10 bg-black/40 sm:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       <aside
-        className={`absolute inset-y-0 left-0 z-20 flex w-72 shrink-0 flex-col border-r border-slate-200 bg-white transition-transform duration-200 ease-in-out sm:static sm:z-auto sm:translate-x-0 ${
+        className={`absolute inset-y-0 left-0 z-20 flex w-72 shrink-0 flex-col border-r border-slate-200 bg-surface transition-transform duration-200 ease-in-out sm:static sm:z-auto sm:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div className="flex items-center justify-between gap-2 p-3">
           <span className="font-display text-lg text-slate-900">Agentis</span>
+          <ThemeToggle className="ml-auto hidden p-2 text-slate-500 hover:bg-slate-100 sm:block" />
           <button
             type="button"
             aria-label="Close sidebar"
@@ -209,6 +211,7 @@ export default function DashboardPage() {
             <MenuIcon />
           </button>
           <span className="font-display text-lg text-slate-900">Agentis</span>
+          <ThemeToggle className="ml-auto p-2 text-slate-500 hover:bg-slate-100" />
         </div>
 
         <div ref={scrollRef} className="flex-1 overflow-y-auto [scrollbar-gutter:stable]">

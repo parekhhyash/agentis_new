@@ -7,6 +7,7 @@ import { useAuth } from '../lib/AuthContext'
 import { useProfile } from '../lib/useProfile'
 import { ArrowUpIcon, ChevronDownIcon, CloseIcon, MenuIcon } from './icons'
 import SectionLink from './SectionLink'
+import ThemeToggle from './ThemeToggle'
 
 const navLinks = [
   { label: 'Features', id: 'features' },
@@ -34,9 +35,9 @@ function Navbar({ dark }: { dark: boolean }) {
     <nav
       className={`fixed top-6 left-1/2 z-20 w-[95%] max-w-3xl -translate-x-1/2 border shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-2xl transition-colors duration-300 ${
         menuOpen ? 'rounded-3xl' : 'rounded-full'
-      } ${solid ? 'border-slate-300 bg-white/90' : 'border-white/40 bg-white/25'}`}
+      } ${solid ? 'border-slate-300 bg-surface/90' : 'border-white/40 bg-white/25'}`}
     >
-      <div className="flex items-center justify-between gap-6 px-3 py-2 pl-6">
+      <div className="flex items-center justify-between gap-4 px-3 py-2 pl-6">
         <span
           className={`font-display text-xl transition-colors duration-300 ${solid ? 'text-slate-900' : 'text-white'}`}
         >
@@ -44,7 +45,7 @@ function Navbar({ dark }: { dark: boolean }) {
         </span>
 
         <div
-          className={`hidden items-center gap-8 text-[15px] font-semibold transition-colors duration-300 md:flex ${
+          className={`hidden items-center gap-6 text-[15px] font-semibold whitespace-nowrap transition-colors duration-300 md:flex lg:gap-8 ${
             dark ? 'text-slate-700' : 'text-white'
           }`}
         >
@@ -59,10 +60,13 @@ function Navbar({ dark }: { dark: boolean }) {
           ))}
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
+          <ThemeToggle
+            className={solid ? 'text-slate-800 hover:bg-slate-100' : 'text-white hover:bg-white/15'}
+          />
           <Link
             to={user ? '/dashboard' : '/signup'}
-            className={`rounded-full px-5 py-2.5 text-[15px] font-medium shadow-sm transition-colors duration-300 ${
+            className={`rounded-full px-5 py-2.5 text-[15px] font-medium whitespace-nowrap shadow-sm transition-colors duration-300 ${
               solid ? 'bg-brand-blue text-white hover:bg-brand-blue/90' : 'bg-white text-blue-500 hover:opacity-90'
             }`}
           >
@@ -162,7 +166,7 @@ function PromptBox() {
   }
 
   return (
-    <div className="w-full max-w-2xl rounded-2xl border border-black/5 bg-white p-4 shadow-[0_20px_60px_rgba(0,0,0,0.45)] sm:p-5">
+    <div className="w-full max-w-2xl rounded-2xl border border-black/5 bg-surface p-4 dark:border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.45)] sm:p-5">
       <textarea
         ref={textareaRef}
         rows={1}
@@ -197,7 +201,7 @@ function PromptBox() {
           {menuOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-              <div className="absolute bottom-full left-0 z-20 mb-2 w-64 overflow-hidden rounded-xl border border-slate-200 bg-white py-1.5 shadow-lg">
+              <div className="absolute bottom-full left-0 z-20 mb-2 w-64 overflow-hidden rounded-xl border border-slate-200 bg-surface py-1.5 shadow-lg">
                 {AGENT_TYPES.map((agent) => (
                   <button
                     key={agent.value}

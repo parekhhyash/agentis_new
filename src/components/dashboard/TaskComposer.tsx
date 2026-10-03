@@ -47,7 +47,7 @@ export default function TaskComposer({
   }
 
   return (
-    <div className="relative w-full rounded-2xl border border-slate-300 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.06),0_8px_24px_rgba(15,23,42,0.10)] sm:p-5">
+    <div className="relative w-full rounded-2xl border border-slate-300 bg-surface p-4 shadow-[0_1px_2px_rgba(15,23,42,0.06),0_8px_24px_rgba(15,23,42,0.10)] sm:p-5">
       <textarea
         ref={textareaRef}
         rows={1}
@@ -82,7 +82,7 @@ export default function TaskComposer({
           {menuOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-              <div className="absolute bottom-full left-0 z-20 mb-2 w-64 overflow-hidden rounded-xl border border-slate-200 bg-white py-1.5 shadow-lg">
+              <div className="absolute bottom-full left-0 z-20 mb-2 w-64 overflow-hidden rounded-xl border border-slate-200 bg-surface py-1.5 shadow-lg">
                 {AGENT_TYPES.map((agent) => (
                   <button
                     key={agent.value}

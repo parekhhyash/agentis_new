@@ -29,13 +29,22 @@ function Tile({ className, children }: { className: string; children: ReactNode 
   return <div className={`relative flex flex-col overflow-hidden rounded-3xl p-5 sm:p-7 ${className}`}>{children}</div>
 }
 
-function Stat({ value, label, tone }: { value: ReactNode; label: string; tone: 'light' | 'dark' }) {
+// light: white text on a brand tile. dark: theme text on the neutral tile.
+// ink: always-dark text on the yellow tile.
+const STAT_TONES = {
+  light: ['text-white', 'font-medium text-white'],
+  dark: ['text-slate-900', 'text-slate-700'],
+  ink: ['text-ink', 'text-ink/80'],
+}
+
+function Stat({ value, label, tone }: { value: ReactNode; label: string; tone: keyof typeof STAT_TONES }) {
+  const [valueClass, labelClass] = STAT_TONES[tone]
   return (
     <div>
-      <div className={`font-display text-4xl tabular-nums sm:text-6xl ${tone === 'light' ? 'text-white' : 'text-slate-900'}`}>
+      <div className={`font-display text-4xl tabular-nums sm:text-6xl ${valueClass}`}>
         {value}
       </div>
-      <p className={`mt-1 text-sm sm:text-[15px] ${tone === 'light' ? 'font-medium text-white' : 'text-slate-700'}`}>{label}</p>
+      <p className={`mt-1 text-sm sm:text-[15px] ${labelClass}`}>{label}</p>
     </div>
   )
 }
@@ -98,7 +107,7 @@ function TimeSavedTile({ active }: { active: boolean }) {
   const value = useCountUp(40, active)
   const bar = (label: string, short: string, hours: number, fill: string, width: number, delay: number) => (
     <div>
-      <div className="flex items-baseline justify-between gap-2 text-xs font-medium text-slate-900 sm:text-[13px]">
+      <div className="flex items-baseline justify-between gap-2 text-xs font-medium text-ink sm:text-[13px]">
         <span>
           <span className="sm:hidden">{short}</span>
           <span className="hidden sm:inline">{label}</span>
@@ -107,7 +116,7 @@ function TimeSavedTile({ active }: { active: boolean }) {
           {hours} h<span className="hidden sm:inline">/week</span>
         </span>
       </div>
-      <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-slate-900/10">
+      <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-ink/10">
         <div
           className={`h-full rounded-full ${fill}`}
           style={{
@@ -123,9 +132,9 @@ function TimeSavedTile({ active }: { active: boolean }) {
     <Tile className="col-span-1 justify-between gap-6 bg-brand-yellow lg:col-span-2">
       <div className="space-y-3" aria-hidden="true">
         {bar('Without Agentis', 'Before', HOURS_BEFORE, 'bg-white', 100, 100)}
-        {bar('With Agentis', 'After', HOURS_AFTER, 'bg-slate-900', (HOURS_AFTER / HOURS_BEFORE) * 100, 500)}
+        {bar('With Agentis', 'After', HOURS_AFTER, 'bg-ink', (HOURS_AFTER / HOURS_BEFORE) * 100, 500)}
       </div>
-      <Stat value={`${value}%`} label="average time saved per team" tone="dark" />
+      <Stat value={`${value}%`} label="average time saved per team" tone="ink" />
     </Tile>
   )
 }
@@ -153,7 +162,7 @@ function AlwaysOnTile() {
           </g>
           <circle cx="50" cy="50" r="4" className="fill-white" />
         </svg>
-        <span className="inline-flex items-center gap-1.5 self-start rounded-full bg-white px-2.5 py-1 text-xs font-medium text-slate-800">
+        <span className="inline-flex items-center gap-1.5 self-start rounded-full bg-white px-2.5 py-1 text-xs font-medium text-ink">
           <span className="relative flex h-1.5 w-1.5">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-pink-400 motion-reduce:animate-none" />
             <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-pink-500" />
@@ -171,7 +180,7 @@ function AlwaysOnTile() {
 function AgentsTile({ active }: { active: boolean }) {
   const value = useCountUp(AGENT_TYPES.length, active, 900)
   return (
-    <Tile className="col-span-1 border border-slate-200 bg-white lg:col-span-4">
+    <Tile className="col-span-1 border border-slate-200 bg-surface lg:col-span-4">
       <Stat value={value} label="specialized agents, one workspace" tone="dark" />
       <ul className="mt-5 flex flex-wrap gap-1.5 sm:mt-6 sm:gap-2" aria-label="Agents">
         {AGENT_TYPES.map(({ value: key, label, icon: Icon }, i) => (
@@ -188,7 +197,7 @@ function AgentsTile({ active }: { active: boolean }) {
           >
             <span
               className={`flex h-8 w-8 items-center justify-center rounded-full sm:h-6 sm:w-6 ${
-                ['bg-brand-blue text-white', 'bg-brand-violet text-white', 'bg-brand-sky text-white', 'bg-brand-pink text-slate-900', 'bg-brand-yellow text-slate-900', 'bg-brand-mauve text-white', 'bg-brand-orchid text-white'][i % 7]
+                ['bg-brand-blue text-white', 'bg-brand-violet text-white', 'bg-brand-sky text-white', 'bg-brand-pink text-ink', 'bg-brand-yellow text-ink', 'bg-brand-mauve text-white', 'bg-brand-orchid text-white'][i % 7]
               }`}
             >
               <Icon className="h-4 w-4 sm:h-3.5 sm:w-3.5" />

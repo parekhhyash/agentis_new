@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom'
 import type { ReactNode } from 'react'
 
+import ThemeToggle from './ThemeToggle'
+
 export default function AuthLayout({
   image,
   headline,
@@ -13,7 +15,8 @@ export default function AuthLayout({
   children: ReactNode
 }) {
   return (
-    <div className="flex min-h-screen bg-white">
+    <div className="relative flex min-h-screen bg-page">
+      <ThemeToggle className="absolute top-5 right-5 z-10 text-slate-500 hover:bg-slate-100" />
       <div
         className="relative hidden w-1/2 bg-cover bg-center lg:block"
         style={{ backgroundImage: `url(${image})` }}

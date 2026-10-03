@@ -81,7 +81,7 @@ export default function CompanyDetailsForm({
             id="target-audience-location"
             value={values.targetAudienceLocation}
             onChange={(e) => onChange({ targetAudienceLocation: e.target.value })}
-            className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 focus:outline-none"
+            className="mt-1.5 w-full rounded-lg border border-slate-300 bg-surface px-3.5 py-2.5 text-[15px] text-slate-900 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 focus:outline-none"
           >
             <option value="">Select...</option>
             <option value="Global">Global</option>

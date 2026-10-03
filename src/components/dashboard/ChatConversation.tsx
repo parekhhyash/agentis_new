@@ -21,7 +21,7 @@ export default function ChatConversation({ request }: { request: AgentRequest })
 
       <div className="flex justify-start">
         <div
-          className={`w-full rounded-2xl rounded-tl-sm border border-slate-200 bg-white px-4 py-3 ${
+          className={`w-full rounded-2xl rounded-tl-sm border border-slate-200 bg-surface px-4 py-3 ${
             request.status === 'completed' ? '' : 'max-w-2xl'
           }`}
         >

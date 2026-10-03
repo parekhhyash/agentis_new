@@ -254,7 +254,7 @@ function ResearchResults({ result }: { result: LeadResearchResult }) {
 
 function LegacyLeadCard({ lead }: { lead: LegacyLead }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
+    <div className="rounded-xl border border-slate-200 bg-surface p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h4 className="font-semibold text-slate-900">{lead.company_name}</h4>
@@ -266,7 +266,7 @@ function LegacyLeadCard({ lead }: { lead: LegacyLead }) {
       </div>
       {lead.description && <p className="mt-2 text-sm text-slate-600">{lead.description}</p>}
       {lead.why_good_fit && (
-        <p className="mt-3 rounded-lg bg-sky-50 p-2.5 text-sm text-sky-900">
+        <p className="mt-3 rounded-lg bg-sky-50 p-2.5 text-sm text-sky-900 dark:text-sky-200">
           <span className="font-medium">Why a good fit: </span>
           {lead.why_good_fit}
         </p>

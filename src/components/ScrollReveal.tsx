@@ -1,22 +1,28 @@
 import { useEffect, useRef, useState } from 'react'
 
+import { useTheme } from '../lib/theme'
+
 const text =
   "Agentis isn't another tool you have to learn. It's a team that already knows how to sell, design, support, and report, ready the moment you describe what you need. You stay in control. The work just gets done."
 
 const words = text.split(' ')
 
-const FROM = [203, 213, 225] // slate-300
-const TO = [15, 23, 42] // slate-900
+// Words fade from a faint grey to full text colour; the pair depends on theme.
+const COLORS = {
+  light: { from: [203, 213, 225], to: [15, 23, 42] }, // slate-300 -> slate-900
+  dark: { from: [71, 71, 71], to: [242, 242, 242] }, // dark-theme slate-300 -> slate-900
+}
 
-function wordColor(t: number) {
+function wordColor(t: number, { from, to }: { from: number[]; to: number[] }) {
   const clamped = Math.min(1, Math.max(0, t))
-  const rgb = FROM.map((from, i) => Math.round(from + (TO[i] - from) * clamped))
+  const rgb = from.map((f, i) => Math.round(f + (to[i] - f) * clamped))
   return `rgb(${rgb.join(',')})`
 }
 
 export default function ScrollReveal() {
   const sectionRef = useRef<HTMLDivElement>(null)
   const [progress, setProgress] = useState(0)
+  const colors = COLORS[useTheme().theme]
 
   useEffect(() => {
     let raf = 0
@@ -47,7 +53,7 @@ export default function ScrollReveal() {
   }, [])
 
   return (
-    <section ref={sectionRef} className="relative bg-white" style={{ height: '250vh' }}>
+    <section ref={sectionRef} className="relative bg-page" style={{ height: '250vh' }}>
       <div className="sticky top-0 flex h-screen items-center justify-center overflow-x-clip px-6">
         <div
           aria-hidden="true"
@@ -57,7 +63,7 @@ export default function ScrollReveal() {
           {words.map((word, i) => (
             <span
               key={i}
-              style={{ color: wordColor(progress * words.length - i) }}
+              style={{ color: wordColor(progress * words.length - i, colors) }}
             >
               {word}{' '}
             </span>

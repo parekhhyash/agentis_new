@@ -6,7 +6,7 @@ const LEADS = [
 
 function LeadsMockup() {
   return (
-    <div className="pointer-events-none absolute -right-4 -bottom-6 w-60 rotate-2 rounded-xl border border-slate-200 bg-white p-4 shadow-xl sm:w-72">
+    <div className="pointer-events-none absolute -right-4 -bottom-6 w-60 rotate-2 rounded-xl border border-slate-200 bg-surface p-4 shadow-xl sm:w-72">
       <div className="flex items-center justify-between">
         <span className="text-[11px] font-semibold text-slate-900">Qualified leads</span>
         <span className="rounded-full bg-brand-blue/10 px-2 py-0.5 text-[10px] font-medium text-brand-blue">5 of 5 found</span>
@@ -14,7 +14,7 @@ function LeadsMockup() {
       <ul className="mt-3 space-y-2.5">
         {LEADS.map((l) => (
           <li key={l.name} className="flex items-center gap-2.5">
-            <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[11px] font-semibold text-slate-900 ${l.tile}`}>
+            <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[11px] font-semibold text-ink ${l.tile}`}>
               {l.initial}
             </span>
             <span className="min-w-0 flex-1">
@@ -43,7 +43,7 @@ const SEQUENCE = [
 
 function SequenceMockup() {
   return (
-    <div className="pointer-events-none absolute -right-4 -bottom-6 w-60 -rotate-2 rounded-xl bg-white p-4 shadow-xl sm:w-72">
+    <div className="pointer-events-none absolute -right-4 -bottom-6 w-60 -rotate-2 rounded-xl bg-surface p-4 shadow-xl sm:w-72">
       <div className="flex items-center justify-between">
         <span className="text-[11px] font-semibold text-slate-900">Outreach sequence</span>
         <span className="text-[10px] whitespace-nowrap text-slate-400">3 steps</span>
@@ -51,7 +51,7 @@ function SequenceMockup() {
       <ol className="mt-3 space-y-2">
         {SEQUENCE.map((s, i) => (
           <li key={s.step} className="flex items-center gap-2.5">
-            <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold text-slate-900 ${s.dot}`}>
+            <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold text-ink ${s.dot}`}>
               {i + 1}
             </span>
             <span className="flex-1 text-[11px] text-slate-700">{s.step}</span>
@@ -62,7 +62,7 @@ function SequenceMockup() {
           </li>
         ))}
       </ol>
-      <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-brand-violet/10 px-2.5 py-1.5 text-[10px] font-semibold text-brand-violet">
+      <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-brand-violet/10 px-2.5 py-1.5 text-[10px] font-semibold text-brand-violet dark:bg-brand-violet/25 dark:text-[#a98bff]">
         <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
           <rect x="2.5" y="3.5" width="11" height="10" rx="1.5" />
           <path d="M2.5 6.5h11M5.5 2v3M10.5 2v3" strokeLinecap="round" />
@@ -85,7 +85,7 @@ function DraftsMockup() {
       {DRAFTS.map((d, i) => (
         <div
           key={d.kind}
-          className="absolute inset-x-0 rounded-xl bg-white p-3 shadow-lg"
+          className="absolute inset-x-0 rounded-xl bg-surface p-3 shadow-lg"
           style={{ top: `${i * 34}px`, transform: `rotate(${[-2, 1.5, -1][i]}deg) scale(${0.92 + i * 0.04})`, zIndex: i }}
         >
           <div className="flex items-center justify-between">
@@ -111,7 +111,7 @@ function ChatMockup() {
   return (
     <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-3">
       <div className="flex justify-start">
-        <div className="max-w-[75%] rounded-lg rounded-bl-sm bg-white px-3 py-1.5 text-[11px] text-slate-600 shadow-sm">
+        <div className="max-w-[75%] rounded-lg rounded-bl-sm bg-surface px-3 py-1.5 text-[11px] text-slate-600 shadow-sm">
           My order hasn't arrived yet
         </div>
       </div>
@@ -132,7 +132,7 @@ function ReportMockup() {
   const line = xy.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`).join(' ')
   const [lastX, lastY] = xy[xy.length - 1]
   return (
-    <div className="pointer-events-none absolute -right-4 -bottom-6 w-60 rotate-2 rounded-xl border border-white/40 bg-white p-4 shadow-xl sm:w-72">
+    <div className="pointer-events-none absolute -right-4 -bottom-6 w-60 rotate-2 rounded-xl border border-white/40 bg-surface p-4 shadow-xl sm:w-72">
       <div className="flex items-center justify-between">
         <span className="text-[11px] font-semibold text-slate-900">Weekly report</span>
         <span className="rounded-full bg-brand-pink/40 px-2 py-0.5 text-[10px] font-medium text-slate-700">
@@ -182,7 +182,7 @@ export default function Features() {
 
       <div className="mx-auto mt-16 grid max-w-[78rem] min-[1680px]:max-w-[86rem] grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {/* Lead Research — white, wide, qualified-leads mockup */}
-        <div className="relative col-span-1 min-h-72 overflow-hidden rounded-2xl border border-slate-200 bg-white p-7 pb-52 shadow-sm sm:col-span-2 sm:pb-7">
+        <div className="relative col-span-1 min-h-72 overflow-hidden rounded-2xl border border-slate-200 bg-surface p-7 pb-52 shadow-sm sm:col-span-2 sm:pb-7">
           <h3 className="max-w-[60%] text-xl font-semibold text-slate-900">
             Lead Research
           </h3>
@@ -218,7 +218,7 @@ export default function Features() {
         </div>
 
         {/* Customer Support — white, narrow, chat mockup framed inside */}
-        <div className="col-span-1 rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
+        <div className="col-span-1 rounded-2xl border border-slate-200 bg-surface p-7 shadow-sm">
           <h3 className="text-lg font-semibold text-slate-900">
             Customer Support
           </h3>
@@ -242,10 +242,10 @@ export default function Features() {
 
         {/* Operations — white, full width banner */}
         <div
-          className="relative col-span-1 overflow-hidden rounded-2xl border border-slate-200 bg-white p-7 sm:col-span-2 lg:col-span-4"
+          className="relative col-span-1 overflow-hidden rounded-2xl border border-slate-200 bg-surface p-7 sm:col-span-2 lg:col-span-4"
           style={{
             backgroundImage:
-              'radial-gradient(circle, #e2e8f0 1px, transparent 1px)',
+              'radial-gradient(circle, var(--color-slate-200) 1px, transparent 1px)',
             backgroundSize: '16px 16px',
             backgroundPosition: 'right -20px top -20px',
           }}

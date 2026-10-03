@@ -19,7 +19,7 @@ const testimonials = [
     initials: 'ML',
     outcome: 'Sequences drafted before standup',
     accent: 'bg-brand-violet text-white',
-    chip: 'bg-brand-violet/10 text-brand-violet',
+    chip: 'bg-brand-violet/10 text-brand-violet dark:bg-brand-violet/25 dark:text-[#a98bff]',
   },
   {
     quote:
@@ -28,7 +28,7 @@ const testimonials = [
     role: 'Founder, Reyes Studio',
     initials: 'SR',
     outcome: 'Landing page in under 10 minutes',
-    accent: 'bg-brand-pink text-slate-900',
+    accent: 'bg-brand-pink text-ink',
     chip: 'bg-brand-pink/40 text-slate-800',
   },
   {
@@ -38,7 +38,7 @@ const testimonials = [
     role: 'Head of Support, Brightcart',
     initials: 'AK',
     outcome: 'First replies in minutes, not hours',
-    accent: 'bg-brand-yellow text-slate-900',
+    accent: 'bg-brand-yellow text-ink',
     chip: 'bg-brand-yellow/25 text-slate-800',
   },
   {
@@ -66,7 +66,7 @@ type Testimonial = (typeof testimonials)[number]
 function TestimonialCard({ t, tilt }: { t: Testimonial; tilt: string }) {
   return (
     <figure
-      className={`flex w-72 shrink-0 flex-col rounded-3xl border border-white bg-white/80 p-6 shadow-[0_10px_40px_-12px_rgba(61,127,253,0.2)] backdrop-blur-sm transition duration-300 hover:-translate-y-1.5 hover:rotate-0 hover:shadow-[0_20px_50px_-12px_rgba(61,127,253,0.35)] sm:w-80 ${tilt}`}
+      className={`flex w-72 shrink-0 flex-col rounded-3xl border border-white bg-surface/80 dark:border-white/10 p-6 shadow-[0_10px_40px_-12px_rgba(61,127,253,0.2)] backdrop-blur-sm transition duration-300 hover:-translate-y-1.5 hover:rotate-0 hover:shadow-[0_20px_50px_-12px_rgba(61,127,253,0.35)] sm:w-80 ${tilt}`}
     >
       <span
         className={`flex h-10 w-10 items-center justify-center rounded-xl shadow-md ${t.accent}`}
@@ -119,7 +119,7 @@ export default function Testimonials() {
             className="absolute -right-1/4 -bottom-1/3 h-[30rem] w-[30rem] animate-aurora rounded-full bg-brand-pink/40 blur-3xl motion-reduce:animate-none"
             style={{ animationDelay: '-8s', animationDuration: '22s' }}
           />
-          <div className="absolute inset-0 bg-[radial-gradient(rgba(15,23,42,0.06)_1px,transparent_1px)] [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_75%)] [background-size:22px_22px]" />
+          <div className="absolute inset-0 bg-[radial-gradient(rgba(15,23,42,0.06)_1px,transparent_1px)] dark:bg-[radial-gradient(rgba(255,255,255,0.07)_1px,transparent_1px)] [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_75%)] [background-size:22px_22px]" />
         </div>
 
         <div className="mx-auto max-w-2xl px-6 text-center">

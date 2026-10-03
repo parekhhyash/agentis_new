@@ -7,8 +7,8 @@ const TILES: { icon: IconComponent; label: string; tile: string }[] = [
   { icon: SearchIcon, label: 'Lead research', tile: 'bg-brand-blue text-white' },
   { icon: MegaphoneIcon, label: 'Sales & outreach', tile: 'bg-brand-violet text-white' },
   { icon: HeadsetIcon, label: 'Customer support', tile: 'bg-brand-sky text-white' },
-  { icon: BarChartIcon, label: 'Data & reporting', tile: 'bg-brand-yellow text-slate-900' },
-  { icon: PencilIcon, label: 'Content & copy', tile: 'bg-brand-pink text-slate-900' },
+  { icon: BarChartIcon, label: 'Data & reporting', tile: 'bg-brand-yellow text-ink' },
+  { icon: PencilIcon, label: 'Content & copy', tile: 'bg-brand-pink text-ink' },
 ]
 
 const RADIUS = 34 // px from the cluster centre at rest
