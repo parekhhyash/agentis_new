@@ -62,8 +62,7 @@ export default function CTA() {
       <footer className="mx-auto mt-20 max-w-[78rem] min-[1680px]:max-w-[86rem] pb-12 sm:mt-28">
         <div className="grid gap-12 lg:grid-cols-[1.4fr_3fr]">
           <div>
-            <span className="font-display text-2xl text-slate-900">Agentis</span>
-            <p className="mt-3 max-w-xs text-[15px] text-slate-500">
+            <p className="max-w-xs text-[15px] text-slate-500">
               A workforce of AI agents that sells, designs, supports and reports for you.
             </p>
             {visibleSocials.length > 0 && (
