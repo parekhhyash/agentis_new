@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import heroBgDark from '../assets/hero-bg-dark.webp'
 import heroBg from '../assets/hero-bg.png'
 import { createAgentRequest, runLeadResearchAgent } from '../lib/agentRuns'
 import { AGENT_TYPES, type AgentType } from '../lib/agentTypes'
@@ -261,8 +262,9 @@ export default function Hero() {
   return (
     <div
       ref={heroRef}
-      className="min-h-screen bg-cover bg-center bg-no-repeat"
-      style={{ backgroundImage: `url(${heroBg})` }}
+      // Daytime meadow in light mode, the night version in dark mode.
+      className="min-h-screen bg-(image:--hero-light) bg-cover bg-center bg-no-repeat dark:bg-(image:--hero-dark)"
+      style={{ '--hero-light': `url(${heroBg})`, '--hero-dark': `url(${heroBgDark})` } as CSSProperties}
     >
       <Navbar dark={scrolledPastHero} />
 
