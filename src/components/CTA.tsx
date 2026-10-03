@@ -30,14 +30,26 @@ const socials: { label: string; href: string; icon: ReactNode }[] = [
   },
 ]
 
-const linkClass = 'text-[15px] text-slate-700 transition-colors hover:text-brand-blue'
+const linkClass = 'text-[15px] text-white/80 transition-colors hover:text-white'
 
 function FooterColumn({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div>
-      <h3 className="text-sm text-slate-400">{title}</h3>
-      <ul className="mt-4 space-y-3">{children}</ul>
+      <h3 className="text-[11px] font-semibold tracking-[0.18em] text-white/45 uppercase">{title}</h3>
+      <ul className="mt-4 space-y-2.5">{children}</ul>
     </div>
+  )
+}
+
+// Four brand-coloured dots, the footer's small logo mark.
+function LogoMark() {
+  return (
+    <span aria-hidden="true" className="grid h-8 w-8 rotate-45 grid-cols-2 gap-1">
+      <span className="rounded-full bg-brand-blue" />
+      <span className="rounded-full bg-brand-pink" />
+      <span className="rounded-full bg-brand-yellow" />
+      <span className="rounded-full bg-brand-violet" />
+    </span>
   )
 }
 
@@ -46,113 +58,114 @@ export default function CTA() {
   const visibleSocials = socials.filter((s) => s.href)
 
   return (
-    <section id="get-started" className="relative z-10 px-4 pt-24 sm:px-6 sm:pt-32">
-      <div className="mx-auto max-w-3xl text-center">
-        <h2 className="font-display text-balance text-5xl leading-[1.05] text-slate-900 sm:text-7xl">
-          Describe it.
-          <br />
-          <span className="text-brand-blue">
-            Consider it done.
-          </span>
-        </h2>
-      </div>
-
-      <CardFan className="mx-auto mt-16 max-w-[78rem] min-[1680px]:max-w-[86rem] sm:mt-20" />
-
-      <footer className="mx-auto mt-20 max-w-[78rem] min-[1680px]:max-w-[86rem] pb-12 sm:mt-28">
-        <div className="grid gap-12 lg:grid-cols-[1.4fr_3fr]">
-          <div>
-            <span className="font-display text-2xl text-slate-900">Agentis</span>
-            <p className="mt-3 max-w-xs text-[15px] text-slate-500">
-              A workforce of AI agents that sells, designs, supports and reports for you.
-            </p>
-            {visibleSocials.length > 0 && (
-              <div className="mt-6 flex items-center gap-5">
-                {visibleSocials.map((s) => (
-                  <a
-                    key={s.label}
-                    href={s.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label={s.label}
-                    className="text-slate-900 transition-colors hover:text-brand-blue"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="h-5 w-5"
-                      fill="currentColor"
-                      aria-hidden="true"
-                    >
-                      {s.icon}
-                    </svg>
-                  </a>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="grid grid-cols-3 gap-6">
-            <FooterColumn title="Product">
-              <li>
-                <SectionLink id="features" className={linkClass}>
-                  Agents
-                </SectionLink>
-              </li>
-              <li>
-                <SectionLink id="how-it-works" className={linkClass}>
-                  How it works
-                </SectionLink>
-              </li>
-              <li>
-                <SectionLink id="testimonials" className={linkClass}>
-                  Testimonials
-                </SectionLink>
-              </li>
-            </FooterColumn>
-
-            <FooterColumn title="Company">
-              <li>
-                <SectionLink id="about" className={linkClass}>
-                  About
-                </SectionLink>
-              </li>
-              <li>
-                <SectionLink id="faqs" className={linkClass}>
-                  FAQs
-                </SectionLink>
-              </li>
-            </FooterColumn>
-
-            <FooterColumn title="Account">
-              {user ? (
-                <li>
-                  <Link to="/dashboard" className={linkClass}>
-                    Dashboard
-                  </Link>
-                </li>
-              ) : (
-                <>
-                  <li>
-                    <Link to="/signup" className={linkClass}>
-                      Sign up
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/login" className={linkClass}>
-                      Log in
-                    </Link>
-                  </li>
-                </>
-              )}
-            </FooterColumn>
-          </div>
+    <>
+      <section id="get-started" className="relative z-10 px-4 pt-24 pb-20 sm:px-6 sm:pt-32 sm:pb-28">
+        <div className="mx-auto max-w-3xl text-center">
+          <h2 className="font-display text-balance text-5xl leading-[1.05] text-slate-900 sm:text-7xl">
+            Describe it.
+            <br />
+            <span className="text-brand-blue">Consider it done.</span>
+          </h2>
         </div>
 
-        <div className="mt-16 flex flex-col items-start justify-between gap-3 border-t border-slate-200 pt-6 text-sm text-slate-400 sm:flex-row sm:items-center">
-          <span>© {new Date().getFullYear()} Agentis. All rights reserved.</span>
-          <span>Built for teams that would rather ship than wait.</span>
+        <CardFan className="mx-auto mt-16 max-w-[78rem] min-[1680px]:max-w-[86rem] sm:mt-20" />
+      </section>
+
+      <footer className="relative z-10 bg-[#1c1c1c] px-4 pt-14 pb-8 text-white sm:px-6 sm:pt-20">
+        <div className="mx-auto max-w-[78rem] min-[1680px]:max-w-[86rem]">
+          <div className="grid gap-12 lg:grid-cols-[1.2fr_3fr]">
+            <div>
+              <LogoMark />
+              {visibleSocials.length > 0 && (
+                <div className="mt-6 flex items-center gap-4">
+                  {visibleSocials.map((s) => (
+                    <a
+                      key={s.label}
+                      href={s.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={s.label}
+                      className="text-white/80 transition-colors hover:text-white"
+                    >
+                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
+                        {s.icon}
+                      </svg>
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-3 gap-6">
+              <FooterColumn title="Product">
+                <li>
+                  <SectionLink id="features" className={linkClass}>
+                    Agents
+                  </SectionLink>
+                </li>
+                <li>
+                  <SectionLink id="how-it-works" className={linkClass}>
+                    How it works
+                  </SectionLink>
+                </li>
+                <li>
+                  <SectionLink id="testimonials" className={linkClass}>
+                    Testimonials
+                  </SectionLink>
+                </li>
+              </FooterColumn>
+
+              <FooterColumn title="Company">
+                <li>
+                  <SectionLink id="about" className={linkClass}>
+                    About
+                  </SectionLink>
+                </li>
+                <li>
+                  <SectionLink id="faqs" className={linkClass}>
+                    FAQs
+                  </SectionLink>
+                </li>
+              </FooterColumn>
+
+              <FooterColumn title="Account">
+                {user ? (
+                  <li>
+                    <Link to="/dashboard" className={linkClass}>
+                      Dashboard
+                    </Link>
+                  </li>
+                ) : (
+                  <>
+                    <li>
+                      <Link to="/signup" className={linkClass}>
+                        Sign up
+                      </Link>
+                    </li>
+                    <li>
+                      <Link to="/login" className={linkClass}>
+                        Log in
+                      </Link>
+                    </li>
+                  </>
+                )}
+              </FooterColumn>
+            </div>
+          </div>
+
+          {/* Giant wordmark sized to the container width (cqw = 1% of it). */}
+          <div className="mt-16 [container-type:inline-size] sm:mt-20" aria-hidden="true">
+            <p className="font-display text-center leading-[0.8] tracking-tight whitespace-nowrap text-[#f2f0ec] select-none [font-size:33cqw]">
+              Agentis
+            </p>
+          </div>
+
+          <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-white/10 pt-6 text-xs text-white/45 sm:mt-20 sm:flex-row sm:items-center">
+            <span>© {new Date().getFullYear()} Agentis. All rights reserved.</span>
+            <span>Built for teams that would rather ship than wait.</span>
+          </div>
         </div>
       </footer>
-    </section>
+    </>
   )
 }
