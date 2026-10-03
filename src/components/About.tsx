@@ -29,10 +29,10 @@ function Tile({ className, children }: { className: string; children: ReactNode 
   return <div className={`relative flex flex-col overflow-hidden rounded-3xl p-5 sm:p-7 ${className}`}>{children}</div>
 }
 
-// light: white text on a brand tile. dark: theme text on the neutral tile.
+// light: white text on a brand tile (dark text in dark mode). dark: theme text on the neutral tile.
 // ink: always-dark text on the yellow tile.
 const STAT_TONES = {
-  light: ['text-white', 'font-medium text-white'],
+  light: ['text-white dark:text-ink', 'font-medium text-white dark:text-ink'],
   dark: ['text-slate-900', 'text-slate-700'],
   ink: ['text-ink', 'text-ink/80'],
 }
@@ -58,7 +58,14 @@ function activity(col: number, row: number) {
   return Math.min(4, Math.floor((noise * 0.7 + trend * 0.6) * 5))
 }
 
-const LEVELS = ['bg-white/10', 'bg-white/25', 'bg-white/45', 'bg-white/70', 'bg-white']
+// White squares on the blue tile; dark ones in dark mode, matching the text.
+const LEVELS = [
+  'bg-white/10 dark:bg-ink/10',
+  'bg-white/25 dark:bg-ink/25',
+  'bg-white/45 dark:bg-ink/45',
+  'bg-white/70 dark:bg-ink/70',
+  'bg-white dark:bg-ink',
+]
 
 function Heatmap({ cols, active, className }: { cols: number; active: boolean; className: string }) {
   return (
@@ -153,14 +160,14 @@ function AlwaysOnTile() {
               y2={i % 6 === 0 ? 16 : 12}
               strokeWidth={i % 6 === 0 ? 3 : 2}
               strokeLinecap="round"
-              className="stroke-white/50"
+              className="stroke-white/50 dark:stroke-ink/50"
               transform={`rotate(${i * 15} 50 50)`}
             />
           ))}
           <g className="origin-center animate-[spin_12s_linear_infinite] motion-reduce:animate-none">
-            <line x1="50" y1="50" x2="50" y2="22" strokeWidth="3" strokeLinecap="round" className="stroke-white" />
+            <line x1="50" y1="50" x2="50" y2="22" strokeWidth="3" strokeLinecap="round" className="stroke-white dark:stroke-ink" />
           </g>
-          <circle cx="50" cy="50" r="4" className="fill-white" />
+          <circle cx="50" cy="50" r="4" className="fill-white dark:fill-ink" />
         </svg>
         <span className="inline-flex items-center gap-1.5 self-start rounded-full bg-white px-2.5 py-1 text-xs font-medium text-ink">
           <span className="relative flex h-1.5 w-1.5">
