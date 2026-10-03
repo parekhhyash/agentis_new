@@ -148,7 +148,14 @@ export default function CTA() {
           </div>
         </div>
 
-        <div className="mt-16 flex flex-col items-start justify-between gap-3 border-t border-slate-200 pt-6 text-sm text-slate-400 sm:flex-row sm:items-center">
+        {/* Giant wordmark sized to the footer width (cqw = 1% of it). */}
+        <div className="mt-16 [container-type:inline-size] sm:mt-20" aria-hidden="true">
+          <p className="font-display text-center leading-[0.8] tracking-tight whitespace-nowrap text-slate-900 select-none [font-size:33cqw]">
+            Agentis
+          </p>
+        </div>
+
+        <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-slate-200 pt-6 text-sm text-slate-400 sm:mt-20 sm:flex-row sm:items-center">
           <span>© {new Date().getFullYear()} Agentis. All rights reserved.</span>
           <span>Built for teams that would rather ship than wait.</span>
         </div>
