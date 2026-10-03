@@ -149,7 +149,7 @@ function TimeSavedTile({ active }: { active: boolean }) {
 function AlwaysOnTile() {
   return (
     <Tile className="col-span-1 bg-brand-blush lg:col-span-2">
-      <div className="mb-4 flex items-center justify-between sm:mb-auto">
+      <div className="mb-4 sm:mb-auto">
         <svg viewBox="0 0 100 100" className="h-16 w-16 sm:h-24 sm:w-24" aria-hidden="true">
           {Array.from({ length: 24 }, (_, i) => (
             <line
@@ -169,13 +169,6 @@ function AlwaysOnTile() {
           </g>
           <circle cx="50" cy="50" r="4" className="fill-white dark:fill-ink" />
         </svg>
-        <span className="inline-flex items-center gap-1.5 self-start rounded-full bg-white px-2.5 py-1 text-xs font-medium text-ink">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-pink-400 motion-reduce:animate-none" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-pink-500" />
-          </span>
-          Live
-        </span>
       </div>
       <div className="mt-auto pt-4">
         <Stat value="24/7" label="agents on the clock" tone="light" />
