@@ -14,39 +14,6 @@ function wordColor(t: number) {
   return `rgb(${rgb.join(',')})`
 }
 
-// Concentric rings, one dashed; `turn` rotates the set slightly as the
-// section scrolls so the background drifts with the text reveal.
-const TONES = {
-  sky: { stroke: 'stroke-brand-sky/45', dot: 'fill-brand-sky/60' },
-  orchid: { stroke: 'stroke-brand-orchid/45', dot: 'fill-brand-orchid/60' },
-}
-
-function Rings({ className, turn, tone = 'sky' }: { className: string; turn: number; tone?: keyof typeof TONES }) {
-  return (
-    <svg
-      viewBox="0 0 400 400"
-      fill="none"
-      aria-hidden="true"
-      className={`pointer-events-none absolute ${className}`}
-      style={{ transform: `rotate(${turn}deg)` }}
-    >
-      {[190, 150, 110, 70].map((r, i) => (
-        <circle
-          key={r}
-          cx="200"
-          cy="200"
-          r={r}
-          strokeWidth="1.5"
-          className={i % 2 === 0 ? TONES[tone].stroke : 'stroke-slate-200'}
-          strokeDasharray={i === 1 ? '4 10' : undefined}
-        />
-      ))}
-      <circle cx="200" cy="10" r="4" className={TONES[tone].dot} />
-      <circle cx="350" cy="200" r="3" className="fill-slate-300" />
-    </svg>
-  )
-}
-
 export default function ScrollReveal() {
   const sectionRef = useRef<HTMLDivElement>(null)
   const [progress, setProgress] = useState(0)
@@ -81,12 +48,7 @@ export default function ScrollReveal() {
 
   return (
     <section ref={sectionRef} className="relative bg-white" style={{ height: '250vh' }}>
-      {/* overflow-x-clip (not overflow-hidden): stops sideways scroll but lets
-          the rings run past the section's top and bottom into the
-          neighbouring sections instead of being cut off at its edges. */}
       <div className="sticky top-0 flex h-screen items-center justify-center overflow-x-clip px-6">
-        <Rings className="-top-32 -left-24 w-72 sm:-top-44 sm:-left-28 sm:w-[28rem]" turn={progress * 60} />
-        <Rings className="-right-28 -bottom-36 w-80 sm:-right-36 sm:-bottom-52 sm:w-[34rem]" turn={-progress * 45} tone="orchid" />
         <div
           aria-hidden="true"
           className="pointer-events-none absolute top-1/2 left-1/2 h-[28rem] w-[28rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-sky/10 blur-3xl"
