@@ -56,7 +56,7 @@ export default function CTA() {
         </h2>
         <Link
           to={user ? '/dashboard' : '/signup'}
-          className="group mt-10 inline-flex items-center gap-2 rounded-full bg-brand-blue px-7 py-3.5 text-base font-semibold text-white shadow-[0_10px_30px_-10px_rgba(61,127,253,0.7)] transition-colors hover:bg-brand-blue/90"
+          className="group mt-10 inline-flex items-center gap-2 rounded-full bg-brand-blue px-7 py-3.5 text-base font-semibold text-white transition-colors hover:bg-brand-blue/90"
         >
           {user ? 'Go to dashboard' : 'Get started'}
           <svg

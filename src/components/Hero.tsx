@@ -262,8 +262,9 @@ export default function Hero() {
   return (
     <div
       ref={heroRef}
-      // Daytime meadow in light mode, the night version in dark mode.
-      className="relative min-h-screen bg-(image:--hero-light) bg-cover bg-center bg-no-repeat dark:bg-(image:--hero-dark)"
+      // Daytime meadow in light mode, the night version in dark mode. Rounded
+      // bottom corners so the image ends deliberately above the next section.
+      className="relative min-h-screen rounded-b-[2.5rem] bg-(image:--hero-light) sm:rounded-b-[3.5rem] bg-cover bg-center bg-no-repeat dark:bg-(image:--hero-dark)"
       style={{ '--hero-light': `url(${heroBg})`, '--hero-dark': `url(${heroBgDark})` } as CSSProperties}
     >
       <Navbar dark={scrolledPastHero} />

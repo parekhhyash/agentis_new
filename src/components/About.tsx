@@ -231,12 +231,10 @@ export default function About() {
     return () => observer.disconnect()
   }, [])
 
-  // A rounded sheet that slides up over the bottom of the hero image, so the
-  // switch from the photo to the plain page reads as deliberate.
   return (
     <section
       id="about"
-      className="relative z-10 -mt-12 rounded-t-[2.5rem] bg-page px-4 py-24 shadow-[0_-12px_40px_rgba(0,0,0,0.12)] sm:-mt-16 sm:rounded-t-[3.5rem] sm:px-6 sm:py-32"
+      className="relative z-10 px-4 py-24 sm:px-6 sm:py-32"
     >
       <div className="mx-auto max-w-3xl text-center">
         <span className="text-sm font-semibold tracking-[0.2em] text-brand-blue uppercase">
