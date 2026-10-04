@@ -29,14 +29,24 @@ function Navbar({ dark }: { dark: boolean }) {
     return () => mq.removeEventListener('change', close)
   }, [])
 
+  // No outline while resting at the very top of the hero; it appears as soon
+  // as the page is scrolled at all.
+  const [scrolled, setScrolled] = useState(() => window.scrollY > 4)
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 4)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   // The open menu always sits on a white panel, so use dark text then.
   const solid = dark || menuOpen
+  const border = solid ? 'border-slate-300' : scrolled ? 'border-white/40' : 'border-transparent'
 
   return (
     <nav
       className={`fixed top-6 left-1/2 z-20 w-[95%] max-w-3xl -translate-x-1/2 border shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-2xl transition-colors duration-300 ${
         menuOpen ? 'rounded-3xl' : 'rounded-full'
-      } ${solid ? 'border-slate-300 bg-surface/90' : 'border-white/40 bg-white/25'}`}
+      } ${border} ${solid ? 'bg-surface/90' : 'bg-white/25'}`}
     >
       <div className="flex items-center justify-between gap-4 px-3 py-2 pl-6">
         <span
