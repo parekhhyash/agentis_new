@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 
 import { BarChartIcon, HeadsetIcon, MegaphoneIcon, PencilIcon, SearchIcon, type IconComponent } from './icons'
 
@@ -14,9 +14,46 @@ const TILES: { icon: IconComponent; label: string; tile: string }[] = [
 const RADIUS = 34 // px from the cluster centre at rest
 const SPREAD = 46 // px on hover, so the tiles fan out a little
 const TILTS = [-8, 14, -12, 10, -16]
+// Before the first reveal the tiles sit in one neat pile, each nudged a
+// little so it reads as a stack of cards rather than a single tile.
+const STACK_TILTS = [-6, 4, -2, 6, 0]
+
+// Stacked until the box first scrolls into view, then the tiles deal out
+// into the circle (once). Reduced motion skips straight to the circle.
+function useSpread() {
+  const ref = useRef<HTMLDivElement>(null)
+  const reduced = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const [spread, setSpread] = useState(reduced)
+  const [settled, setSettled] = useState(reduced)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el || reduced) return
+    let timers: number[] = []
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return
+        observer.disconnect()
+        timers = [
+          window.setTimeout(() => setSpread(true), 250),
+          // Drop the per-tile stagger once dealt, so hover reacts instantly.
+          window.setTimeout(() => setSettled(true), 1600),
+        ]
+      },
+      { threshold: 0.6 },
+    )
+    observer.observe(el)
+    return () => {
+      observer.disconnect()
+      timers.forEach(clearTimeout)
+    }
+  }, [reduced])
+
+  return { ref, spread, settled }
+}
 
 // Five tilted app tiles arranged around a circle, like a hand of cards.
-function Cluster() {
+function Cluster({ spread, settled }: { spread: boolean; settled: boolean }) {
   return (
     <div className="relative h-36 w-36 shrink-0" aria-hidden="true">
       {TILES.map(({ icon: Icon, tile }, i) => {
@@ -27,13 +64,22 @@ function Cluster() {
           '--hx': `${Math.cos(angle) * SPREAD}px`,
           '--hy': `${Math.sin(angle) * SPREAD}px`,
           '--r': `${TILTS[i]}deg`,
+          '--sy': `${(TILES.length - 1 - i) * -2}px`,
+          '--sr': `${STACK_TILTS[i]}deg`,
+          transitionDelay: settled ? '0ms' : `${i * 70}ms`,
           zIndex: i === 0 ? 1 : 5 - i,
         } as CSSProperties
         return (
           <span
             key={i}
             style={style}
-            className={`absolute top-1/2 left-1/2 -mt-6 -ml-6 flex h-12 w-12 items-center justify-center rounded-xl shadow-md ring-2 ring-white transition-transform duration-500 [transform:translate(var(--x),var(--y))_rotate(var(--r))] group-hover:[transform:translate(var(--hx),var(--hy))_rotate(0deg)] ${tile}`}
+            className={`absolute top-1/2 left-1/2 -mt-6 -ml-6 flex h-12 w-12 items-center justify-center rounded-xl shadow-md ring-2 ring-white transition-transform ${
+              settled ? 'duration-500' : 'duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)]'
+            } ${
+              spread
+                ? '[transform:translate(var(--x),var(--y))_rotate(var(--r))] group-hover:[transform:translate(var(--hx),var(--hy))_rotate(0deg)]'
+                : '[transform:translate(0,var(--sy))_rotate(var(--sr))]'
+            } ${tile}`}
           >
             <Icon className="h-5 w-5" />
           </span>
@@ -44,9 +90,13 @@ function Cluster() {
 }
 
 export default function AgentCluster() {
+  const { ref, spread, settled } = useSpread()
   return (
-    <div className="group mx-auto mt-10 flex max-w-[78rem] min-[1680px]:max-w-[86rem] flex-col items-center justify-center gap-8 rounded-3xl bg-zinc-100 px-6 py-14 text-center sm:flex-row sm:gap-12 sm:py-16 sm:text-left">
-      <Cluster />
+    <div
+      ref={ref}
+      className="group mx-auto mt-10 flex max-w-[78rem] min-[1680px]:max-w-[86rem] flex-col items-center justify-center gap-8 rounded-3xl bg-zinc-100 px-6 py-14 text-center sm:flex-row sm:gap-12 sm:py-16 sm:text-left"
+    >
+      <Cluster spread={spread} settled={settled} />
       <p className="max-w-md text-lg leading-snug text-slate-900 sm:text-xl">
         Every agent your business needs, in one workspace: from finding leads to answering
         customers to the Monday report.
