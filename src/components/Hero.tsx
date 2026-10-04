@@ -268,22 +268,6 @@ export default function Hero() {
     >
       <Navbar dark={scrolledPastHero} />
 
-      {/* Soft hand-off into the next section: the bottom of the image blurs a
-          little more with each layer, then fades into the page colour. */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-20 sm:h-28">
-        {[1, 2, 4, 8].map((blur, i) => {
-          const mask = `linear-gradient(to bottom, transparent ${i * 20}%, black ${(i + 1) * 20 + 10}%)`
-          return (
-            <div
-              key={blur}
-              className="absolute inset-0"
-              style={{ backdropFilter: `blur(${blur}px)`, WebkitBackdropFilter: `blur(${blur}px)`, maskImage: mask, WebkitMaskImage: mask }}
-            />
-          )
-        })}
-        <div className="absolute inset-0 bg-linear-to-b from-transparent from-55% to-page" />
-      </div>
-
       <main className="relative flex min-h-screen flex-col items-center justify-center px-4 pt-24 pb-16">
         <h1 className="font-display max-w-4xl text-center text-5xl leading-[1.05] text-balance text-white sm:text-6xl 2xl:text-7xl">
           Less busywork.
