@@ -29,8 +29,9 @@ function Navbar({ dark }: { dark: boolean }) {
     return () => mq.removeEventListener('change', close)
   }, [])
 
-  // No outline while resting at the very top of the hero; it appears as soon
-  // as the page is scrolled at all.
+  // At the very top of the hero the bar has no background at all (just the
+  // links over the image); the glass panel appears as soon as the page is
+  // scrolled, and turns solid once past the hero.
   const [scrolled, setScrolled] = useState(() => window.scrollY > 4)
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 4)
@@ -40,13 +41,17 @@ function Navbar({ dark }: { dark: boolean }) {
 
   // The open menu always sits on a white panel, so use dark text then.
   const solid = dark || menuOpen
-  const border = solid ? 'border-slate-300' : scrolled ? 'border-white/40' : 'border-transparent'
+  const panel = solid
+    ? 'border-slate-300 bg-surface/90 shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-2xl'
+    : scrolled
+      ? 'border-white/40 bg-white/25 shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-2xl'
+      : 'border-transparent bg-transparent shadow-none'
 
   return (
     <nav
-      className={`fixed top-6 left-1/2 z-20 w-[95%] max-w-3xl -translate-x-1/2 border shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-2xl transition-colors duration-300 ${
+      className={`fixed top-6 left-1/2 z-20 w-[95%] max-w-3xl -translate-x-1/2 border transition-[background-color,border-color,box-shadow] duration-300 ${
         menuOpen ? 'rounded-3xl' : 'rounded-full'
-      } ${border} ${solid ? 'bg-surface/90' : 'bg-white/25'}`}
+      } ${panel}`}
     >
       <div className="flex items-center justify-between gap-4 px-3 py-2 pl-6">
         <span
