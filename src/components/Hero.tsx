@@ -62,9 +62,7 @@ function Navbar({ dark }: { dark: boolean }) {
         </div>
 
         <div className="flex items-center gap-1">
-          <ThemeToggle
-            className={solid ? 'text-slate-800 hover:bg-slate-100' : 'text-white hover:bg-white/15'}
-          />
+          <ThemeToggle className={solid ? 'text-slate-800 hover:bg-slate-100' : 'text-white hover:bg-white/15'} />
           <Link
             to={user ? '/dashboard' : '/signup'}
             className={`rounded-full px-5 py-2.5 text-[15px] font-medium whitespace-nowrap shadow-sm transition-colors duration-300 ${
@@ -251,40 +249,43 @@ export default function Hero() {
     const el = heroRef.current
     if (!el) return
 
-    const observer = new IntersectionObserver(
-      ([entry]) => setScrolledPastHero(!entry.isIntersecting),
-      { rootMargin: '-88px 0px 0px 0px', threshold: 0 },
-    )
+    const observer = new IntersectionObserver(([entry]) => setScrolledPastHero(!entry.isIntersecting), {
+      rootMargin: '-88px 0px 0px 0px',
+      threshold: 0,
+    })
     observer.observe(el)
     return () => observer.disconnect()
   }, [])
 
+  // The image sits as a rounded card inset from the page edges, so it reads as
+  // a framed panel rather than a full-bleed photo that stops abruptly. Its
+  // height is the viewport minus that inset.
   return (
-    <div
-      ref={heroRef}
-      // Daytime meadow in light mode, the night version in dark mode. Rounded
-      // bottom corners so the image ends deliberately above the next section.
-      className="relative min-h-screen rounded-b-[2.5rem] bg-(image:--hero-light) sm:rounded-b-[3.5rem] bg-cover bg-center bg-no-repeat dark:bg-(image:--hero-dark)"
-      style={{ '--hero-light': `url(${heroBg})`, '--hero-dark': `url(${heroBgDark})` } as CSSProperties}
-    >
-      <Navbar dark={scrolledPastHero} />
+    <div className="p-2 sm:p-3">
+      <div
+        ref={heroRef}
+        // Daytime meadow in light mode, the night version in dark mode.
+        className="relative min-h-[calc(100svh-1rem)] rounded-[1.75rem] bg-(image:--hero-light) bg-cover bg-center bg-no-repeat sm:min-h-[calc(100svh-1.5rem)] sm:rounded-[2.5rem] dark:bg-(image:--hero-dark)"
+        style={{ '--hero-light': `url(${heroBg})`, '--hero-dark': `url(${heroBgDark})` } as CSSProperties}
+      >
+        <Navbar dark={scrolledPastHero} />
 
-      <main className="relative flex min-h-screen flex-col items-center justify-center px-4 pt-24 pb-16">
-        <h1 className="font-display max-w-4xl text-center text-5xl leading-[1.05] text-balance text-white sm:text-6xl 2xl:text-7xl">
-          Less busywork.
-          <br />
-          More business.
-        </h1>
+        <main className="relative flex min-h-[calc(100svh-1rem)] flex-col items-center justify-center px-4 pt-24 pb-16 sm:min-h-[calc(100svh-1.5rem)]">
+          <h1 className="font-display max-w-4xl text-center text-5xl leading-[1.05] text-balance text-white sm:text-6xl 2xl:text-7xl">
+            Less busywork.
+            <br />
+            More business.
+          </h1>
 
-        <p className="mt-5 max-w-2xl text-center text-lg font-medium text-balance text-white/85 sm:text-xl">
-          Turn sales, marketing, design, finance, and operations into
-          AI-powered agents.
-        </p>
+          <p className="mt-5 max-w-2xl text-center text-lg font-medium text-balance text-white/85 sm:text-xl">
+            Turn sales, marketing, design, finance, and operations into AI-powered agents.
+          </p>
 
-        <div className="mt-10 w-full max-w-2xl">
-          <PromptBox />
-        </div>
-      </main>
+          <div className="mt-10 w-full max-w-2xl">
+            <PromptBox />
+          </div>
+        </main>
+      </div>
     </div>
   )
 }
