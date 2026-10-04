@@ -36,6 +36,13 @@
   --animate-marquee: marquee 40s linear infinite;
   --animate-marquee-slow: marquee 60s linear infinite;
   --animate-aurora: aurora 18s ease-in-out infinite alternate;
+  --animate-dash-flow: dash-flow 0.8s linear infinite;
+
+  @keyframes dash-flow {
+    to {
+      stroke-dashoffset: -24;
+    }
+  }
 
   @keyframes aurora {
     0% {

@@ -1,105 +1,492 @@
-import type { ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 
 import AgentCluster from './AgentCluster'
+import {
+  BarChartIcon,
+  GearIcon,
+  HeadsetIcon,
+  MegaphoneIcon,
+  PencilIcon,
+  SearchIcon,
+  type IconComponent,
+} from './icons'
 
-function PromptVisual() {
+// The three cards play one story together: a request is typed (01), routed
+// to the matching agent (02), and its finished work is approved (03). Then
+// the next story starts.
+
+const AGENTS: { label: string; icon: IconComponent; tile: string; line: string }[] = [
+  { label: 'Lead Research', icon: SearchIcon, tile: 'bg-brand-blue text-white', line: 'text-brand-blue' },
+  { label: 'Sales & Outreach', icon: MegaphoneIcon, tile: 'bg-brand-violet text-white', line: 'text-brand-violet' },
+  { label: 'Customer Support', icon: HeadsetIcon, tile: 'bg-brand-sky text-white', line: 'text-brand-sky' },
+  { label: 'Data & Reporting', icon: BarChartIcon, tile: 'bg-brand-yellow text-ink', line: 'text-brand-yellow' },
+  { label: 'Content & Copy', icon: PencilIcon, tile: 'bg-brand-pink text-ink', line: 'text-brand-pink' },
+  { label: 'Operations', icon: GearIcon, tile: 'bg-brand-orchid text-white', line: 'text-brand-orchid' },
+]
+
+type Story = {
+  chip: string
+  prompt: string
+  agent: number
+  title: string
+  rows: { mark: string; name: string; meta: string; tile: string }[]
+}
+
+const STORIES: Story[] = [
+  {
+    chip: 'Find leads',
+    prompt: 'Find 20 D2C skincare brands in India and draft an intro for each',
+    agent: 0,
+    title: '20 leads found',
+    rows: [
+      { mark: 'M', name: 'Mamaearth', meta: 'Strong fit · intro ready', tile: 'bg-brand-pink text-ink' },
+      { mark: 'P', name: 'Plum Goodness', meta: 'Strong fit · intro ready', tile: 'bg-brand-sky text-white' },
+      { mark: 'D', name: 'Dot & Key', meta: 'Possible · intro ready', tile: 'bg-brand-yellow text-ink' },
+    ],
+  },
+  {
+    chip: 'Write posts',
+    prompt: 'Write three launch posts for our new summer collection',
+    agent: 4,
+    title: '3 posts drafted',
+    rows: [
+      { mark: 'IG', name: 'Instagram carousel', meta: '5 slides with captions', tile: 'bg-brand-orchid text-white' },
+      { mark: 'in', name: 'LinkedIn post', meta: 'Launch announcement', tile: 'bg-brand-blue text-white' },
+      { mark: 'X', name: 'Teaser thread', meta: '4 posts, scheduled Friday', tile: 'bg-brand-violet text-white' },
+    ],
+  },
+  {
+    chip: 'Answer tickets',
+    prompt: "Reply to today's refund tickets and flag anything urgent",
+    agent: 2,
+    title: '18 tickets handled',
+    rows: [
+      { mark: '#', name: 'Refund issued', meta: 'Ticket 4821 · replied in 2 min', tile: 'bg-brand-sky text-white' },
+      { mark: '#', name: 'Order delayed', meta: 'Ticket 4822 · sent tracking', tile: 'bg-brand-sky text-white' },
+      { mark: '!', name: 'Damaged item', meta: 'Ticket 4825 · flagged for you', tile: 'bg-brand-pink text-ink' },
+    ],
+  },
+]
+
+// Story timeline, in ms from the start of each cycle.
+const TYPE_START = 300
+const TYPE_END = 2600
+const SEND = 2800
+const ROUTE_START = 3200
+const ARRIVE = 4100
+const ROWS = [4500, 5000, 5500]
+const CURSOR = 6100
+const CLICK = 6800
+const SHIPPED = 6950
+const CYCLE = 9000
+const TICK = 40
+
+type Frame = { story: number; t: number }
+
+// Advances the shared clock only while the cards are on screen. With reduced
+// motion it stays on the finished state of the first story.
+function useStoryClock(ref: RefObject<HTMLElement | null>): Frame {
+  const reduced = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const [elapsed, setElapsed] = useState(reduced ? CYCLE - 1 : 0)
+
+  useEffect(() => {
+    if (reduced) return
+    const el = ref.current
+    if (!el) return
+    let visible = false
+    const observer = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting
+    })
+    observer.observe(el)
+    const timer = window.setInterval(() => {
+      if (visible) setElapsed((e) => e + TICK)
+    }, TICK)
+    return () => {
+      observer.disconnect()
+      window.clearInterval(timer)
+    }
+  }, [ref, reduced])
+
+  return { story: Math.floor(elapsed / CYCLE) % STORIES.length, t: elapsed % CYCLE }
+}
+
+// Visuals are laid out on a fixed 320 x 288 canvas and scaled to the card, so
+// they look the same in the narrow three-column tablet layout and on desktop.
+const STAGE_W = 320
+const STAGE_H = 288
+
+function Stage({ children }: { children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState(1)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const observer = new ResizeObserver(([entry]) => setScale(entry.contentRect.width / STAGE_W))
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
   return (
-    <div className="w-[82%] max-w-72 rounded-2xl bg-surface p-4 shadow-lg ring-1 shadow-slate-900/5 ring-slate-200">
-      <p className="text-[13px] leading-relaxed text-slate-700">
-        Find 20 D2C skincare brands in India and draft an intro for each
-        <span className="ml-0.5 inline-block h-4 w-px animate-pulse bg-brand-blue align-middle" />
-      </p>
-      <div className="mt-4 flex items-center justify-between">
-        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-500">
-          Lead research
-        </span>
-        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-blue text-white">
-          <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-            <path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </span>
+    <div ref={ref} aria-hidden="true" className="relative aspect-[10/9] overflow-hidden rounded-3xl bg-zinc-100">
+      <div
+        className="absolute top-0 left-0"
+        style={{ width: STAGE_W, height: STAGE_H, transform: `scale(${scale})`, transformOrigin: 'top left' }}
+      >
+        {children}
       </div>
     </div>
   )
 }
 
-const PILLS = 24
-
-function RoutingVisual() {
+function CheckIcon({ className = '' }: { className?: string }) {
   return (
-    <div className="relative flex h-[84%] items-center justify-center">
-      <svg
-        viewBox="0 0 200 200"
-        aria-hidden="true"
-        className="h-full animate-[spin_14s_linear_infinite] motion-reduce:animate-none"
-      >
-        {Array.from({ length: PILLS }, (_, i) => (
-          <rect
-            key={i}
-            x="95"
-            y="8"
-            width="10"
-            height="30"
-            rx="5"
-            transform={`rotate(${(360 / PILLS) * i} 100 100)`}
-            className="fill-brand-violet"
-            style={{ opacity: 0.2 + 0.8 * (i / (PILLS - 1)) }}
-          />
+    <svg viewBox="0 0 16 16" className={className} fill="none" stroke="currentColor" strokeWidth="2.5">
+      <path d="m3.5 8.5 3 3 6-7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function AgentBadge({ agent, className = '' }: { agent: number; className?: string }) {
+  const { icon: Icon, tile } = AGENTS[agent]
+  return (
+    <span className={`flex items-center justify-center rounded-full ${tile} ${className}`}>
+      <Icon className="h-3.5 w-3.5" />
+    </span>
+  )
+}
+
+// 01: the request types itself out, the right agent is picked up, and it's sent.
+function PromptVisual({ story, t }: Frame) {
+  const s = STORIES[story]
+  const progress = Math.min(1, Math.max(0, (t - TYPE_START) / (TYPE_END - TYPE_START)))
+  const typed = s.prompt.slice(0, Math.round(s.prompt.length * progress))
+  const detected = progress > 0.45
+  const sent = t >= SEND
+  const pressing = sent && t < SEND + 220
+
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center px-5">
+      <div className="flex gap-1.5">
+        {STORIES.map((x, i) => (
+          <span
+            key={x.chip}
+            className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition-colors duration-500 ${
+              i === story ? AGENTS[x.agent].tile : 'bg-surface text-slate-500 ring-1 ring-slate-200'
+            }`}
+          >
+            {x.chip}
+          </span>
         ))}
-      </svg>
-      <span className="absolute inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-[11px] font-semibold text-slate-700 shadow-md ring-1 ring-slate-200">
-        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand-violet" />
-        Lead research
+      </div>
+
+      <div className="mt-3 w-full rounded-2xl bg-surface p-4 shadow-lg ring-1 shadow-slate-900/5 ring-slate-200">
+        <p className="h-[60px] text-[13px] leading-5 text-slate-700">
+          {typed}
+          {!sent && <span className="ml-0.5 inline-block h-4 w-px animate-pulse bg-brand-blue align-middle" />}
+        </p>
+        <div className="mt-3 flex items-center justify-between">
+          <span className="relative h-7 flex-1">
+            <span
+              className={`absolute inset-y-0 left-0 inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-400 transition-opacity duration-300 ${
+                detected ? 'opacity-0' : 'opacity-100'
+              }`}
+            >
+              <span className="flex gap-0.5">
+                {[0, 1, 2].map((d) => (
+                  <span
+                    key={d}
+                    className="h-1 w-1 animate-bounce rounded-full bg-slate-400"
+                    style={{ animationDelay: `${d * 120}ms` }}
+                  />
+                ))}
+              </span>
+              Picking an agent
+            </span>
+            <span
+              className={`absolute inset-y-0 left-0 inline-flex items-center gap-1.5 rounded-full bg-slate-100 py-1 pr-2.5 pl-1 text-[11px] font-semibold text-slate-700 transition duration-300 ${
+                detected ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'
+              }`}
+            >
+              <AgentBadge agent={s.agent} className="h-5 w-5" />
+              {AGENTS[s.agent].label}
+            </span>
+          </span>
+          <span className="relative flex h-8 w-8 items-center justify-center">
+            {progress === 1 && !sent && (
+              <span className="absolute inset-0 animate-ping rounded-full bg-brand-blue/40" />
+            )}
+            <span
+              className={`relative flex h-8 w-8 items-center justify-center rounded-full bg-brand-blue text-white transition-transform duration-150 ${
+                pressing ? 'scale-90' : 'scale-100'
+              }`}
+            >
+              {sent ? (
+                <CheckIcon className="h-3.5 w-3.5" />
+              ) : (
+                <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </span>
+          </span>
+        </div>
+      </div>
+
+      <span
+        className={`mt-3 inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-[11px] font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200 transition duration-300 ${
+          sent ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
+        }`}
+      >
+        <CheckIcon className="h-3 w-3 text-brand-blue" />
+        Sent to Agentis
       </span>
     </div>
   )
 }
 
-function ReviewVisual() {
+// 02: the hub hands the task to one of the agents around it.
+const HUB = { x: 160, y: 128 }
+const ORBIT = 88
+const NODES = AGENTS.map((_, i) => {
+  const a = ((-90 + i * 60) * Math.PI) / 180
+  return { x: HUB.x + Math.cos(a) * ORBIT, y: HUB.y + Math.sin(a) * ORBIT }
+})
+
+function RoutingVisual({ story, t }: Frame) {
+  const target = STORIES[story].agent
+  const routing = t >= ROUTE_START && t < ARRIVE
+  const arrived = t >= ARRIVE
+  const packet = t >= ROUTE_START + 150 ? NODES[target] : HUB
+
   return (
-    <div className="w-[76%] max-w-64 rounded-2xl bg-surface p-4 shadow-lg ring-1 shadow-slate-900/5 ring-slate-200">
-      <div className="h-2 w-2/3 rounded-full bg-slate-200" />
-      <div className="mt-2.5 h-2 w-full rounded-full bg-slate-100" />
-      <div className="mt-2 h-2 w-5/6 rounded-full bg-slate-100" />
-      <div className="mt-2 h-2 w-3/4 rounded-full bg-slate-100" />
-      <div className="mt-5 flex items-center justify-between">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-violet px-3 py-1.5 text-[11px] font-medium text-white">
-          <svg viewBox="0 0 16 16" className="h-3 w-3 text-brand-yellow" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-            <path d="m3.5 8.5 3 3 6-7" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          Ready to ship
+    <div className="absolute inset-0">
+      <svg viewBox={`0 0 ${STAGE_W} ${STAGE_H}`} className="absolute inset-0 h-full w-full">
+        <circle
+          cx={HUB.x}
+          cy={HUB.y}
+          r={ORBIT}
+          fill="none"
+          strokeWidth="1.5"
+          strokeDasharray="2 7"
+          strokeLinecap="round"
+          className="origin-center animate-[spin_40s_linear_infinite] stroke-slate-300 [transform-box:fill-box] motion-reduce:animate-none"
+        />
+        {NODES.map((n, i) => {
+          const active = i === target && (routing || arrived)
+          return (
+            <line
+              key={i}
+              x1={HUB.x}
+              y1={HUB.y}
+              x2={n.x}
+              y2={n.y}
+              strokeLinecap="round"
+              className={
+                active
+                  ? `${AGENTS[i].line} animate-dash-flow stroke-current motion-reduce:animate-none`
+                  : 'stroke-slate-300'
+              }
+              strokeWidth={active ? 2.5 : 1.5}
+              strokeDasharray={active ? '6 6' : '2 5'}
+            />
+          )
+        })}
+      </svg>
+
+      {/* The task travelling from the hub to its agent. */}
+      <span
+        className={`absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full ring-4 ring-surface ${AGENTS[target].tile}`}
+        style={{
+          left: packet.x,
+          top: packet.y,
+          opacity: routing ? 1 : 0,
+          transition: 'left 0.8s cubic-bezier(0.65, 0, 0.35, 1), top 0.8s cubic-bezier(0.65, 0, 0.35, 1), opacity 0.2s',
+        }}
+      />
+
+      {NODES.map((n, i) => {
+        const { icon: Icon, tile } = AGENTS[i]
+        const active = i === target && arrived
+        return (
+          <span
+            key={i}
+            className={`absolute flex h-10 w-10 items-center justify-center rounded-xl shadow-sm transition duration-500 ${tile} ${
+              active ? 'scale-125 shadow-lg' : arrived ? 'scale-90 opacity-40' : 'opacity-90'
+            }`}
+            style={{ left: n.x - 20, top: n.y - 20 }}
+          >
+            <Icon className="h-4 w-4" />
+          </span>
+        )
+      })}
+
+      {/* Hub */}
+      <span
+        className="absolute flex h-14 w-14 items-center justify-center rounded-full bg-surface shadow-md ring-1 ring-slate-200"
+        style={{ left: HUB.x - 28, top: HUB.y - 28 }}
+      >
+        {routing && <span className="absolute inset-0 animate-ping rounded-full bg-brand-blue/25" />}
+        <span className="font-display relative text-[26px] leading-none text-slate-900">A</span>
+      </span>
+
+      <span className="absolute inset-x-0 bottom-4 flex justify-center">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-[11px] font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200">
+          {arrived ? (
+            <>
+              <AgentBadge agent={target} className="h-4 w-4 [&_svg]:h-2.5 [&_svg]:w-2.5" />
+              {AGENTS[target].label} is on it
+            </>
+          ) : (
+            <>
+              <span className={`h-1.5 w-1.5 rounded-full bg-brand-blue ${routing ? 'animate-pulse' : 'opacity-40'}`} />
+              {routing ? 'Routing the task' : 'Waiting for a task'}
+            </>
+          )}
         </span>
-        <span className="text-[11px] font-medium text-brand-violet dark:text-[#a98bff]">Approve</span>
+      </span>
+    </div>
+  )
+}
+
+// 03: the work arrives line by line, gets approved and ships.
+const BURST = ['bg-brand-blue', 'bg-brand-pink', 'bg-brand-yellow', 'bg-brand-violet', 'bg-brand-sky', 'bg-brand-orchid', 'bg-brand-blue', 'bg-brand-yellow']
+
+function ReviewVisual({ story, t }: Frame) {
+  const s = STORIES[story]
+  const ready = t >= ROWS[ROWS.length - 1]
+  const shipped = t >= SHIPPED
+  const clicking = t >= CLICK && t < SHIPPED + 100
+  const cursorIn = t >= CURSOR && t < SHIPPED + 700
+
+  const status = shipped
+    ? { label: 'Shipped', className: 'bg-emerald-50 text-emerald-700' }
+    : ready
+      ? { label: 'Ready for review', className: 'bg-brand-yellow/30 text-slate-800' }
+      : { label: 'Working', className: 'bg-slate-100 text-slate-500' }
+
+  return (
+    <div className="absolute inset-0 flex items-center justify-center px-5">
+      <div className="w-full rounded-2xl bg-surface p-4 shadow-lg ring-1 shadow-slate-900/5 ring-slate-200">
+        <div className="flex items-center gap-2">
+          <AgentBadge agent={s.agent} className="h-6 w-6" />
+          <span className="flex-1 truncate text-[12px] font-semibold text-slate-900">{s.title}</span>
+          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors duration-300 ${status.className}`}>
+            {status.label}
+          </span>
+        </div>
+
+        <ul className="mt-3 space-y-2">
+          {s.rows.map((row, i) => {
+            const shown = t >= ROWS[i]
+            return (
+              <li key={i} className="relative h-9">
+                <span
+                  className={`absolute inset-0 flex items-center gap-2 rounded-lg px-1 transition-opacity duration-300 ${
+                    shown ? 'opacity-0' : 'opacity-100'
+                  }`}
+                >
+                  <span className="h-7 w-7 shrink-0 animate-pulse rounded-lg bg-slate-100" />
+                  <span className="flex-1 space-y-1.5">
+                    <span className="block h-2 w-2/3 animate-pulse rounded-full bg-slate-100" />
+                    <span className="block h-2 w-1/2 animate-pulse rounded-full bg-slate-100" />
+                  </span>
+                </span>
+                <span
+                  className={`absolute inset-0 flex items-center gap-2 rounded-lg px-1 transition duration-500 ${
+                    shown ? 'translate-x-0 opacity-100' : '-translate-x-3 opacity-0'
+                  }`}
+                >
+                  <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold ${row.tile}`}>
+                    {row.mark}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[11px] font-semibold text-slate-900">{row.name}</span>
+                    <span className="block truncate text-[10px] text-slate-500">{row.meta}</span>
+                  </span>
+                  <CheckIcon className={`h-3.5 w-3.5 shrink-0 text-emerald-500 transition-opacity duration-300 ${shipped ? 'opacity-100' : 'opacity-0'}`} />
+                </span>
+              </li>
+            )
+          })}
+        </ul>
+
+        <div className="mt-3 flex items-center justify-end gap-2">
+          <span className="rounded-full px-3 py-1.5 text-[11px] font-medium text-slate-500 ring-1 ring-slate-200">Edit</span>
+          <span className="relative">
+            <span
+              className={`relative inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold text-white transition duration-200 ${
+                shipped ? 'bg-brand-violet' : 'bg-brand-blue'
+              } ${clicking ? 'scale-95' : 'scale-100'} ${ready || shipped ? 'opacity-100' : 'opacity-40'}`}
+            >
+              {shipped && <CheckIcon className="h-3 w-3 text-brand-yellow" />}
+              {shipped ? 'Shipped' : 'Approve & ship'}
+            </span>
+
+            {/* A little burst of brand colours on ship. */}
+            {BURST.map((color, i) => {
+              const a = (i / BURST.length) * Math.PI * 2
+              return (
+                <span
+                  key={i}
+                  className={`absolute top-1/2 left-1/2 h-1.5 w-1.5 rounded-full ${color}`}
+                  style={{
+                    transform: shipped
+                      ? `translate(${Math.cos(a) * 46 - 3}px, ${Math.sin(a) * 26 - 3}px) scale(1)`
+                      : 'translate(-3px, -3px) scale(0)',
+                    opacity: shipped && t < SHIPPED + 600 ? 1 : 0,
+                    transition: shipped ? 'transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s 0.25s' : 'none',
+                  }}
+                />
+              )
+            })}
+
+            {/* The reviewer's cursor. */}
+            <svg
+              viewBox="0 0 24 24"
+              className="pointer-events-none absolute top-1/2 left-1/2 h-5 w-5 drop-shadow"
+              style={{
+                transform: cursorIn
+                  ? `translate(${clicking ? 4 : 6}px, ${clicking ? 2 : 4}px) scale(${clicking ? 0.85 : 1})`
+                  : 'translate(90px, 90px)',
+                opacity: cursorIn ? 1 : 0,
+                transition: 'transform 0.7s cubic-bezier(0.65, 0, 0.35, 1), opacity 0.3s',
+              }}
+            >
+              <path d="M5 3l14 7.5-6.2 1.6L10 18.5z" className="fill-ink stroke-white" strokeWidth="1.5" strokeLinejoin="round" />
+            </svg>
+          </span>
+        </div>
       </div>
     </div>
   )
 }
 
-const steps: { number: string; title: string; description: string; visual: ReactNode }[] = [
+const steps: { number: string; title: string; description: string; Visual: (frame: Frame) => ReactNode }[] = [
   {
     number: '01',
     title: 'Describe the task',
-    description:
-      "Tell Agentis what you need in plain language, the same way you'd brief a teammate.",
-    visual: <PromptVisual />,
+    description: "Tell Agentis what you need in plain language, the same way you'd brief a teammate.",
+    Visual: PromptVisual,
   },
   {
     number: '02',
     title: 'The right agent takes it',
-    description:
-      'Agentis routes the job to a specialized agent with the context and tools to do it well.',
-    visual: <RoutingVisual />,
+    description: 'Agentis routes the job to a specialized agent with the context and tools to do it well.',
+    Visual: RoutingVisual,
   },
   {
     number: '03',
     title: 'Review and ship',
-    description:
-      'Get finished work back for approval, tweak if needed, and publish. No back-and-forth.',
-    visual: <ReviewVisual />,
+    description: 'Get finished work back for approval, tweak if needed, and publish. No back-and-forth.',
+    Visual: ReviewVisual,
   },
 ]
 
 export default function HowItWorks() {
+  const gridRef = useRef<HTMLDivElement>(null)
+  const frame = useStoryClock(gridRef)
+
   return (
     <section id="how-it-works" className="bg-page px-4 py-24 sm:px-6 sm:py-32">
       <div className="mx-auto max-w-2xl text-center">
@@ -111,17 +498,20 @@ export default function HowItWorks() {
         </h2>
       </div>
 
-      <div className="mx-auto mt-16 grid max-w-[78rem] min-[1680px]:max-w-[86rem] grid-cols-1 gap-12 sm:grid-cols-3 sm:gap-6 lg:gap-10">
-        {steps.map((step) => (
-          <div key={step.number}>
-            <div className="flex aspect-[10/9] items-center justify-center rounded-3xl bg-zinc-100">
-              {step.visual}
-            </div>
+      <div
+        ref={gridRef}
+        className="mx-auto mt-16 grid max-w-[78rem] min-[1680px]:max-w-[86rem] grid-cols-1 gap-12 sm:grid-cols-3 sm:gap-6 lg:gap-10"
+      >
+        {steps.map(({ number, title, description, Visual }) => (
+          <div key={number}>
+            <Stage>
+              <Visual {...frame} />
+            </Stage>
             <div className="mt-6 flex items-baseline gap-3">
-              <span className="font-display text-2xl text-slate-300">{step.number}</span>
-              <h3 className="text-lg font-semibold text-slate-900">{step.title}</h3>
+              <span className="font-display text-2xl text-slate-300">{number}</span>
+              <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
             </div>
-            <p className="mt-2 text-[15px] leading-relaxed text-slate-600">{step.description}</p>
+            <p className="mt-2 text-[15px] leading-relaxed text-slate-600">{description}</p>
           </div>
         ))}
       </div>
