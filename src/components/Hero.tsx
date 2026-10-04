@@ -263,12 +263,28 @@ export default function Hero() {
     <div
       ref={heroRef}
       // Daytime meadow in light mode, the night version in dark mode.
-      className="min-h-screen bg-(image:--hero-light) bg-cover bg-center bg-no-repeat dark:bg-(image:--hero-dark)"
+      className="relative min-h-screen bg-(image:--hero-light) bg-cover bg-center bg-no-repeat dark:bg-(image:--hero-dark)"
       style={{ '--hero-light': `url(${heroBg})`, '--hero-dark': `url(${heroBgDark})` } as CSSProperties}
     >
       <Navbar dark={scrolledPastHero} />
 
-      <main className="flex min-h-screen flex-col items-center justify-center px-4 pt-24 pb-16">
+      {/* Soft hand-off into the next section: the bottom of the image blurs a
+          little more with each layer, then fades into the page colour. */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-40 sm:h-56">
+        {[1, 2, 4, 8, 16].map((blur, i) => {
+          const mask = `linear-gradient(to bottom, transparent ${i * 16}%, black ${(i + 1) * 16 + 10}%)`
+          return (
+            <div
+              key={blur}
+              className="absolute inset-0"
+              style={{ backdropFilter: `blur(${blur}px)`, WebkitBackdropFilter: `blur(${blur}px)`, maskImage: mask, WebkitMaskImage: mask }}
+            />
+          )
+        })}
+        <div className="absolute inset-0 bg-linear-to-b from-transparent from-30% to-page" />
+      </div>
+
+      <main className="relative flex min-h-screen flex-col items-center justify-center px-4 pt-24 pb-16">
         <h1 className="font-display max-w-4xl text-center text-5xl leading-[1.05] text-balance text-white sm:text-6xl 2xl:text-7xl">
           Less busywork.
           <br />

@@ -54,6 +54,22 @@ export default function CTA() {
             Consider it done.
           </span>
         </h2>
+        <Link
+          to={user ? '/dashboard' : '/signup'}
+          className="group mt-10 inline-flex items-center gap-2 rounded-full bg-brand-blue px-7 py-3.5 text-base font-semibold text-white shadow-[0_10px_30px_-10px_rgba(61,127,253,0.7)] transition-colors hover:bg-brand-blue/90"
+        >
+          {user ? 'Go to dashboard' : 'Get started'}
+          <svg
+            viewBox="0 0 16 16"
+            className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden="true"
+          >
+            <path d="M3 8h10M9 4l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </Link>
       </div>
 
       <footer className="mx-auto mt-20 max-w-[78rem] min-[1680px]:max-w-[86rem] pb-12 sm:mt-28">
