@@ -5,8 +5,9 @@ import heroBg from '../assets/hero-bg.png'
 import { createAgentRequest, runLeadResearchAgent } from '../lib/agentRuns'
 import { AGENT_TYPES, type AgentType } from '../lib/agentTypes'
 import { useAuth } from '../lib/AuthContext'
+import { useTheme } from '../lib/theme'
 import { useProfile } from '../lib/useProfile'
-import { ArrowUpIcon, ChevronDownIcon, CloseIcon, MenuIcon } from './icons'
+import { ArrowUpIcon, ChevronDownIcon, CloseIcon, MenuIcon, MoonIcon, SunIcon } from './icons'
 import SectionLink from './SectionLink'
 import ThemeToggle from './ThemeToggle'
 
@@ -16,6 +17,33 @@ const navLinks = [
   { label: 'Testimonials', id: 'testimonials' },
   { label: 'FAQs', id: 'faqs' },
 ]
+
+// Full-width "Dark mode" row with an on/off switch, for the mobile menu.
+function MenuThemeSwitch() {
+  const { theme, toggle } = useTheme()
+  const on = theme === 'dark'
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      onClick={toggle}
+      className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-[15px] font-semibold text-slate-800 hover:bg-slate-50"
+    >
+      <span className="flex items-center gap-2.5">
+        {on ? <SunIcon className="text-slate-500" /> : <MoonIcon className="text-slate-500" />}
+        Dark mode
+      </span>
+      <span className={`relative h-6 w-10 rounded-full transition-colors ${on ? 'bg-brand-blue' : 'bg-slate-300'}`}>
+        <span
+          className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+            on ? 'translate-x-4' : 'translate-x-0'
+          }`}
+        />
+      </span>
+    </button>
+  )
+}
 
 function Navbar({ dark }: { dark: boolean }) {
   const { user } = useAuth()
@@ -77,7 +105,10 @@ function Navbar({ dark }: { dark: boolean }) {
         </div>
 
         <div className="flex items-center gap-1">
-          <ThemeToggle className={solid ? 'text-slate-800 hover:bg-slate-100' : 'text-white hover:bg-white/15'} />
+          {/* On phones the theme switch lives in the menu instead. */}
+          <ThemeToggle
+            className={`hidden md:block ${solid ? 'text-slate-800 hover:bg-slate-100' : 'text-white hover:bg-white/15'}`}
+          />
           <Link
             to={user ? '/dashboard' : '/signup'}
             className={`rounded-full px-5 py-2.5 text-[15px] font-medium whitespace-nowrap shadow-sm transition-colors duration-300 ${
@@ -113,6 +144,9 @@ function Navbar({ dark }: { dark: boolean }) {
               {link.label}
             </SectionLink>
           ))}
+          <div className="mt-1 border-t border-slate-100 pt-1">
+            <MenuThemeSwitch />
+          </div>
         </div>
       )}
     </nav>
