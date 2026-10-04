@@ -2,7 +2,6 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
 import { useAuth } from '../lib/AuthContext'
-import CardFan from './CardFan'
 import SectionLink from './SectionLink'
 
 // Fill in real profile URLs; entries with an empty href are not shown.
@@ -56,8 +55,6 @@ export default function CTA() {
           </span>
         </h2>
       </div>
-
-      <CardFan className="mx-auto mt-16 max-w-[78rem] min-[1680px]:max-w-[86rem] sm:mt-20" />
 
       <footer className="mx-auto mt-20 max-w-[78rem] min-[1680px]:max-w-[86rem] pb-12 sm:mt-28">
         <div className="grid gap-12 lg:grid-cols-[1.4fr_3fr]">
