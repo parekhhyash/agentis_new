@@ -1,28 +1,12 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 
 import AgentCluster from './AgentCluster'
-import {
-  BarChartIcon,
-  GearIcon,
-  HeadsetIcon,
-  MegaphoneIcon,
-  PencilIcon,
-  SearchIcon,
-  type IconComponent,
-} from './icons'
+import { AGENTS, HUB, NODES, ORBIT, STAGE_H, STAGE_W } from '../lib/agentNetwork'
+import { AgentBadge, AgentWork, CheckIcon, Stage } from './agentNetwork'
 
 // The three cards play one story together: a request is typed (01), routed
 // to the matching agent (02), and its finished work is approved (03). Then
 // the next story starts.
-
-const AGENTS: { label: string; icon: IconComponent; tile: string; line: string }[] = [
-  { label: 'Lead Research', icon: SearchIcon, tile: 'bg-brand-blue text-white', line: 'text-brand-blue' },
-  { label: 'Sales & Outreach', icon: MegaphoneIcon, tile: 'bg-brand-violet text-white', line: 'text-brand-violet' },
-  { label: 'Customer Support', icon: HeadsetIcon, tile: 'bg-brand-sky text-white', line: 'text-brand-sky' },
-  { label: 'Data & Reporting', icon: BarChartIcon, tile: 'bg-brand-yellow text-ink', line: 'text-brand-yellow' },
-  { label: 'Content & Copy', icon: PencilIcon, tile: 'bg-brand-pink text-ink', line: 'text-brand-pink' },
-  { label: 'Operations', icon: GearIcon, tile: 'bg-brand-orchid text-white', line: 'text-brand-orchid' },
-]
 
 type Story = {
   chip: string
@@ -43,7 +27,7 @@ const STORIES: Story[] = [
     agent: 0,
     work: 'finding brands',
     handoff: { to: 1, carry: '20 leads', work: 'drafting intros' },
-    title: '20 leads, intros drafted',
+    title: '20 intros drafted',
     rows: [
       { mark: 'M', name: 'Mamaearth', meta: 'Strong fit · intro ready', tile: 'bg-brand-pink text-ink' },
       { mark: 'P', name: 'Plum Goodness', meta: 'Strong fit · intro ready', tile: 'bg-brand-sky text-white' },
@@ -123,50 +107,6 @@ function useStoryClock(ref: RefObject<HTMLElement | null>): Frame {
 
 // Visuals are laid out on a fixed 320 x 288 canvas and scaled to the card, so
 // they look the same in the narrow three-column tablet layout and on desktop.
-const STAGE_W = 320
-const STAGE_H = 288
-
-function Stage({ children }: { children: ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null)
-  const [scale, setScale] = useState(1)
-
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const observer = new ResizeObserver(([entry]) => setScale(entry.contentRect.width / STAGE_W))
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
-
-  return (
-    <div ref={ref} aria-hidden="true" className="relative aspect-[10/9] overflow-hidden rounded-3xl bg-zinc-100">
-      <div
-        className="absolute top-0 left-0"
-        style={{ width: STAGE_W, height: STAGE_H, transform: `scale(${scale})`, transformOrigin: 'top left' }}
-      >
-        {children}
-      </div>
-    </div>
-  )
-}
-
-function CheckIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 16 16" className={className} fill="none" stroke="currentColor" strokeWidth="2.5">
-      <path d="m3.5 8.5 3 3 6-7" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
-function AgentBadge({ agent, className = '' }: { agent: number; className?: string }) {
-  const { icon: Icon, tile } = AGENTS[agent]
-  return (
-    <span className={`flex items-center justify-center rounded-full ${tile} ${className}`}>
-      <Icon className="h-3.5 w-3.5" />
-    </span>
-  )
-}
-
 // 01: the request types itself out, the right agent is picked up, and it's sent.
 function PromptVisual({ story, t }: Frame) {
   const s = STORIES[story]
@@ -257,137 +197,6 @@ function PromptVisual({ story, t }: Frame) {
 }
 
 // 02: the hub hands the task to one of the agents around it.
-const HUB = { x: 160, y: 128 }
-const ORBIT = 88
-const NODES = AGENTS.map((_, i) => {
-  const a = ((-90 + i * 60) * Math.PI) / 180
-  return { x: HUB.x + Math.cos(a) * ORBIT, y: HUB.y + Math.sin(a) * ORBIT }
-})
-
-// Unit vector from the hub out to a node: satellites (bubbles, envelopes)
-// sit on the outside of the circle so they don't cross the routing lines.
-function outward(i: number) {
-  const dx = NODES[i].x - HUB.x
-  const dy = NODES[i].y - HUB.y
-  const len = Math.hypot(dx, dy)
-  return { x: dx / len, y: dy / len }
-}
-
-function Envelope({ className = '' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 16 12" className={className} aria-hidden="true">
-      <rect x="0.75" y="0.75" width="14.5" height="10.5" rx="2" className="fill-surface stroke-brand-violet" strokeWidth="1.5" />
-      <path d="m1.5 1.8 6.5 4.7 6.5-4.7" fill="none" className="stroke-brand-violet" strokeWidth="1.5" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
-// What each agent looks like while it's busy, drawn around its node.
-function AgentWork({ agent }: { agent: number }) {
-  const node = NODES[agent]
-  const out = outward(agent)
-  const at = (distance: number, size: number) => ({ left: node.x + out.x * distance - size / 2, top: node.y + out.y * distance - size / 2 })
-
-  switch (agent) {
-    case 0: // Lead Research: radar sweep, companies popping up as they're found
-      return (
-        <>
-          {[0, 0.8].map((delay) => (
-            <span
-              key={delay}
-              className="absolute h-10 w-10 animate-radar rounded-xl border-2 border-brand-blue"
-              style={{ left: node.x - 20, top: node.y - 20, animationDelay: `${delay}s` }}
-            />
-          ))}
-          {[
-            [-46, -6, 0],
-            [46, 2, 0.8],
-            [-38, 22, 1.6],
-          ].map(([dx, dy, delay]) => (
-            <span
-              key={delay}
-              className="absolute flex h-4 w-4 animate-pop items-center justify-center rounded-md bg-surface text-[8px] font-bold text-brand-blue shadow ring-1 ring-brand-blue/30"
-              style={{ left: node.x + dx - 8, top: node.y + dy - 8, animationDelay: `${delay}s` }}
-            >
-              ✓
-            </span>
-          ))}
-        </>
-      )
-    case 1: // Sales & Outreach: emails flying out
-      return (
-        <>
-          {[-0.5, 0, 0.5].map((spread, k) => {
-            const angle = Math.atan2(out.y, out.x) + spread
-            return (
-              <span
-                key={k}
-                className="absolute animate-fly"
-                style={
-                  {
-                    ...at(18, 14),
-                    '--dx': `${Math.cos(angle) * 40}px`,
-                    '--dy': `${Math.sin(angle) * 40}px`,
-                    animationDelay: `${k * 0.45}s`,
-                  } as CSSProperties
-                }
-              >
-                <Envelope className="h-3 w-3.5" />
-              </span>
-            )
-          })}
-        </>
-      )
-    case 2: // Customer Support: a reply being typed
-      return (
-        <span
-          className="absolute flex h-5 items-center gap-0.5 rounded-full rounded-bl-sm bg-surface px-2 shadow ring-1 ring-brand-sky/40"
-          style={{ left: node.x + 14, top: node.y - 34 }}
-        >
-          {[0, 1, 2].map((d) => (
-            <span key={d} className="h-1 w-1 animate-bounce rounded-full bg-brand-sky" style={{ animationDelay: `${d * 120}ms` }} />
-          ))}
-        </span>
-      )
-    case 3: // Data & Reporting: a chart building
-      return (
-        <span className="absolute flex h-6 items-end gap-0.5" style={{ left: node.x + 28, top: node.y - 14 }}>
-          {[0, 0.2, 0.4, 0.1].map((delay, k) => (
-            <span
-              key={k}
-              className="h-full w-1.5 origin-bottom animate-bars rounded-sm bg-brand-yellow"
-              style={{ animationDelay: `${delay}s` }}
-            />
-          ))}
-        </span>
-      )
-    case 4: // Content & Copy: a page filling with lines
-      return (
-        <span
-          className="absolute flex w-9 flex-col gap-1 rounded-md bg-surface p-1.5 shadow ring-1 ring-brand-pink/60"
-          style={at(42, 36)}
-        >
-          {[1, 0.8, 0.9, 0.55].map((w, k) => (
-            <span
-              key={k}
-              className="block h-0.5 origin-left animate-write rounded-full bg-brand-pink"
-              style={{ width: `${w * 100}%`, animationDelay: `${k * 0.25}s` }}
-            />
-          ))}
-        </span>
-      )
-    default: // Operations: the gear turns, a task orbits it
-      return (
-        <span
-          className="absolute h-16 w-16 animate-[spin_2.4s_linear_infinite] motion-reduce:animate-none"
-          style={{ left: node.x - 32, top: node.y - 32 }}
-        >
-          <span className="absolute top-0 left-1/2 h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-brand-orchid ring-2 ring-surface" />
-        </span>
-      )
-  }
-}
-
 function RoutingVisual({ story, t }: Frame) {
   const s = STORIES[story]
   const first = s.agent

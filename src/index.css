@@ -43,6 +43,22 @@
   --animate-bars: bars 0.7s ease-in-out infinite alternate;
   --animate-write: write 2.4s ease-in-out infinite;
   --animate-pop: pop 2.4s ease-out infinite;
+  --animate-travel: travel 1.6s ease-in-out infinite;
+
+  @keyframes travel {
+    0% {
+      offset-distance: 0%;
+      opacity: 0;
+    }
+    15%,
+    85% {
+      opacity: 1;
+    }
+    100% {
+      offset-distance: 100%;
+      opacity: 0;
+    }
+  }
 
   @keyframes radar {
     from {

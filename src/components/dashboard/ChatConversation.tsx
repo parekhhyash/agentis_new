@@ -37,6 +37,7 @@ export default function ChatConversation({
 
           {request.status === 'in_progress' && (
             <AgentProgressView
+              agentType={request.agent_type}
               startedAt={request.started_at ?? request.created_at}
               progress={request.progress as unknown as AgentProgress | null}
             />
