@@ -29,8 +29,9 @@ class Settings(BaseSettings):
 
     openrouter_api_key: str | None = None
     openrouter_model: str = "openrouter/deepseek/deepseek-v4-flash-0731"
-    # Pins OPENROUTER_MODEL to these providers (comma-separated); empty = normal routing.
-    openrouter_provider_order: str = "open-inference"
+    # Providers (or provider/quantization endpoints) to try first for
+    # OPENROUTER_MODEL, comma-separated; empty = normal routing.
+    openrouter_provider_order: str = "streamlake/fp8"
 
     # Optional per-tier overrides (litellm model strings for the same provider).
     # "fast" screens candidates in bulk; "strong" does ICP analysis and

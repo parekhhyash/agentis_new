@@ -121,6 +121,9 @@ class LiteLLMClient:
         choice = response.choices[0]
         usage = getattr(response, "usage", None)
         tokens = int(getattr(usage, "total_tokens", 0) or 0)
+        # OpenRouter reports which upstream provider served the call.
+        served_by = getattr(response, "provider", None) or (getattr(response, "_hidden_params", None) or {}).get("custom_llm_provider")
+        logger.info("LLM call %s served by %s (%d tokens)", spec.model, served_by or "unknown", tokens)
         return choice.message.content or "", getattr(choice, "finish_reason", None), tokens
 
 
@@ -157,12 +160,15 @@ def build_llm_client(settings: Any) -> LiteLLMClient:
                 # (DeepSeek) ignore effort levels, so "none" must disable it.
                 body["reasoning"] = {"enabled": False} if effort == "none" else {"effort": effort}
             if chosen == settings.openrouter_model and settings.openrouter_provider_order:
-                # Prefer the cheap route we validated for the default model, but
-                # let OpenRouter fall back to other providers: a hard pin broke
-                # every call when that provider stopped serving the model.
-                # Overrides use normal routing since the provider may not serve them.
+                # Prefer the cheapest fp8 endpoint for the default model, falling
+                # back to other fp8 endpoints rather than failing: a hard pin
+                # broke every call when its provider stopped serving the model.
+                # If no fp8 route exists at all, _call retries on default
+                # routing. Overrides use normal routing since the provider may
+                # not serve them.
                 body["provider"] = {
                     "order": [p.strip() for p in settings.openrouter_provider_order.split(",") if p.strip()],
+                    "quantizations": ["fp8"],
                     "allow_fallbacks": True,
                 }
             if body:

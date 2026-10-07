@@ -105,7 +105,7 @@ def test_openrouter_disables_reasoning_by_default_and_keeps_provider_pin():
     body = client._specs["strong"].extra["extra_body"]
 
     assert body["reasoning"] == {"enabled": False}
-    assert body["provider"]["order"] == ["open-inference"]
+    assert body["provider"]["order"] == ["streamlake/fp8"]
 
 
 def test_openrouter_passes_explicit_reasoning_effort():
@@ -124,12 +124,12 @@ def test_reasoning_effort_can_be_disabled():
     assert "reasoning_effort" not in client._specs["fast"].extra
 
 
-def test_openrouter_preference_allows_fallback_providers():
+def test_openrouter_preference_allows_fallback_fp8_providers():
     from agents.lead_research.llm import build_llm_client
 
     client = build_llm_client(_settings(llm_provider="openrouter", openrouter_api_key="k"))
     provider = client._specs["strong"].extra["extra_body"]["provider"]
-    assert provider["allow_fallbacks"] is True and "quantizations" not in provider
+    assert provider == {"order": ["streamlake/fp8"], "quantizations": ["fp8"], "allow_fallbacks": True}
 
 
 def test_missing_route_retries_without_provider_preference(monkeypatch):
