@@ -30,10 +30,62 @@ budget runs out, the hit rate shows the remaining candidates won't qualify,
 or the shortlist is exhausted. Budgets scale down with the number of leads
 requested.
 
+## How the Sales & Outreach Agent works
+
+```
+Instruction (+ company profile, optional leads from a Lead Research run)
+  -> Planner   1 strong-model call: new emails (written), reply intents
+               (Gmail search query + instructions), meetings (local time)
+  -> Guard     every recipient must appear in the instruction or the leads;
+               the model can't invent or "complete" an address
+  -> Replies   Gmail search -> read thread -> recipient and threading headers
+               from Gmail itself -> 1 model call per thread for the body
+               (thread text is treated as untrusted data)
+  -> Meetings  resolve the time in the user's zone, check Calendar for overlaps
+  -> Drafts    stored on the agent_requests row
+```
+
+Nothing is sent automatically. The dashboard shows each draft as an editable
+card; `POST /sales-outreach/requests/{id}/actions/{action_id}` with
+`approve` sends the email / creates the Calendar event (with a Google Meet
+link), `discard` drops it, `save` keeps edits. Every endpoint here requires the
+user's Supabase session (`Authorization: Bearer <access token>`) and only
+touches that user's rows.
+
+### Connecting Google
+
+`GET /integrations/google/auth-url` returns Google's consent URL; Google
+redirects to `/integrations/google/callback`, which stores the refresh token
+encrypted (Fernet, `INTEGRATIONS_ENCRYPTION_KEY`) in `google_connections`
+(RLS on, no policies: backend only) and sends the browser back to the
+dashboard. Scopes: `gmail.send`, `gmail.readonly` (find/read threads to
+reply to), `calendar.events`.
+
+One-time setup:
+
+1. Run `supabase/migrations/20261007000000_google_connections.sql` on the
+   Supabase project (SQL editor or `supabase db push`).
+2. In Google Cloud Console: enable the **Gmail API** and **Google Calendar
+   API**; configure the **OAuth consent screen** (External, add the three
+   scopes above, add yourself and teammates as **test users**); create an
+   **OAuth client ID** of type *Web application* with authorized redirect URI
+   `https://<backend>/integrations/google/callback` (and
+   `http://localhost:8000/integrations/google/callback` for local dev).
+3. Set `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`,
+   `GOOGLE_OAUTH_REDIRECT_URI`, `INTEGRATIONS_ENCRYPTION_KEY` and
+   `FRONTEND_URL` on the backend.
+
+While the consent screen is in *Testing*, only listed test users can connect
+and Google expires their grants after 7 days (the app then asks them to
+reconnect). Gmail read access is a restricted scope, so opening it to all
+users needs Google's app verification.
+
 ## Structure
 
 ```
 backend/
+├── agents/sales_outreach/  # planner + guard + reply drafting, executor, prompts
+├── integrations/google/    # OAuth, encrypted connections, Gmail + Calendar clients
 ├── agents/lead_research/
 │   ├── agent.py            # orchestrator: stages, stop conditions, progress
 │   ├── budget.py           # ResearchBudget (hard limits, scaled per request)

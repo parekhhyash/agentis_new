@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import heroBgDark from '../assets/hero-bg-dark.webp'
 import heroBg from '../assets/hero-bg.png'
-import { createAgentRequest, runLeadResearchAgent } from '../lib/agentRuns'
+import { createAgentRequest, RUNNABLE_AGENTS, startAgentRun } from '../lib/agentRuns'
 import { AGENT_TYPES, type AgentType } from '../lib/agentTypes'
 import { useAuth } from '../lib/AuthContext'
 import { useTheme } from '../lib/theme'
@@ -193,20 +193,20 @@ function PromptBox() {
 
     if (!data) return
 
-    // Only Lead Research has a real agent behind it right now - other
-    // categories just sit in the queue until their agents are built.
-    if (agentType === 'lead_research') {
-      // Fire-and-forget: this keeps running after we navigate away, since
-      // the abort-controller registry in lib/agentRuns.ts is a module-level
-      // singleton, not tied to this component's lifecycle.
-      void runLeadResearchAgent(data.id, prompt, {
+    // Fire-and-forget: this keeps running after we navigate away, since
+    // the abort-controller registry in lib/agentRuns.ts is a module-level
+    // singleton, not tied to this component's lifecycle. Agents without a
+    // backend yet just sit in the queue.
+    void startAgentRun(data, {
+      companyContext: {
         company_name: profile?.company_name,
         company_website: profile?.company_website,
         industry: profile?.industry,
         target_audience_location: profile?.target_audience_location,
         company_description: profile?.company_description,
-      })
-    }
+      },
+      senderName: profile?.full_name,
+    })
 
     // DashboardPage defaults to selecting the most recently created
     // request, so it'll pick this one up as soon as it mounts.
@@ -264,7 +264,7 @@ function PromptBox() {
                   >
                     <agent.icon className="shrink-0" />
                     <span className="min-w-0 flex-1 truncate">{agent.label}</span>
-                    {agent.value !== 'lead_research' && (
+                    {!RUNNABLE_AGENTS.includes(agent.value) && (
                       <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
                         Soon
                       </span>

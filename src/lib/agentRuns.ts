@@ -9,11 +9,14 @@
 // later from another (DashboardPage, mounted fresh after that navigation).
 
 import type { AgentType } from './agentTypes'
+import { BackendApiError } from './backendApi'
 import type { Json, Tables } from './database.types'
+import { runOutreach } from './outreachApi'
 import {
   cancelLeadsGeneration,
   generateLeads,
   SalesAgentApiError,
+  STOPPED_BY_USER_MESSAGE,
   type CompanyContext,
 } from './salesAgentApi'
 import { supabase } from './supabase'
@@ -76,6 +79,68 @@ export async function runLeadResearchAgent(
   } finally {
     abortControllers.delete(requestId)
   }
+}
+
+// Sales & Outreach: drafts emails, replies and meetings for review. Nothing
+// is sent until the user approves a draft in OutreachResultsPanel.
+export async function runSalesOutreachAgent(
+  requestId: string,
+  prompt: string,
+  options: { companyContext?: CompanyContext; senderName?: string | null; leadRequestId?: string | null },
+  onUpdate?: (patch: Partial<AgentRequest>) => void,
+): Promise<void> {
+  const startedAt = new Date().toISOString()
+  await supabase
+    .from('agent_requests')
+    .update({ status: 'in_progress', started_at: startedAt })
+    .eq('id', requestId)
+  onUpdate?.({ status: 'in_progress', started_at: startedAt })
+
+  const controller = new AbortController()
+  abortControllers.set(requestId, controller)
+
+  try {
+    const result = await runOutreach({ prompt, requestId, ...options }, controller.signal)
+    await supabase
+      .from('agent_requests')
+      .update({ status: 'completed', result: result as unknown as Json, error: null })
+      .eq('id', requestId)
+    onUpdate?.({ status: 'completed', result: result as unknown as Json, error: null })
+  } catch (err) {
+    const message =
+      err instanceof DOMException && err.name === 'AbortError'
+        ? STOPPED_BY_USER_MESSAGE
+        : err instanceof BackendApiError
+          ? err.message
+          : 'Unexpected error running the agent.'
+    await supabase.from('agent_requests').update({ status: 'failed', error: message }).eq('id', requestId)
+    onUpdate?.({ status: 'failed', error: message })
+  } finally {
+    abortControllers.delete(requestId)
+  }
+}
+
+export interface AgentRunOptions {
+  companyContext?: CompanyContext
+  senderName?: string | null
+  leadRequestId?: string | null
+}
+
+// Agents with a real backend behind them; the rest stay queued for now.
+export const RUNNABLE_AGENTS: AgentType[] = ['lead_research', 'sales_outreach']
+
+export function startAgentRun(
+  request: AgentRequest,
+  options: AgentRunOptions,
+  onUpdate?: (patch: Partial<AgentRequest>) => void,
+): Promise<void> | undefined {
+  if (request.agent_type === 'lead_research') {
+    return runLeadResearchAgent(request.id, request.prompt, options.companyContext, onUpdate)
+  }
+  if (request.agent_type === 'sales_outreach') {
+    return runSalesOutreachAgent(request.id, request.prompt, options, onUpdate)
+  }
+  return undefined
 }
 
 export function stopAgentRun(requestId: string) {

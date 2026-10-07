@@ -3,6 +3,8 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from api.integrations import router as integrations_router
+from api.outreach import router as outreach_router
 from api.routes import router as sales_agent_router
 from config.settings import get_settings
 
@@ -12,7 +14,7 @@ settings = get_settings()
 
 app = FastAPI(
     title="Agentis Agent API",
-    description="Backend API exposing Agentis's AI agents (starting with Lead Research).",
+    description="Backend API exposing Agentis's AI agents (Lead Research, Sales & Outreach).",
     version="0.1.0",
 )
 
@@ -25,6 +27,8 @@ app.add_middleware(
 )
 
 app.include_router(sales_agent_router)
+app.include_router(outreach_router)
+app.include_router(integrations_router)
 
 
 @app.get("/health")

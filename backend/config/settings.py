@@ -70,6 +70,22 @@ class Settings(BaseSettings):
     supabase_url: str | None = None
     supabase_service_role_key: str | None = None
 
+    # --- Google (Gmail + Calendar) for the Sales & Outreach agent --------
+    # OAuth "Web application" client from Google Cloud Console. The redirect
+    # URI must be registered there exactly and point at this backend's
+    # /integrations/google/callback.
+    google_oauth_client_id: str | None = None
+    google_oauth_client_secret: str | None = None
+    google_oauth_redirect_uri: str = "http://localhost:8000/integrations/google/callback"
+    # Fernet key (base64, 32 bytes) used to encrypt stored Google refresh
+    # tokens and to sign the OAuth state. Generate with:
+    #   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    integrations_encryption_key: str | None = None
+    # Where the OAuth callback sends the browser back to (the web app).
+    frontend_url: str = "http://localhost:5173"
+    # Upper bound on actions one outreach request may draft.
+    outreach_max_actions: int = 20
+
     # --- API --------------------------------------------------------
     # Plain comma-separated string, not list[str]: pydantic-settings always
     # tries json.loads() on the raw env value for any list-typed field

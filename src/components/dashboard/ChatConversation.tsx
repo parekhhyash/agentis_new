@@ -1,13 +1,21 @@
 import { AGENT_LABELS } from '../../lib/agentTypes'
 import type { Tables } from '../../lib/database.types'
 import { relativeTime } from '../../lib/relativeTime'
+import { isOutreachResult, type OutreachAction } from '../../lib/outreachTypes'
 import type { AgentProgress, AnyLeadResult } from '../../lib/salesAgentTypes'
 import AgentProgressView from './AgentProgressView'
 import LeadResultsPanel from './LeadResultsPanel'
+import OutreachResultsPanel from './OutreachResultsPanel'
 
 type AgentRequest = Tables<'agent_requests'>
 
-export default function ChatConversation({ request }: { request: AgentRequest }) {
+export default function ChatConversation({
+  request,
+  onOutreachActionChange,
+}: {
+  request: AgentRequest
+  onOutreachActionChange?: (action: OutreachAction) => void
+}) {
   return (
     <div className="space-y-6">
       <div className="flex justify-end">
@@ -34,9 +42,18 @@ export default function ChatConversation({ request }: { request: AgentRequest })
             />
           )}
 
-          {request.status === 'completed' && request.result != null && (
-            <LeadResultsPanel result={request.result as unknown as AnyLeadResult} />
-          )}
+          {request.status === 'completed' &&
+            request.result != null &&
+            (isOutreachResult(request.result) ? (
+              <OutreachResultsPanel
+                key={request.id}
+                requestId={request.id}
+                result={request.result}
+                onActionChange={(action) => onOutreachActionChange?.(action)}
+              />
+            ) : (
+              <LeadResultsPanel result={request.result as unknown as AnyLeadResult} />
+            ))}
 
           {request.status === 'failed' && (
             <p className="text-sm text-red-700">{request.error ?? 'Something went wrong.'}</p>

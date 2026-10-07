@@ -18,12 +18,17 @@ export default function TaskComposer({
   onSubmit,
   isRunning = false,
   onStop,
+  blocked = false,
+  runnableAgents = ['lead_research'],
 }: {
   agentType: AgentType
   onAgentTypeChange: (value: AgentType) => void
   onSubmit: (prompt: string) => Promise<void>
   isRunning?: boolean
   onStop?: () => void
+  // The selected agent needs setup first (e.g. connecting Google).
+  blocked?: boolean
+  runnableAgents?: AgentType[]
 }) {
   const [value, setValue] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -35,7 +40,7 @@ export default function TaskComposer({
 
   async function handleSubmit() {
     const prompt = value.trim()
-    if (!prompt || submitting) return
+    if (!prompt || submitting || blocked) return
     setSubmitting(true)
     try {
       await onSubmit(prompt)
@@ -97,7 +102,7 @@ export default function TaskComposer({
                   >
                     <agent.icon className="shrink-0" />
                     <span className="min-w-0 flex-1 truncate">{agent.label}</span>
-                    {agent.value !== 'lead_research' && (
+                    {!runnableAgents.includes(agent.value) && (
                       <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
                         Soon
                       </span>
@@ -123,7 +128,7 @@ export default function TaskComposer({
             type="button"
             aria-label="Submit"
             onClick={handleSubmit}
-            disabled={submitting || value.trim().length === 0}
+            disabled={submitting || blocked || value.trim().length === 0}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-sky-400 text-sky-500 transition-colors hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <ArrowUpIcon />

@@ -1,15 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import ChatConversation from '../components/dashboard/ChatConversation'
+import OutreachSetupBar from '../components/dashboard/OutreachSetupBar'
 import ProfileMenu from '../components/dashboard/ProfileMenu'
 import RequestSidebar from '../components/dashboard/RequestSidebar'
 import TaskComposer from '../components/dashboard/TaskComposer'
 import { CloseIcon, MenuIcon, PlusIcon } from '../components/icons'
 import ThemeToggle from '../components/ThemeToggle'
-import { createAgentRequest, runLeadResearchAgent, stopAgentRun } from '../lib/agentRuns'
+import { createAgentRequest, RUNNABLE_AGENTS, startAgentRun, stopAgentRun } from '../lib/agentRuns'
 import type { AgentType } from '../lib/agentTypes'
 import { useAuth } from '../lib/AuthContext'
-import type { Tables } from '../lib/database.types'
+import type { Json, Tables } from '../lib/database.types'
+import { useGoogleConnection } from '../lib/googleConnection'
+import { isOutreachResult, type OutreachAction } from '../lib/outreachTypes'
 import { CLIENT_TIMEOUT_MESSAGE, STOPPED_BY_USER_MESSAGE } from '../lib/salesAgentApi'
 import { supabase } from '../lib/supabase'
 import { useProfile } from '../lib/useProfile'
@@ -33,6 +36,27 @@ export default function DashboardPage() {
   const [agentType, setAgentType] = useState<AgentType>('lead_research')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [leadRequestId, setLeadRequestId] = useState<string | null>(null)
+  const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const google = useGoogleConnection(agentType === 'sales_outreach')
+
+  // Back from Google's consent screen (see api/integrations.py's callback).
+  const googleResult = searchParams.get('google')
+  const googleMessage = searchParams.get('message')
+  const [handledGoogleResult, setHandledGoogleResult] = useState<string | null>(null)
+  if (googleResult && googleResult !== handledGoogleResult) {
+    setHandledGoogleResult(googleResult)
+    setAgentType('sales_outreach')
+    setNotice(
+      googleResult === 'connected'
+        ? { tone: 'ok', text: 'Google connected. Sales & Outreach can now draft email and meetings for you.' }
+        : { tone: 'error', text: googleMessage ?? 'Google could not be connected.' },
+    )
+  }
+  useEffect(() => {
+    if (googleResult) setSearchParams({}, { replace: true })
+  }, [googleResult, setSearchParams])
 
   // The conversation scrolls; the composer below it doesn't. A visible
   // scrollbar (e.g. on Windows) narrows the scroll area and shifts its
@@ -119,25 +143,38 @@ export default function DashboardPage() {
     setRequests((prev) => [data, ...prev])
     setSelectedId(data.id)
 
-    // Only Lead Research has a real agent behind it right now - other
-    // categories just sit in the queue until their agents are built.
-    if (agentType !== 'lead_research') return
-
-    // Fire-and-forget: a real run takes minutes, so the composer shouldn't
-    // stay locked waiting for it. Status updates flow back via updateRequest.
-    void runLeadResearchAgent(
-      data.id,
-      prompt,
+    // Agents without a backend yet just sit in the queue. Runs are
+    // fire-and-forget: status updates flow back via updateRequest.
+    void startAgentRun(
+      data,
       {
-        company_name: profile?.company_name,
-        company_website: profile?.company_website,
-        industry: profile?.industry,
-        target_audience_location: profile?.target_audience_location,
-        company_description: profile?.company_description,
+        companyContext: {
+          company_name: profile?.company_name,
+          company_website: profile?.company_website,
+          industry: profile?.industry,
+          target_audience_location: profile?.target_audience_location,
+          company_description: profile?.company_description,
+        },
+        senderName: profile?.full_name,
+        leadRequestId: agentType === 'sales_outreach' ? leadRequestId : null,
       },
       (patch) => updateRequest(data.id, patch),
     )
   }
+
+  function mergeOutreachAction(requestId: string, action: OutreachAction) {
+    setRequests((prev) =>
+      prev.map((r) => {
+        const result: unknown = r.result
+        if (r.id !== requestId || !isOutreachResult(result)) return r
+        const actions = result.actions.map((a) => (a.id === action.id ? action : a))
+        return { ...r, result: { ...result, actions } as unknown as Json }
+      }),
+    )
+  }
+
+  const leadRuns = requests.filter((r) => r.agent_type === 'lead_research' && r.status === 'completed').slice(0, 10)
+  const outreachBlocked = agentType === 'sales_outreach' && !google.status?.connected
 
   function selectRequest(id: string | null) {
     setSelectedId(id)
@@ -217,7 +254,10 @@ export default function DashboardPage() {
         <div ref={scrollRef} className="flex-1 overflow-y-auto [scrollbar-gutter:stable]">
           {selectedRequest ? (
             <div className="mx-auto max-w-3xl px-6 py-8">
-              <ChatConversation request={selectedRequest} />
+              <ChatConversation
+                request={selectedRequest}
+                onOutreachActionChange={(action) => mergeOutreachAction(selectedRequest.id, action)}
+              />
             </div>
           ) : (
             <div className="mx-auto flex h-full max-w-3xl flex-col items-center justify-center px-6 text-center">
@@ -234,7 +274,33 @@ export default function DashboardPage() {
 
         <div style={{ paddingRight: scrollbarWidth }}>
           <div className="mx-auto w-full max-w-3xl px-6 pb-6">
+            {notice && (
+              <div
+                className={`mb-3 flex items-start gap-3 rounded-xl px-4 py-3 text-sm ${
+                  notice.tone === 'ok' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+                }`}
+              >
+                <p className="flex-1">{notice.text}</p>
+                <button type="button" aria-label="Dismiss" onClick={() => setNotice(null)} className="shrink-0 opacity-70 hover:opacity-100">
+                  <CloseIcon />
+                </button>
+              </div>
+            )}
+            {agentType === 'sales_outreach' && (
+              <OutreachSetupBar
+                status={google.status}
+                error={google.error}
+                busy={google.busy}
+                onConnect={google.connect}
+                onDisconnect={google.disconnect}
+                leadRuns={leadRuns}
+                leadRequestId={leadRequestId}
+                onLeadRequestChange={setLeadRequestId}
+              />
+            )}
             <TaskComposer
+              blocked={outreachBlocked}
+              runnableAgents={RUNNABLE_AGENTS}
               agentType={agentType}
               onAgentTypeChange={setAgentType}
               onSubmit={handleSubmit}
