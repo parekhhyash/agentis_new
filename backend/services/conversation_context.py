@@ -31,6 +31,7 @@ class Turn:
 @dataclass
 class ConversationContext:
     turns: list[Turn] = field(default_factory=list)
+    conversation_id: str | None = None
     # Most recent completed Lead Research turn, whose leads later turns may use.
     latest_lead_request_id: str | None = None
 
@@ -122,7 +123,8 @@ async def load_context(user_id: str, request_id: str | None) -> ConversationCont
     )
     rows.reverse()
     context = ConversationContext(
-        turns=[Turn(r["agent_type"], _clip(r["prompt"], 600), r["status"], summarize(r)) for r in rows]
+        turns=[Turn(r["agent_type"], _clip(r["prompt"], 600), r["status"], summarize(r)) for r in rows],
+        conversation_id=current["conversation_id"],
     )
     for row in reversed(rows):
         if row["agent_type"] == "lead_research" and row["status"] == "completed" and (row.get("result") or {}).get("leads"):

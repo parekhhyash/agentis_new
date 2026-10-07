@@ -2,13 +2,12 @@
 
 from datetime import timedelta
 from typing import Any, Protocol
-from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
 from agents.sales_outreach.agent import is_email, local_iso, resolve_local_time
 from agents.sales_outreach.schemas import EmailAction, MeetingAction, OutreachAction, ReplyAction
 from integrations.google.calendar import event_body
-from integrations.google.gmail import build_raw_message
+from integrations.google.gmail import build_raw_message, thread_link
 
 
 class GmailSender(Protocol):
@@ -80,7 +79,7 @@ def apply_edits(action: OutreachAction, edits: dict[str, Any]) -> OutreachAction
 
 
 def gmail_link(account: str, thread_id: str) -> str:
-    return f"https://mail.google.com/mail/?authuser={quote(account)}#all/{thread_id}"
+    return thread_link(account, thread_id)
 
 
 async def execute(

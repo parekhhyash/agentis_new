@@ -17,10 +17,12 @@ export default function ChatConversation({
   request,
   handedOff = false,
   onOutreachActionChange,
+  onResultChange,
 }: {
   request: AgentRequest
   handedOff?: boolean
   onOutreachActionChange?: (action: OutreachAction) => void
+  onResultChange?: (result: unknown) => void
 }) {
   return (
     <div className="space-y-6">
@@ -68,6 +70,7 @@ export default function ChatConversation({
                 requestId={request.id}
                 result={request.result}
                 onActionChange={(action) => onOutreachActionChange?.(action)}
+                onResultChange={(result) => onResultChange?.(result)}
               />
             ) : (
               <LeadResultsPanel result={request.result as unknown as AnyLeadResult} />

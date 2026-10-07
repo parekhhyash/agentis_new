@@ -7,7 +7,7 @@ from agents.sales_outreach import OutreachResult
 from api.models import CompanyContext
 from services.auth import AuthUser, current_user
 from services.cancellation import request_cancellation
-from services.outreach_runner import OutreachError, decide_action, run_outreach
+from services.outreach_runner import OutreachError, check_replies, decide_action, run_outreach
 
 router = APIRouter(prefix="/sales-outreach", tags=["sales-outreach"])
 
@@ -50,6 +50,14 @@ async def decide(
 ) -> dict[str, Any]:
     try:
         return await decide_action(user, request_id, action_id, body.decision, body.edits)
+    except OutreachError as exc:
+        raise HTTPException(status_code=exc.status, detail=str(exc)) from exc
+
+
+@router.post("/requests/{request_id}/check-replies")
+async def check(request_id: str, user: AuthUser = Depends(current_user)) -> dict[str, Any]:
+    try:
+        return await check_replies(user, request_id)
     except OutreachError as exc:
         raise HTTPException(status_code=exc.status, detail=str(exc)) from exc
 

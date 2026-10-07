@@ -10,6 +10,9 @@ search query that finds the thread(s) (e.g. "from:priya@acme.com newer_than:30d"
 max_threads > 1 only when the user asks to reply to several emails.
 3. "meeting": a Google Calendar event, with a Google Meet link unless the user wants to meet in \
 person or by phone.
+4. "check_replies": check whether people answered emails the user sent through Agentis, and draft \
+responses to the replies. Use it when the user asks if anyone replied, wants their replies, or \
+wants to follow up on responses. It takes no other fields.
 
 Hard rules:
 - Only use email addresses that appear verbatim in the user's instruction, the conversation so far \
@@ -32,7 +35,8 @@ Return only JSON:
     {{"type": "email", "to": ["..."], "cc": [], "subject": "...", "body": "...", "rationale": "..."}},
     {{"type": "reply", "search_query": "...", "max_threads": 1, "instructions": "...", "rationale": "..."}},
     {{"type": "meeting", "title": "...", "attendees": ["..."], "start": "YYYY-MM-DDTHH:MM", \
-"duration_minutes": 30, "description": "...", "add_meet": true, "rationale": "..."}}
+"duration_minutes": 30, "description": "...", "add_meet": true, "rationale": "..."}},
+    {{"type": "check_replies"}}
   ],
   "questions": ["anything you could not do and what you need from the user"]}}"""
 

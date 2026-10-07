@@ -60,6 +60,21 @@ class MeetingAction(_Action):
 OutreachAction = Annotated[EmailAction | ReplyAction | MeetingAction, Field(discriminator="type")]
 
 
+class ReplyCheck(BaseModel):
+    """Whether someone answered an email sent through Agentis."""
+
+    thread_id: str
+    to: list[str] = Field(default_factory=list)
+    subject: str = ""
+    replied: bool = False
+    # Their message is the latest in the thread, so it still needs an answer.
+    awaiting_you: bool = False
+    reply_from: str | None = None
+    reply_at: str | None = None
+    reply_snippet: str | None = None
+    gmail_link: str | None = None
+
+
 class OutreachUsage(BaseModel):
     llm_calls: int = 0
     llm_tokens: int = 0
@@ -77,4 +92,7 @@ class OutreachResult(BaseModel):
     # Things the agent couldn't do or needs from the user (missing address,
     # no matching thread, ...).
     notes: list[str] = Field(default_factory=list)
+    # Filled by "check for replies": one entry per sent email that was checked.
+    reply_checks: list[ReplyCheck] = Field(default_factory=list)
+    replies_checked_at: str | None = None
     usage: OutreachUsage = Field(default_factory=OutreachUsage)

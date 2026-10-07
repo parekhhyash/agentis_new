@@ -15,6 +15,7 @@ export interface EmailAction extends BaseAction {
   cc: string[]
   subject: string
   body: string
+  gmail_thread_id?: string | null
   gmail_link: string | null
 }
 
@@ -46,6 +47,27 @@ export interface MeetingAction extends BaseAction {
 
 export type OutreachAction = EmailAction | ReplyAction | MeetingAction
 
+// Whether someone answered an email sent through Agentis.
+export interface ReplyCheck {
+  thread_id: string
+  to: string[]
+  subject: string
+  replied: boolean
+  awaiting_you: boolean
+  reply_from: string | null
+  reply_at: string | null
+  reply_snippet: string | null
+  gmail_link: string | null
+}
+
+// The Gmail thread a sent email or reply lives in, for matching reply checks.
+export function sentThreadId(action: OutreachAction): string | null {
+  if (action.status !== 'sent') return null
+  if (action.type === 'email') return action.gmail_thread_id ?? null
+  if (action.type === 'reply') return action.thread_id
+  return null
+}
+
 export interface OutreachResult {
   kind: 'sales_outreach'
   query: string
@@ -55,6 +77,8 @@ export interface OutreachResult {
   time_zone: string
   actions: OutreachAction[]
   notes: string[]
+  reply_checks?: ReplyCheck[]
+  replies_checked_at?: string | null
 }
 
 export function isOutreachResult(value: unknown): value is OutreachResult {

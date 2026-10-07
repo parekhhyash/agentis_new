@@ -366,6 +366,7 @@ export default function DashboardPage() {
                   request={turn}
                   handedOff={handedOff(turn, index)}
                   onOutreachActionChange={(action) => mergeOutreachAction(turn.id, action)}
+                  onResultChange={(result) => updateRequest(turn.id, { result: result as Json })}
                 />
               ))}
             </div>

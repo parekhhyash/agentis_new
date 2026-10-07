@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from email.message import EmailMessage
 from email.utils import getaddresses, parseaddr
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 from bs4 import BeautifulSoup
@@ -145,6 +146,10 @@ def build_raw_message(
         message["References"] = _clean_header(f"{references or ''} {in_reply_to}".strip())
     message.set_content(body)
     return base64.urlsafe_b64encode(message.as_bytes()).decode()
+
+
+def thread_link(account: str, thread_id: str) -> str:
+    return f"https://mail.google.com/mail/?authuser={quote(account)}#all/{thread_id}"
 
 
 def reply_subject(subject: str) -> str:

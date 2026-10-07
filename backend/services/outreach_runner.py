@@ -4,7 +4,7 @@ drafted actions they approve."""
 import asyncio
 import logging
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -13,6 +13,8 @@ import httpx
 from agents.lead_research.errors import LLMOutputError, ResearchConfigError
 from agents.lead_research.llm import build_llm_client
 from agents.sales_outreach import OutreachCancelledError, OutreachContext, OutreachResult, SalesOutreachAgent, compact_leads
+from agents.sales_outreach.agent import SentItem
+from agents.sales_outreach.schemas import EmailAction, ReplyAction
 from agents.sales_outreach.executor import EditError, apply_edits, execute
 from config.settings import get_settings
 from integrations.google import connections, oauth
@@ -80,6 +82,56 @@ async def _owned_request(user_id: str, request_id: str, agent_type: str) -> dict
     if not row:
         raise OutreachError("Request not found", 404)
     return row
+
+
+def sent_items_in(result: dict[str, Any] | OutreachResult | None) -> list[SentItem]:
+    """Emails and replies from one outreach result that went out, newest first."""
+    if not result:
+        return []
+    try:
+        parsed = result if isinstance(result, OutreachResult) else OutreachResult.model_validate(result)
+    except ValueError:
+        return []  # not an outreach result (or an older shape)
+    items = []
+    for action in reversed(parsed.actions):
+        if action.status != "sent":
+            continue
+        if isinstance(action, EmailAction) and action.gmail_thread_id:
+            items.append(SentItem(action.gmail_thread_id, action.to, action.subject))
+        elif isinstance(action, ReplyAction):
+            items.append(SentItem(action.thread_id, action.to, action.subject))
+    return items
+
+
+async def _recent_sent_items(user_id: str, conversation_id: str | None) -> list[SentItem]:
+    """What "did anyone reply?" looks at: emails sent from this chat if there
+    are any, otherwise everything sent through Agentis in the last 30 days."""
+    since = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    rows = await supabase_rest.select(
+        "agent_requests",
+        {
+            "user_id": f"eq.{user_id}",
+            "agent_type": "eq.sales_outreach",
+            "status": "eq.completed",
+            "created_at": f"gte.{since}",
+            "select": "conversation_id,result",
+            "order": "created_at.desc",
+            "limit": "50",
+        },
+    )
+    in_chat = [r for r in rows if conversation_id and r.get("conversation_id") == conversation_id]
+    items: list[SentItem] = []
+    for row in in_chat if any(sent_items_in(r.get("result")) for r in in_chat) else rows:
+        items.extend(sent_items_in(row.get("result")))
+    return items
+
+
+async def _company(user_id: str) -> dict[str, Any]:
+    row = await supabase_rest.select_one(
+        "profiles",
+        {"id": f"eq.{user_id}", "select": "company_name,company_website,industry,target_audience_location,company_description"},
+    )
+    return {k: v for k, v in (row or {}).items() if v}
 
 
 def _time_zone(name: str | None) -> str:
@@ -153,6 +205,7 @@ async def _run(
         company={k: v for k, v in company_context.items() if v},
         leads=leads,
         history=context.render() if context.turns else "",
+        sent_items=await _recent_sent_items(user.id, context.conversation_id),
     )
     try:
         async with httpx.AsyncClient(timeout=20.0) as client:
@@ -225,3 +278,48 @@ async def decide_action(
             {"result": result.model_dump(mode="json")},
         )
         return updated.model_dump(mode="json")
+
+
+async def check_replies(user: AuthUser, request_id: str) -> dict[str, Any]:
+    """The "Check for replies" button: looks at the emails this request sent,
+    records who answered, and adds a draft response for each new reply."""
+    async with _locks[request_id]:
+        row = await _owned_request(user.id, request_id, "sales_outreach")
+        if not row.get("result"):
+            raise OutreachError("This request has no drafts", 409)
+        result = OutreachResult.model_validate(row["result"])
+        sent = sent_items_in(result)
+        if not sent:
+            raise OutreachError("Nothing has been sent from here yet", 409)
+
+        try:
+            settings = get_settings()
+            config = oauth.oauth_config(settings)
+            token = await connections.get_access_token(config, user.id)
+            ctx = OutreachContext(
+                instruction="Check for replies",
+                sender_name=result.sender_name,
+                sender_email=result.sender_email,
+                time_zone=result.time_zone,
+                now=datetime.now(timezone.utc),
+                company=await _company(user.id),
+            )
+            async with httpx.AsyncClient(timeout=20.0) as client:
+                agent = SalesOutreachAgent(
+                    llm=build_llm_client(settings),
+                    gmail=GmailClient(token, client),
+                    calendar=CalendarClient(token, client),
+                )
+                checks, drafts = await agent.check_replies(ctx, sent, result.actions, result)
+        except Exception as exc:  # noqa: BLE001 - mapped to a user-facing message
+            raise _to_outreach_error(exc) from exc
+
+        result.reply_checks = checks
+        result.replies_checked_at = datetime.now(timezone.utc).isoformat()
+        result.actions.extend(drafts)
+        await supabase_rest.update(
+            "agent_requests",
+            {"id": f"eq.{request_id}", "user_id": f"eq.{user.id}"},
+            {"result": result.model_dump(mode="json")},
+        )
+        return result.model_dump(mode="json")

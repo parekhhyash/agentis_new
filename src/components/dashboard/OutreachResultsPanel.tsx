@@ -1,7 +1,14 @@
 import { useState, type ReactNode } from 'react'
 
-import { decideOutreachAction, type OutreachDecision } from '../../lib/outreachApi'
-import type { MeetingAction, OutreachAction, OutreachResult } from '../../lib/outreachTypes'
+import { checkReplies, decideOutreachAction, type OutreachDecision } from '../../lib/outreachApi'
+import {
+  sentThreadId,
+  type MeetingAction,
+  type OutreachAction,
+  type OutreachResult,
+  type ReplyCheck,
+} from '../../lib/outreachTypes'
+import { relativeTime } from '../../lib/relativeTime'
 
 // Editable copies of each draft, keyed by action id. Lifted to the panel so
 // "Approve all" sends exactly what the user sees in every card.
@@ -62,6 +69,51 @@ function StatusChip({ action }: { action: OutreachAction }) {
   return <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${className}`}>{label}</span>
 }
 
+function ReplyChip({ check }: { check: ReplyCheck }) {
+  const [label, className] = check.awaiting_you
+    ? ['Replied', 'bg-brand-yellow/30 text-slate-800']
+    : check.replied
+      ? ['Replied', 'bg-emerald-50 text-emerald-700']
+      : ['No reply yet', 'bg-slate-100 text-slate-500']
+  return <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${className}`}>{label}</span>
+}
+
+// Who answered the emails sent from this request.
+function ReplyReport({ checks, checkedAt }: { checks: ReplyCheck[]; checkedAt: string | null | undefined }) {
+  const replied = checks.filter((c) => c.replied).length
+  return (
+    <div className="rounded-xl border border-slate-200 bg-surface">
+      <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
+        <span className="text-sm font-semibold text-slate-900">
+          {replied} of {checks.length} replied
+        </span>
+        {checkedAt && <span className="text-xs text-slate-400">Checked {relativeTime(checkedAt)}</span>}
+      </div>
+      <ul className="divide-y divide-slate-100">
+        {checks.map((check) => (
+          <li key={check.thread_id} className="px-4 py-3">
+            <div className="flex items-center gap-2">
+              <span className="min-w-0 flex-1 truncate text-sm text-slate-800">
+                <span className="font-medium">{check.to.join(', ') || 'Unknown'}</span>
+                <span className="text-slate-400"> · {check.subject}</span>
+              </span>
+              <ReplyChip check={check} />
+            </div>
+            {check.replied && check.reply_snippet && (
+              <p className="mt-1.5 line-clamp-2 border-l-2 border-slate-200 pl-2 text-xs text-slate-500">
+                {check.reply_snippet}
+              </p>
+            )}
+            {check.awaiting_you && (
+              <p className="mt-1 text-xs font-medium text-slate-600">A response is drafted below for you to review.</p>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 function KindIcon({ type }: { type: OutreachAction['type'] }) {
   const paths: Record<OutreachAction['type'], ReactNode> = {
     email: (
@@ -103,12 +155,14 @@ function ActionCard({
   onEdit,
   busy,
   onDecide,
+  reply,
 }: {
   action: OutreachAction
   edits: Record<string, unknown>
   onEdit: (patch: Record<string, unknown>) => void
   busy: boolean
   onDecide: (decision: OutreachDecision) => void
+  reply?: ReplyCheck
 }) {
   const editable = isOpen(action) && !busy
   const title =
@@ -126,6 +180,7 @@ function ActionCard({
             {action.type === 'meeting' && formatWhen(action)}
           </div>
         </div>
+        {reply && <ReplyChip check={reply} />}
         <StatusChip action={action} />
       </div>
 
@@ -317,12 +372,14 @@ export default function OutreachResultsPanel({
   requestId,
   result,
   onActionChange,
+  onResultChange,
 }: {
   requestId: string
   result: OutreachResult
   // Merged into the stored result by the parent, so concurrent sends from
   // different cards can't overwrite each other.
   onActionChange: (action: OutreachAction) => void
+  onResultChange: (result: OutreachResult) => void
 }) {
   const [edits, setEdits] = useState<Edits>(() =>
     Object.fromEntries(result.actions.map((a) => [a.id, initialEdits(a)])),
@@ -330,8 +387,29 @@ export default function OutreachResultsPanel({
   const [busy, setBusy] = useState<Set<string>>(new Set())
   const [approvingAll, setApprovingAll] = useState(false)
 
+  const [checking, setChecking] = useState(false)
+  const [checkError, setCheckError] = useState<string | null>(null)
+
   const open = result.actions.filter(isOpen)
   const done = result.actions.filter((a) => a.status === 'sent' || a.status === 'scheduled').length
+  const sentCount = result.actions.filter((a) => sentThreadId(a)).length
+  const checks = result.reply_checks ?? []
+  const checkFor = (action: OutreachAction) => {
+    const thread = sentThreadId(action)
+    return thread ? checks.find((c) => c.thread_id === thread) : undefined
+  }
+
+  async function runReplyCheck() {
+    setChecking(true)
+    setCheckError(null)
+    try {
+      onResultChange(await checkReplies(requestId))
+    } catch (err) {
+      setCheckError(err instanceof Error ? err.message : 'Could not check for replies')
+    } finally {
+      setChecking(false)
+    }
+  }
 
   async function decide(action: OutreachAction, decision: OutreachDecision) {
     setBusy((prev) => new Set(prev).add(action.id))
@@ -374,18 +452,45 @@ export default function OutreachResultsPanel({
             {result.actions.length} draft{result.actions.length === 1 ? '' : 's'} from {result.sender_email}
             {done > 0 && ` · ${done} done`}. Nothing is sent until you approve it.
           </p>
-          {open.length > 1 && (
-            <button
-              type="button"
-              disabled={approvingAll || busy.size > 0}
-              onClick={approveAll}
-              className="rounded-full border border-slate-300 px-4 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
-            >
-              {approvingAll ? 'Sending…' : `Approve all ${open.length}`}
-            </button>
-          )}
+          <div className="flex flex-wrap gap-2">
+            {sentCount > 0 && (
+              <button
+                type="button"
+                disabled={checking}
+                onClick={runReplyCheck}
+                className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 px-4 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  className={`h-3.5 w-3.5 ${checking ? 'animate-spin' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  aria-hidden="true"
+                >
+                  <path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5" />
+                </svg>
+                {checking ? 'Checking…' : 'Check for replies'}
+              </button>
+            )}
+            {open.length > 1 && (
+              <button
+                type="button"
+                disabled={approvingAll || busy.size > 0}
+                onClick={approveAll}
+                className="rounded-full border border-slate-300 px-4 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50"
+              >
+                {approvingAll ? 'Sending…' : `Approve all ${open.length}`}
+              </button>
+            )}
+          </div>
         </div>
       )}
+
+      {checkError && <p className="text-sm text-red-600">{checkError}</p>}
+
+      {checks.length > 0 && <ReplyReport checks={checks} checkedAt={result.replies_checked_at} />}
 
       <div className="space-y-3">
         {result.actions.map((action) => (
@@ -396,6 +501,7 @@ export default function OutreachResultsPanel({
             onEdit={(patch) => setEdits((prev) => ({ ...prev, [action.id]: { ...prev[action.id], ...patch } }))}
             busy={busy.has(action.id) || approvingAll}
             onDecide={(decision) => decide(action, decision)}
+            reply={checkFor(action)}
           />
         ))}
       </div>

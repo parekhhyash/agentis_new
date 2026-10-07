@@ -22,8 +22,16 @@ from zoneinfo import ZoneInfo
 
 from agents.lead_research.llm import LLMClient
 from agents.sales_outreach import prompts
-from agents.sales_outreach.schemas import EmailAction, MeetingAction, OutreachResult, ReplyAction
-from integrations.google.gmail import GmailThread, reply_recipient, reply_subject
+from agents.sales_outreach.schemas import (
+    EmailAction,
+    MeetingAction,
+    OutreachAction,
+    OutreachResult,
+    ReplyAction,
+    ReplyCheck,
+)
+from integrations.google.errors import GoogleAPIError
+from integrations.google.gmail import GmailThread, addresses, reply_recipient, reply_subject, thread_link
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +40,21 @@ ProgressCallback = Callable[[str], Awaitable[None]]
 EMAIL_RE = re.compile(r"[A-Za-z0-9._%+'-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}")
 MAX_THREADS_PER_REPLY = 5
 MAX_REPLY_THREADS = 10
+MAX_CHECKED_THREADS = 20
+
+ANSWER_INSTRUCTIONS = (
+    "They replied to an email I sent. Answer what they said and move things toward a clear next step "
+    "(for example a short call), consistent with my original email."
+)
+
+
+@dataclass
+class SentItem:
+    """An email sent through Agentis whose thread can be checked for replies."""
+
+    thread_id: str
+    to: list[str]
+    subject: str
 
 
 class OutreachCancelledError(Exception):
@@ -58,6 +81,8 @@ class OutreachContext:
     leads: list[dict[str, Any]] = field(default_factory=list)
     # Earlier turns of the chat, rendered as text ("" for a new chat).
     history: str = ""
+    # Emails sent through Agentis that "check for replies" looks at.
+    sent_items: list[SentItem] = field(default_factory=list)
 
 
 def extract_addresses(text: str) -> set[str]:
@@ -180,6 +205,7 @@ class SalesOutreachAgent:
 
         reply_intents: list[dict[str, Any]] = []
         meetings: list[MeetingAction] = []
+        check_replies = False
         for raw in raw_actions:
             kind = raw.get("type")
             if kind == "email":
@@ -193,14 +219,24 @@ class SalesOutreachAgent:
                     result.actions.append(action)
             elif kind == "reply":
                 reply_intents.append(raw)
+            elif kind == "check_replies":
+                check_replies = True
 
         if reply_intents:
             result.actions.extend(await self._replies(reply_intents, ctx, result))
+        if check_replies:
+            if ctx.sent_items:
+                checks, drafts = await self.check_replies(ctx, ctx.sent_items, result.actions, result)
+                result.reply_checks = checks
+                result.replies_checked_at = ctx.now.isoformat()
+                result.actions.extend(drafts)
+            else:
+                result.notes.append("I couldn't find any emails sent through Agentis in the last 30 days to check.")
         for meeting in meetings:
             await self._step(f"Checking your calendar for {meeting.title}")
             meeting.conflicts = await self._conflicts(meeting, tz)
 
-        if not result.actions and not result.notes:
+        if not result.actions and not result.notes and not result.reply_checks:
             result.notes.append("I couldn't find anything to send or schedule in that request.")
         if not result.summary:
             result.summary = f"Drafted {len(result.actions)} action(s) for your review."
@@ -320,6 +356,56 @@ class SalesOutreachAgent:
         await self._step(f"Drafting {len(jobs)} repl{'y' if len(jobs) == 1 else 'ies'}")
         drafted = await asyncio.gather(*(self._draft_reply(t, i, ctx, result) for t, i in jobs))
         return [d for d in drafted if d]
+
+    async def check_replies(
+        self,
+        ctx: OutreachContext,
+        sent: list[SentItem],
+        existing: list[OutreachAction],
+        result: OutreachResult,
+    ) -> tuple[list[ReplyCheck], list[ReplyAction]]:
+        """Reads each sent email's thread for answers from the other side and
+        drafts a response to every reply that hasn't been answered yet."""
+        await self._step(f"Checking {len(sent)} sent email{'' if len(sent) == 1 else 's'} for replies")
+        own = ctx.sender_email.lower()
+        answered = {a.in_reply_to for a in existing if isinstance(a, ReplyAction) and a.in_reply_to}
+        checks: list[ReplyCheck] = []
+        to_answer: list[GmailThread] = []
+        seen: set[str] = set()
+        for item in sent:
+            if item.thread_id in seen or len(seen) >= MAX_CHECKED_THREADS:
+                continue
+            seen.add(item.thread_id)
+            try:
+                thread = await self._gmail.get_thread(item.thread_id)
+            except GoogleAPIError:
+                continue  # deleted or no longer accessible
+            result.usage.threads_read += 1
+            senders = [addresses(m.sender)[:1] for m in thread.messages]
+            first_own = next((i for i, s in enumerate(senders) if s and s[0] == own), 0)
+            replies = [m for m, s in zip(thread.messages[first_own:], senders[first_own:]) if s and s[0] != own]
+            last_is_theirs = bool(senders and senders[-1] and senders[-1][0] != own)
+            check = ReplyCheck(
+                thread_id=thread.id,
+                to=item.to,
+                subject=item.subject or thread.subject,
+                replied=bool(replies),
+                awaiting_you=bool(replies) and last_is_theirs,
+                gmail_link=thread_link(ctx.sender_email, thread.id),
+            )
+            if replies:
+                latest = replies[-1]
+                check.reply_from, check.reply_at, check.reply_snippet = latest.sender, latest.date, latest.text[:300]
+            checks.append(check)
+            if check.awaiting_you and thread.last.message_id not in answered:
+                to_answer.append(thread)
+
+        drafts: list[ReplyAction] = []
+        if to_answer:
+            await self._step(f"Drafting {len(to_answer)} response{'' if len(to_answer) == 1 else 's'}")
+            drafted = await asyncio.gather(*(self._draft_reply(t, ANSWER_INSTRUCTIONS, ctx, result) for t in to_answer))
+            drafts = [d for d in drafted if d]
+        return checks, drafts
 
     async def _draft_reply(
         self, thread: GmailThread, instructions: str, ctx: OutreachContext, result: OutreachResult

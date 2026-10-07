@@ -25,6 +25,10 @@ export function runOutreach(input: OutreachRunInput, signal?: AbortSignal): Prom
   })
 }
 
+export function checkReplies(requestId: string): Promise<OutreachResult> {
+  return authedFetch<OutreachResult>(`/sales-outreach/requests/${requestId}/check-replies`, { method: 'POST' })
+}
+
 export type OutreachDecision = 'approve' | 'discard' | 'save'
 
 export function decideOutreachAction(
