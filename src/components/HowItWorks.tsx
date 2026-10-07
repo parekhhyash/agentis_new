@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
 
 import AgentCluster from './AgentCluster'
 import {
@@ -28,6 +28,10 @@ type Story = {
   chip: string
   prompt: string
   agent: number
+  // What the agent is doing while it works, shown under the hub.
+  work: string
+  // Some jobs take two agents: the first passes its output to the second.
+  handoff?: { to: number; carry: string; work: string }
   title: string
   rows: { mark: string; name: string; meta: string; tile: string }[]
 }
@@ -37,7 +41,9 @@ const STORIES: Story[] = [
     chip: 'Find leads',
     prompt: 'Find 20 D2C skincare brands in India and draft an intro for each',
     agent: 0,
-    title: '20 leads found',
+    work: 'finding brands',
+    handoff: { to: 1, carry: '20 leads', work: 'drafting intros' },
+    title: '20 leads, intros drafted',
     rows: [
       { mark: 'M', name: 'Mamaearth', meta: 'Strong fit · intro ready', tile: 'bg-brand-pink text-ink' },
       { mark: 'P', name: 'Plum Goodness', meta: 'Strong fit · intro ready', tile: 'bg-brand-sky text-white' },
@@ -48,6 +54,8 @@ const STORIES: Story[] = [
     chip: 'Write posts',
     prompt: 'Write three launch posts for our new summer collection',
     agent: 4,
+    work: 'writing posts',
+    handoff: { to: 5, carry: '3 posts', work: 'scheduling' },
     title: '3 posts drafted',
     rows: [
       { mark: 'IG', name: 'Instagram carousel', meta: '5 slides with captions', tile: 'bg-brand-orchid text-white' },
@@ -59,6 +67,7 @@ const STORIES: Story[] = [
     chip: 'Answer tickets',
     prompt: "Reply to today's refund tickets and flag anything urgent",
     agent: 2,
+    work: 'answering tickets',
     title: '18 tickets handled',
     rows: [
       { mark: '#', name: 'Refund issued', meta: 'Ticket 4821 · replied in 2 min', tile: 'bg-brand-sky text-white' },
@@ -74,11 +83,13 @@ const TYPE_END = 2600
 const SEND = 2800
 const ROUTE_START = 3200
 const ARRIVE = 4100
-const ROWS = [4500, 5000, 5500]
-const CURSOR = 6100
-const CLICK = 6800
-const SHIPPED = 6950
-const CYCLE = 9000
+const HANDOFF = 4900
+const HANDOFF_ARRIVE = 5700
+const ROWS = [5800, 6200, 6600]
+const CURSOR = 7100
+const CLICK = 7700
+const SHIPPED = 7850
+const CYCLE = 9800
 const TICK = 40
 
 type Frame = { story: number; t: number }
@@ -253,11 +264,153 @@ const NODES = AGENTS.map((_, i) => {
   return { x: HUB.x + Math.cos(a) * ORBIT, y: HUB.y + Math.sin(a) * ORBIT }
 })
 
+// Unit vector from the hub out to a node: satellites (bubbles, envelopes)
+// sit on the outside of the circle so they don't cross the routing lines.
+function outward(i: number) {
+  const dx = NODES[i].x - HUB.x
+  const dy = NODES[i].y - HUB.y
+  const len = Math.hypot(dx, dy)
+  return { x: dx / len, y: dy / len }
+}
+
+function Envelope({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 16 12" className={className} aria-hidden="true">
+      <rect x="0.75" y="0.75" width="14.5" height="10.5" rx="2" className="fill-surface stroke-brand-violet" strokeWidth="1.5" />
+      <path d="m1.5 1.8 6.5 4.7 6.5-4.7" fill="none" className="stroke-brand-violet" strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+// What each agent looks like while it's busy, drawn around its node.
+function AgentWork({ agent }: { agent: number }) {
+  const node = NODES[agent]
+  const out = outward(agent)
+  const at = (distance: number, size: number) => ({ left: node.x + out.x * distance - size / 2, top: node.y + out.y * distance - size / 2 })
+
+  switch (agent) {
+    case 0: // Lead Research: radar sweep, companies popping up as they're found
+      return (
+        <>
+          {[0, 0.8].map((delay) => (
+            <span
+              key={delay}
+              className="absolute h-10 w-10 animate-radar rounded-xl border-2 border-brand-blue"
+              style={{ left: node.x - 20, top: node.y - 20, animationDelay: `${delay}s` }}
+            />
+          ))}
+          {[
+            [-46, -6, 0],
+            [46, 2, 0.8],
+            [-38, 22, 1.6],
+          ].map(([dx, dy, delay]) => (
+            <span
+              key={delay}
+              className="absolute flex h-4 w-4 animate-pop items-center justify-center rounded-md bg-surface text-[8px] font-bold text-brand-blue shadow ring-1 ring-brand-blue/30"
+              style={{ left: node.x + dx - 8, top: node.y + dy - 8, animationDelay: `${delay}s` }}
+            >
+              ✓
+            </span>
+          ))}
+        </>
+      )
+    case 1: // Sales & Outreach: emails flying out
+      return (
+        <>
+          {[-0.5, 0, 0.5].map((spread, k) => {
+            const angle = Math.atan2(out.y, out.x) + spread
+            return (
+              <span
+                key={k}
+                className="absolute animate-fly"
+                style={
+                  {
+                    ...at(18, 14),
+                    '--dx': `${Math.cos(angle) * 40}px`,
+                    '--dy': `${Math.sin(angle) * 40}px`,
+                    animationDelay: `${k * 0.45}s`,
+                  } as CSSProperties
+                }
+              >
+                <Envelope className="h-3 w-3.5" />
+              </span>
+            )
+          })}
+        </>
+      )
+    case 2: // Customer Support: a reply being typed
+      return (
+        <span
+          className="absolute flex h-5 items-center gap-0.5 rounded-full rounded-bl-sm bg-surface px-2 shadow ring-1 ring-brand-sky/40"
+          style={{ left: node.x + 14, top: node.y - 34 }}
+        >
+          {[0, 1, 2].map((d) => (
+            <span key={d} className="h-1 w-1 animate-bounce rounded-full bg-brand-sky" style={{ animationDelay: `${d * 120}ms` }} />
+          ))}
+        </span>
+      )
+    case 3: // Data & Reporting: a chart building
+      return (
+        <span className="absolute flex h-6 items-end gap-0.5" style={{ left: node.x + 28, top: node.y - 14 }}>
+          {[0, 0.2, 0.4, 0.1].map((delay, k) => (
+            <span
+              key={k}
+              className="h-full w-1.5 origin-bottom animate-bars rounded-sm bg-brand-yellow"
+              style={{ animationDelay: `${delay}s` }}
+            />
+          ))}
+        </span>
+      )
+    case 4: // Content & Copy: a page filling with lines
+      return (
+        <span
+          className="absolute flex w-9 flex-col gap-1 rounded-md bg-surface p-1.5 shadow ring-1 ring-brand-pink/60"
+          style={at(42, 36)}
+        >
+          {[1, 0.8, 0.9, 0.55].map((w, k) => (
+            <span
+              key={k}
+              className="block h-0.5 origin-left animate-write rounded-full bg-brand-pink"
+              style={{ width: `${w * 100}%`, animationDelay: `${k * 0.25}s` }}
+            />
+          ))}
+        </span>
+      )
+    default: // Operations: the gear turns, a task orbits it
+      return (
+        <span
+          className="absolute h-16 w-16 animate-[spin_2.4s_linear_infinite] motion-reduce:animate-none"
+          style={{ left: node.x - 32, top: node.y - 32 }}
+        >
+          <span className="absolute top-0 left-1/2 h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-brand-orchid ring-2 ring-surface" />
+        </span>
+      )
+  }
+}
+
 function RoutingVisual({ story, t }: Frame) {
-  const target = STORIES[story].agent
+  const s = STORIES[story]
+  const first = s.agent
+  const second = s.handoff?.to
   const routing = t >= ROUTE_START && t < ARRIVE
   const arrived = t >= ARRIVE
-  const packet = t >= ROUTE_START + 150 ? NODES[target] : HUB
+  const handingOff = second !== undefined && t >= HANDOFF && t < HANDOFF_ARRIVE
+  const secondWorking = second !== undefined && t >= HANDOFF_ARRIVE
+  const firstWorking = arrived && !handingOff && !secondWorking
+  const packet = t >= ROUTE_START + 150 ? NODES[first] : HUB
+  const parcel = second !== undefined && t >= HANDOFF + 150 ? NODES[second] : NODES[first]
+  const linked = second !== undefined && t >= HANDOFF
+
+  const status = !arrived
+    ? routing
+      ? 'Routing the task'
+      : 'Waiting for a task'
+    : handingOff && s.handoff
+      ? `Passing ${s.handoff.carry} to ${AGENTS[s.handoff.to].label}`
+      : secondWorking && s.handoff
+        ? `${AGENTS[s.handoff.to].label} is ${s.handoff.work}`
+        : `${AGENTS[first].label} is ${s.work}`
+  const statusAgent = secondWorking && second !== undefined ? second : first
 
   return (
     <div className="absolute inset-0">
@@ -273,7 +426,7 @@ function RoutingVisual({ story, t }: Frame) {
           className="origin-center animate-[spin_40s_linear_infinite] stroke-slate-300 [transform-box:fill-box] motion-reduce:animate-none"
         />
         {NODES.map((n, i) => {
-          const active = i === target && (routing || arrived)
+          const active = i === first && (routing || arrived)
           return (
             <line
               key={i}
@@ -292,11 +445,25 @@ function RoutingVisual({ story, t }: Frame) {
             />
           )
         })}
+        {/* Agents talking to each other: a live link between the two. */}
+        {second !== undefined && (
+          <line
+            x1={NODES[first].x}
+            y1={NODES[first].y}
+            x2={NODES[second].x}
+            y2={NODES[second].y}
+            strokeLinecap="round"
+            strokeWidth="2.5"
+            strokeDasharray="6 6"
+            className={`${AGENTS[second].line} animate-dash-flow stroke-current transition-opacity duration-500 motion-reduce:animate-none`}
+            style={{ opacity: linked ? 1 : 0 }}
+          />
+        )}
       </svg>
 
       {/* The task travelling from the hub to its agent. */}
       <span
-        className={`absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full ring-4 ring-surface ${AGENTS[target].tile}`}
+        className={`absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full ring-4 ring-surface ${AGENTS[first].tile}`}
         style={{
           left: packet.x,
           top: packet.y,
@@ -305,21 +472,49 @@ function RoutingVisual({ story, t }: Frame) {
         }}
       />
 
+      {firstWorking && <AgentWork agent={first} />}
+      {secondWorking && second !== undefined && <AgentWork agent={second} />}
+
       {NODES.map((n, i) => {
         const { icon: Icon, tile } = AGENTS[i]
-        const active = i === target && arrived
+        const isFirst = i === first && arrived
+        const isSecond = i === second && linked
+        const busy = (i === first && firstWorking) || (i === second && (secondWorking || handingOff))
+        const done = i === first && secondWorking
         return (
           <span
             key={i}
             className={`absolute flex h-10 w-10 items-center justify-center rounded-xl shadow-sm transition duration-500 ${tile} ${
-              active ? 'scale-125 shadow-lg' : arrived ? 'scale-90 opacity-40' : 'opacity-90'
+              busy ? 'scale-125 shadow-lg' : isFirst || isSecond ? 'scale-110' : arrived ? 'scale-90 opacity-40' : 'opacity-90'
             }`}
             style={{ left: n.x - 20, top: n.y - 20 }}
           >
-            <Icon className="h-4 w-4" />
+            <Icon className={`h-4 w-4 ${i === 5 && busy ? 'animate-[spin_3s_linear_infinite] motion-reduce:animate-none' : ''}`} />
+            {done && (
+              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-white ring-2 ring-surface">
+                <CheckIcon className="h-2.5 w-2.5" />
+              </span>
+            )}
           </span>
         )
       })}
+
+      {/* What one agent hands the next. */}
+      {s.handoff && second !== undefined && (
+        <span
+          className="absolute z-10 inline-flex -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-full bg-surface px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap text-slate-700 shadow-md ring-1 ring-slate-200"
+          style={{
+            left: parcel.x,
+            top: parcel.y,
+            opacity: handingOff ? 1 : 0,
+            transition:
+              'left 0.75s cubic-bezier(0.65, 0, 0.35, 1), top 0.75s cubic-bezier(0.65, 0, 0.35, 1), opacity 0.25s',
+          }}
+        >
+          <AgentBadge agent={first} className="h-3.5 w-3.5 [&_svg]:h-2 [&_svg]:w-2" />
+          {s.handoff.carry}
+        </span>
+      )}
 
       {/* Hub */}
       <span
@@ -331,18 +526,13 @@ function RoutingVisual({ story, t }: Frame) {
       </span>
 
       <span className="absolute inset-x-0 bottom-4 flex justify-center">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-[11px] font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200">
+        <span className="inline-flex max-w-[90%] items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-[11px] font-semibold whitespace-nowrap text-slate-700 shadow-sm ring-1 ring-slate-200">
           {arrived ? (
-            <>
-              <AgentBadge agent={target} className="h-4 w-4 [&_svg]:h-2.5 [&_svg]:w-2.5" />
-              {AGENTS[target].label} is on it
-            </>
+            <AgentBadge agent={statusAgent} className="h-4 w-4 shrink-0 [&_svg]:h-2.5 [&_svg]:w-2.5" />
           ) : (
-            <>
-              <span className={`h-1.5 w-1.5 rounded-full bg-brand-blue ${routing ? 'animate-pulse' : 'opacity-40'}`} />
-              {routing ? 'Routing the task' : 'Waiting for a task'}
-            </>
+            <span className={`h-1.5 w-1.5 shrink-0 rounded-full bg-brand-blue ${routing ? 'animate-pulse' : 'opacity-40'}`} />
           )}
+          <span className="truncate">{status}</span>
         </span>
       </span>
     </div>
@@ -369,7 +559,7 @@ function ReviewVisual({ story, t }: Frame) {
     <div className="absolute inset-0 flex items-center justify-center px-5">
       <div className="w-full rounded-2xl bg-surface p-4 shadow-lg ring-1 shadow-slate-900/5 ring-slate-200">
         <div className="flex items-center gap-2">
-          <AgentBadge agent={s.agent} className="h-6 w-6" />
+          <AgentBadge agent={s.handoff?.to ?? s.agent} className="h-6 w-6" />
           <span className="flex-1 truncate text-[12px] font-semibold text-slate-900">{s.title}</span>
           <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors duration-300 ${status.className}`}>
             {status.label}

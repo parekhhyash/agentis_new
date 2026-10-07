@@ -37,6 +37,74 @@
   --animate-marquee-slow: marquee 60s linear infinite;
   --animate-aurora: aurora 18s ease-in-out infinite alternate;
   --animate-dash-flow: dash-flow 0.8s linear infinite;
+  /* How it works: each agent's "working" motion. */
+  --animate-radar: radar 1.6s ease-out infinite;
+  --animate-fly: fly 1.5s ease-out infinite;
+  --animate-bars: bars 0.7s ease-in-out infinite alternate;
+  --animate-write: write 2.4s ease-in-out infinite;
+  --animate-pop: pop 2.4s ease-out infinite;
+
+  @keyframes radar {
+    from {
+      transform: scale(1);
+      opacity: 0.7;
+    }
+    to {
+      transform: scale(2.4);
+      opacity: 0;
+    }
+  }
+
+  @keyframes fly {
+    0% {
+      transform: translate(0, 0) scale(0.5);
+      opacity: 0;
+    }
+    15% {
+      opacity: 1;
+    }
+    100% {
+      transform: translate(var(--dx), var(--dy)) scale(1);
+      opacity: 0;
+    }
+  }
+
+  @keyframes bars {
+    from {
+      transform: scaleY(0.3);
+    }
+    to {
+      transform: scaleY(1);
+    }
+  }
+
+  @keyframes write {
+    0% {
+      transform: scaleX(0);
+    }
+    45%,
+    100% {
+      transform: scaleX(1);
+    }
+  }
+
+  @keyframes pop {
+    0% {
+      transform: scale(0);
+      opacity: 0;
+    }
+    20% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    75% {
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 0;
+    }
+  }
 
   @keyframes dash-flow {
     to {

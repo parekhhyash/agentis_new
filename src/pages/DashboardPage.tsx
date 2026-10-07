@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { Navigate, useSearchParams } from 'react-router-dom'
+import { Navigate, useLocation, useSearchParams } from 'react-router-dom'
 import ChatConversation from '../components/dashboard/ChatConversation'
+import ConnectionsPanel from '../components/dashboard/ConnectionsPanel'
 import OutreachSetupBar from '../components/dashboard/OutreachSetupBar'
 import ProfileMenu from '../components/dashboard/ProfileMenu'
 import RequestSidebar from '../components/dashboard/RequestSidebar'
 import TaskComposer from '../components/dashboard/TaskComposer'
-import { CloseIcon, MenuIcon, PlusIcon } from '../components/icons'
+import { CloseIcon, MenuIcon, PlugIcon, PlusIcon } from '../components/icons'
 import ThemeToggle from '../components/ThemeToggle'
 import { createAgentRequest, RUNNABLE_AGENTS, startAgentRun, stopAgentRun } from '../lib/agentRuns'
 import type { AgentType } from '../lib/agentTypes'
@@ -34,12 +35,18 @@ export default function DashboardPage() {
   const [requests, setRequests] = useState<AgentRequest[]>([])
   const [loadingRequests, setLoadingRequests] = useState(true)
   const [agentType, setAgentType] = useState<AgentType>('lead_research')
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  // Opens on a fresh chat; past chats are one click away in the sidebar. A
+  // run started from the landing page's prompt box opens on that run.
+  const location = useLocation()
+  const [selectedId, setSelectedId] = useState<string | null>(
+    (location.state as { openRequestId?: string } | null)?.openRequestId ?? null,
+  )
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [leadRequestId, setLeadRequestId] = useState<string | null>(null)
   const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null)
   const [searchParams, setSearchParams] = useSearchParams()
-  const google = useGoogleConnection(agentType === 'sales_outreach')
+  const [view, setView] = useState<'chat' | 'connect'>('chat')
+  const google = useGoogleConnection(agentType === 'sales_outreach' || view === 'connect')
 
   // Back from Google's consent screen (see api/integrations.py's callback).
   const googleResult = searchParams.get('google')
@@ -48,6 +55,7 @@ export default function DashboardPage() {
   if (googleResult && googleResult !== handledGoogleResult) {
     setHandledGoogleResult(googleResult)
     setAgentType('sales_outreach')
+    setView('connect')
     setNotice(
       googleResult === 'connected'
         ? { tone: 'ok', text: 'Google connected. Sales & Outreach can now draft email and meetings for you.' }
@@ -85,7 +93,6 @@ export default function DashboardPage() {
       .then(({ data }) => {
         setRequests(data ?? [])
         setLoadingRequests(false)
-        setSelectedId((current) => current ?? data?.[0]?.id ?? null)
       })
   }, [user])
 
@@ -178,8 +185,28 @@ export default function DashboardPage() {
 
   function selectRequest(id: string | null) {
     setSelectedId(id)
+    setView('chat')
     setSidebarOpen(false)
   }
+
+  function openConnect() {
+    setSelectedId(null)
+    setView('connect')
+    setSidebarOpen(false)
+  }
+
+  const noticeBanner = notice && (
+    <div
+      className={`flex items-start gap-3 rounded-xl px-4 py-3 text-sm ${
+        notice.tone === 'ok' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+      }`}
+    >
+      <p className="flex-1">{notice.text}</p>
+      <button type="button" aria-label="Dismiss" onClick={() => setNotice(null)} className="shrink-0 opacity-70 hover:opacity-100">
+        <CloseIcon />
+      </button>
+    </div>
+  )
 
   const firstName = profile?.full_name.split(' ')[0]
   const selectedRequest = requests.find((r) => r.id === selectedId) ?? null
@@ -220,6 +247,16 @@ export default function DashboardPage() {
             <PlusIcon className="text-slate-500" />
             New chat
           </button>
+          <button
+            type="button"
+            onClick={openConnect}
+            className={`mt-0.5 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              view === 'connect' ? 'bg-slate-100 text-slate-900' : 'text-slate-700 hover:bg-slate-100'
+            }`}
+          >
+            <PlugIcon className="text-slate-500" />
+            Connect
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-2 py-2">
@@ -252,7 +289,9 @@ export default function DashboardPage() {
         </div>
 
         <div ref={scrollRef} className="flex-1 overflow-y-auto [scrollbar-gutter:stable]">
-          {selectedRequest ? (
+          {view === 'connect' ? (
+            <ConnectionsPanel google={google} notice={noticeBanner} />
+          ) : selectedRequest ? (
             <div className="mx-auto max-w-3xl px-6 py-8">
               <ChatConversation
                 request={selectedRequest}
@@ -272,20 +311,9 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div style={{ paddingRight: scrollbarWidth }}>
+        <div style={{ paddingRight: scrollbarWidth }} className={view === 'connect' ? 'hidden' : ''}>
           <div className="mx-auto w-full max-w-3xl px-6 pb-6">
-            {notice && (
-              <div
-                className={`mb-3 flex items-start gap-3 rounded-xl px-4 py-3 text-sm ${
-                  notice.tone === 'ok' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
-                }`}
-              >
-                <p className="flex-1">{notice.text}</p>
-                <button type="button" aria-label="Dismiss" onClick={() => setNotice(null)} className="shrink-0 opacity-70 hover:opacity-100">
-                  <CloseIcon />
-                </button>
-              </div>
-            )}
+            {noticeBanner && <div className="mb-3">{noticeBanner}</div>}
             {agentType === 'sales_outreach' && (
               <OutreachSetupBar
                 status={google.status}

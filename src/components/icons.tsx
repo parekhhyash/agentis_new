@@ -354,3 +354,23 @@ export function MoonIcon({ className }: IconProps) {
     </svg>
   )
 }
+
+export function PlugIcon({ className }: IconProps) {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M9 2v6M15 2v6" />
+      <path d="M6 8h12v4a6 6 0 0 1-12 0z" />
+      <path d="M12 18v4" />
+    </svg>
+  )
+}

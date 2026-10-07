@@ -208,9 +208,9 @@ function PromptBox() {
       senderName: profile?.full_name,
     })
 
-    // DashboardPage defaults to selecting the most recently created
-    // request, so it'll pick this one up as soon as it mounts.
-    navigate('/dashboard')
+    // The dashboard opens on a new chat by default; pass this request so it
+    // opens on the run that was just started instead.
+    navigate('/dashboard', { state: { openRequestId: data.id } })
   }
 
   return (
