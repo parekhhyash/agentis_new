@@ -651,6 +651,7 @@ The codebase defines several agent types that are registered in the UI but do no
 |---|---|---|
 | Hyash Parekh | [@parekhhyash](https://github.com/parekhhyash) | Author / Maintainer |
 | Darsh Sharma | [@darshsharma11](https://github.com/darshsharma11) | Contributor |
+| Meet Shah | [@ItsMeet18](https://github.com/ItsMeet18 | Contributor |
 
 ---
 
