@@ -30,7 +30,7 @@ export const NODES = AGENTS.map((_, i) => {
   return { x: HUB.x + Math.cos(a) * ORBIT, y: HUB.y + Math.sin(a) * ORBIT }
 })
 
-// Which node each agent type sits on; the Manager coordinates from the hub.
+// Which node each agent type sits on; the General agent works from the hub.
 export const AGENT_NODE: Partial<Record<AgentType, number>> = {
   lead_research: 0,
   sales_outreach: 1,

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import heroBgDark from '../assets/hero-bg-dark.webp'
 import heroBg from '../assets/hero-bg.png'
 import { createAgentRequest, RUNNABLE_AGENTS, startAgentRun } from '../lib/agentRuns'
+import { createConversation } from '../lib/conversations'
 import { AGENT_TYPES, type AgentType } from '../lib/agentTypes'
 import { useAuth } from '../lib/AuthContext'
 import { useTheme } from '../lib/theme'
@@ -170,7 +171,7 @@ function PromptBox() {
   const navigate = useNavigate()
 
   const [value, setValue] = useState('')
-  const [agentType, setAgentType] = useState<AgentType>('lead_research')
+  const [agentType, setAgentType] = useState<AgentType>('general')
   const [menuOpen, setMenuOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -188,10 +189,11 @@ function PromptBox() {
     }
 
     setSubmitting(true)
-    const data = await createAgentRequest(user.id, agentType, prompt)
+    const chat = await createConversation(user.id, prompt)
+    const data = chat ? await createAgentRequest(user.id, agentType, prompt, chat.id) : null
     setSubmitting(false)
 
-    if (!data) return
+    if (!chat || !data) return
 
     // Fire-and-forget: this keeps running after we navigate away, since
     // the abort-controller registry in lib/agentRuns.ts is a module-level
@@ -208,9 +210,9 @@ function PromptBox() {
       senderName: profile?.full_name,
     })
 
-    // The dashboard opens on a new chat by default; pass this request so it
+    // The dashboard opens on a new chat by default; pass this chat so it
     // opens on the run that was just started instead.
-    navigate('/dashboard', { state: { openRequestId: data.id } })
+    navigate('/dashboard', { state: { openConversationId: chat.id } })
   }
 
   return (

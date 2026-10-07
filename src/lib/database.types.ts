@@ -17,6 +17,7 @@ export type Database = {
       agent_requests: {
         Row: {
           agent_type: Database["public"]["Enums"]["agent_type"]
+          conversation_id: string | null
           created_at: string
           error: string | null
           id: string
@@ -29,6 +30,7 @@ export type Database = {
         }
         Insert: {
           agent_type: Database["public"]["Enums"]["agent_type"]
+          conversation_id?: string | null
           created_at?: string
           error?: string | null
           id?: string
@@ -41,6 +43,7 @@ export type Database = {
         }
         Update: {
           agent_type?: Database["public"]["Enums"]["agent_type"]
+          conversation_id?: string | null
           created_at?: string
           error?: string | null
           id?: string
@@ -49,6 +52,65 @@ export type Database = {
           result?: Json | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["request_status"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_requests_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          created_at: string
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      google_connections: {
+        Row: {
+          connected_at: string
+          google_email: string
+          refresh_token_encrypted: string
+          scopes: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connected_at?: string
+          google_email: string
+          refresh_token_encrypted: string
+          scopes?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          connected_at?: string
+          google_email?: string
+          refresh_token_encrypted?: string
+          scopes?: string[]
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -100,7 +162,7 @@ export type Database = {
       agent_type:
         | "lead_research"
         | "sales_outreach"
-        | "manager"
+        | "general"
         | "content_copy"
         | "customer_support"
         | "data_reporting"
@@ -236,7 +298,7 @@ export const Constants = {
       agent_type: [
         "lead_research",
         "sales_outreach",
-        "manager",
+        "general",
         "content_copy",
         "customer_support",
         "data_reporting",

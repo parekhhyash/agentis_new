@@ -52,14 +52,14 @@ export default function AgentProgressView({
   const [expanded, setExpanded] = useState(false)
   const node = AGENT_NODE[agentType] ?? null
   const handoff = handoffFor(agentType, progress)
-  const label = node !== null ? AGENTS[node].label : 'Manager'
+  const label = node !== null ? AGENTS[node].label : 'General'
 
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
       <div className="w-full max-w-[17rem] shrink-0">
         <LiveAgentNetwork
           agent={node}
-          status={handoff ? `${label} is using your leads` : `${label} is working`}
+          status={handoff ? `${label} is using your leads` : node === null ? 'General is thinking' : `${label} is working`}
           handoffFrom={handoff?.from}
           carry={handoff?.carry}
         />

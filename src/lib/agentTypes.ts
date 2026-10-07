@@ -19,6 +19,12 @@ export const AGENT_TYPES: {
   icon: IconComponent
 }[] = [
   {
+    value: 'general',
+    label: 'General',
+    description: 'Answers questions and plans with you, and hands tasks to the right agent.',
+    icon: HierarchyIcon,
+  },
+  {
     value: 'lead_research',
     label: 'Lead Research',
     description: 'Find and qualify real companies as sales leads.',
@@ -29,12 +35,6 @@ export const AGENT_TYPES: {
     label: 'Sales & Outreach',
     description: 'Contact and follow up with your qualified leads via email.',
     icon: MegaphoneIcon,
-  },
-  {
-    value: 'manager',
-    label: 'Manager',
-    description: 'Coordinates other agents to get multi-step work done.',
-    icon: HierarchyIcon,
   },
   {
     value: 'content_copy',

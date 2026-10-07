@@ -1,31 +1,46 @@
 import { AGENT_LABELS } from '../../lib/agentTypes'
 import type { Tables } from '../../lib/database.types'
 import { relativeTime } from '../../lib/relativeTime'
+import { isGeneralResult } from '../../lib/generalTypes'
 import { isOutreachResult, type OutreachAction } from '../../lib/outreachTypes'
 import type { AgentProgress, AnyLeadResult } from '../../lib/salesAgentTypes'
 import AgentProgressView from './AgentProgressView'
+import GeneralReply from './GeneralReply'
 import LeadResultsPanel from './LeadResultsPanel'
 import OutreachResultsPanel from './OutreachResultsPanel'
 
 type AgentRequest = Tables<'agent_requests'>
 
+// One turn of a chat: the message and the agent's answer. A turn the General
+// agent handed off shows the hand-off instead of a user message.
 export default function ChatConversation({
   request,
+  handedOff = false,
   onOutreachActionChange,
 }: {
   request: AgentRequest
+  handedOff?: boolean
   onOutreachActionChange?: (action: OutreachAction) => void
 }) {
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
-        <div className="max-w-xl rounded-2xl rounded-tr-sm bg-sky-600 px-4 py-3 text-white">
-          <p className="text-[15px]">{request.prompt}</p>
-          <p className="mt-1.5 text-xs text-sky-100">
-            {AGENT_LABELS[request.agent_type]} &middot; {relativeTime(request.created_at)}
-          </p>
+      {handedOff ? (
+        <div className="flex items-start gap-3 rounded-xl border border-dashed border-slate-300 px-4 py-3">
+          <span className="mt-0.5 shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap text-slate-600">
+            General &rarr; {AGENT_LABELS[request.agent_type]}
+          </span>
+          <p className="min-w-0 text-sm text-slate-600">{request.prompt}</p>
         </div>
-      </div>
+      ) : (
+        <div className="flex justify-end">
+          <div className="max-w-xl rounded-2xl rounded-tr-sm bg-sky-600 px-4 py-3 text-white">
+            <p className="text-[15px] whitespace-pre-line">{request.prompt}</p>
+            <p className="mt-1.5 text-xs text-sky-100">
+              {AGENT_LABELS[request.agent_type]} &middot; {relativeTime(request.created_at)}
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="flex justify-start">
         <div
@@ -45,7 +60,9 @@ export default function ChatConversation({
 
           {request.status === 'completed' &&
             request.result != null &&
-            (isOutreachResult(request.result) ? (
+            (isGeneralResult(request.result) ? (
+              <GeneralReply result={request.result} />
+            ) : isOutreachResult(request.result) ? (
               <OutreachResultsPanel
                 key={request.id}
                 requestId={request.id}

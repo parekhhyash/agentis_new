@@ -175,7 +175,7 @@ export function AgentWork({ agent }: { agent: number }) {
 // The dashboard's live version: the agent running the request works at its
 // node, fed from the hub; when it's using another agent's output (e.g.
 // Outreach writing to Lead Research's leads), that hand-off flows between
-// the two. `agent` null means the Manager, working from the hub.
+// the two. `agent` null means the General agent, working from the hub.
 export function LiveAgentNetwork({
   agent,
   status,
@@ -268,6 +268,25 @@ export function LiveAgentNetwork({
           <span className="absolute inset-0 animate-ping rounded-full bg-brand-blue/20 motion-reduce:animate-none" />
           <span className="font-display relative text-[26px] leading-none text-slate-900">A</span>
         </span>
+
+        {/* The General agent thinking at the hub: brand-coloured dots circling it. */}
+        {agent === null && (
+          <span
+            className="absolute h-24 w-24 animate-[spin_2.2s_linear_infinite] motion-reduce:animate-none"
+            style={{ left: HUB.x - 48, top: HUB.y - 48 }}
+          >
+            {['bg-brand-blue', 'bg-brand-pink', 'bg-brand-yellow'].map((color, i) => {
+              const angle = (i / 3) * Math.PI * 2
+              return (
+                <span
+                  key={color}
+                  className={`absolute h-2.5 w-2.5 rounded-full ring-2 ring-surface ${color}`}
+                  style={{ left: 48 + Math.cos(angle) * 40 - 5, top: 48 + Math.sin(angle) * 40 - 5 }}
+                />
+              )
+            })}
+          </span>
+        )}
 
         <span className="absolute inset-x-0 bottom-4 flex justify-center">
           <span className="inline-flex max-w-[90%] items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-[11px] font-semibold whitespace-nowrap text-slate-700 shadow-sm ring-1 ring-slate-200">

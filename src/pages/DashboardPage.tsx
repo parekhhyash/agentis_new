@@ -1,17 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
 import { Navigate, useLocation, useSearchParams } from 'react-router-dom'
 import ChatConversation from '../components/dashboard/ChatConversation'
+import ConversationSidebar from '../components/dashboard/ConversationSidebar'
 import ConnectionsPanel from '../components/dashboard/ConnectionsPanel'
 import OutreachSetupBar from '../components/dashboard/OutreachSetupBar'
 import ProfileMenu from '../components/dashboard/ProfileMenu'
-import RequestSidebar from '../components/dashboard/RequestSidebar'
 import TaskComposer from '../components/dashboard/TaskComposer'
 import { CloseIcon, MenuIcon, PlugIcon, PlusIcon } from '../components/icons'
 import ThemeToggle from '../components/ThemeToggle'
-import { createAgentRequest, RUNNABLE_AGENTS, startAgentRun, stopAgentRun } from '../lib/agentRuns'
+import { createAgentRequest, RUNNABLE_AGENTS, startAgentRun, stopAgentRun, subscribeToRuns } from '../lib/agentRuns'
 import type { AgentType } from '../lib/agentTypes'
 import { useAuth } from '../lib/AuthContext'
+import { createConversation, type Conversation } from '../lib/conversations'
 import type { Json, Tables } from '../lib/database.types'
+import { isGeneralResult } from '../lib/generalTypes'
 import { useGoogleConnection } from '../lib/googleConnection'
 import { isOutreachResult, type OutreachAction } from '../lib/outreachTypes'
 import { CLIENT_TIMEOUT_MESSAGE, STOPPED_BY_USER_MESSAGE } from '../lib/salesAgentApi'
@@ -32,14 +34,16 @@ const CLIENT_SIDE_FAILURE_GRACE_MS = 1_250_000
 export default function DashboardPage() {
   const { user } = useAuth()
   const { profile, loading: loadingProfile } = useProfile()
+  // All of the user's turns (requests), oldest first, and the chats they belong to.
   const [requests, setRequests] = useState<AgentRequest[]>([])
+  const [conversations, setConversations] = useState<Conversation[]>([])
   const [loadingRequests, setLoadingRequests] = useState(true)
-  const [agentType, setAgentType] = useState<AgentType>('lead_research')
+  const [agentType, setAgentType] = useState<AgentType>('general')
   // Opens on a fresh chat; past chats are one click away in the sidebar. A
-  // run started from the landing page's prompt box opens on that run.
+  // run started from the landing page's prompt box opens on that chat.
   const location = useLocation()
   const [selectedId, setSelectedId] = useState<string | null>(
-    (location.state as { openRequestId?: string } | null)?.openRequestId ?? null,
+    (location.state as { openConversationId?: string } | null)?.openConversationId ?? null,
   )
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [leadRequestId, setLeadRequestId] = useState<string | null>(null)
@@ -86,15 +90,30 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!user) return
 
-    supabase
-      .from('agent_requests')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .then(({ data }) => {
-        setRequests(data ?? [])
-        setLoadingRequests(false)
-      })
+    Promise.all([
+      supabase.from('agent_requests').select('*').order('created_at', { ascending: true }),
+      supabase.from('conversations').select('*').order('updated_at', { ascending: false }),
+    ]).then(([turns, chats]) => {
+      setRequests(turns.data ?? [])
+      setConversations(chats.data ?? [])
+      setLoadingRequests(false)
+    })
   }, [user])
+
+  // Turns started by other runs (the General agent handing off) and their
+  // progress, even when the run began before this page mounted.
+  useEffect(
+    () =>
+      subscribeToRuns((event) => {
+        if (event.type === 'spawn') {
+          setRequests((prev) => (prev.some((r) => r.id === event.request.id) ? prev : [...prev, event.request]))
+          if (event.request.conversation_id) touchConversation(event.request.conversation_id)
+        } else {
+          setRequests((prev) => prev.map((r) => (r.id === event.id ? { ...r, ...event.patch } : r)))
+        }
+      }),
+    [],
+  )
 
   const requestsRef = useRef<AgentRequest[]>(requests)
   useEffect(() => {
@@ -134,6 +153,18 @@ export default function DashboardPage() {
     return () => clearInterval(interval)
   }, [])
 
+  // Keep the newest message in view when a chat opens or gets a new turn.
+  const openTurns = selectedId ? requests.filter((r) => r.conversation_id === selectedId) : []
+  const threadLength = openTurns.length
+  const lastStatus = openTurns[threadLength - 1]?.status
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el || threadLength === 0) return
+    // After the browser lays out the new turn (it grows once it starts working).
+    const frame = requestAnimationFrame(() => el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' }))
+    return () => cancelAnimationFrame(frame)
+  }, [selectedId, threadLength, lastStatus])
+
   if (!loadingProfile && profile && !profile.onboarding_completed) {
     return <Navigate to="/setup-company" replace />
   }
@@ -142,13 +173,33 @@ export default function DashboardPage() {
     setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)))
   }
 
+  // Moves a chat to the top of the list, as the database trigger does.
+  function touchConversation(id: string) {
+    setConversations((prev) => {
+      const chat = prev.find((c) => c.id === id)
+      if (!chat) return prev
+      return [{ ...chat, updated_at: new Date().toISOString() }, ...prev.filter((c) => c.id !== id)]
+    })
+  }
+
   async function handleSubmit(prompt: string) {
     if (!user) return
 
-    const data = await createAgentRequest(user.id, agentType, prompt)
+    // A message goes into the open chat; with none open it starts a new one.
+    let conversationId = view === 'chat' ? selectedId : null
+    if (!conversationId) {
+      const chat = await createConversation(user.id, prompt)
+      if (!chat) return
+      setConversations((prev) => [chat, ...prev])
+      conversationId = chat.id
+    }
+
+    const data = await createAgentRequest(user.id, agentType, prompt, conversationId)
     if (!data) return
-    setRequests((prev) => [data, ...prev])
-    setSelectedId(data.id)
+    setRequests((prev) => [...prev, data])
+    touchConversation(conversationId)
+    setSelectedId(conversationId)
+    setView('chat')
 
     // Agents without a backend yet just sit in the queue. Runs are
     // fire-and-forget: status updates flow back via updateRequest.
@@ -180,7 +231,10 @@ export default function DashboardPage() {
     )
   }
 
-  const leadRuns = requests.filter((r) => r.agent_type === 'lead_research' && r.status === 'completed').slice(0, 10)
+  const leadRuns = requests
+    .filter((r) => r.agent_type === 'lead_research' && r.status === 'completed')
+    .reverse()
+    .slice(0, 10)
   const outreachBlocked = agentType === 'sales_outreach' && !google.status?.connected
 
   function selectRequest(id: string | null) {
@@ -209,7 +263,19 @@ export default function DashboardPage() {
   )
 
   const firstName = profile?.full_name.split(' ')[0]
-  const selectedRequest = requests.find((r) => r.id === selectedId) ?? null
+  const thread = selectedId ? requests.filter((r) => r.conversation_id === selectedId) : []
+  const runningTurn = [...thread].reverse().find((r) => r.status === 'in_progress' || r.status === 'queued')
+  const latestTurn = (conversationId: string) => {
+    for (let i = requests.length - 1; i >= 0; i--) {
+      if (requests[i].conversation_id === conversationId) return requests[i]
+    }
+    return undefined
+  }
+  // A turn the General agent created by handing its message to a specialist.
+  const handedOff = (turn: AgentRequest, index: number) => {
+    const previous: unknown = thread[index - 1]?.result
+    return isGeneralResult(previous) && previous.route === turn.agent_type && previous.task === turn.prompt
+  }
 
   return (
     <div className="relative flex h-screen overflow-hidden bg-slate-50">
@@ -260,10 +326,11 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto px-2 py-2">
-          <RequestSidebar
-            requests={requests}
+          <ConversationSidebar
+            conversations={conversations}
+            latestTurn={latestTurn}
             loading={loadingRequests}
-            selectedId={selectedId}
+            selectedId={view === 'chat' ? selectedId : null}
             onSelect={selectRequest}
           />
         </div>
@@ -291,12 +358,16 @@ export default function DashboardPage() {
         <div ref={scrollRef} className="flex-1 overflow-y-auto [scrollbar-gutter:stable]">
           {view === 'connect' ? (
             <ConnectionsPanel google={google} notice={noticeBanner} />
-          ) : selectedRequest ? (
-            <div className="mx-auto max-w-3xl px-6 py-8">
-              <ChatConversation
-                request={selectedRequest}
-                onOutreachActionChange={(action) => mergeOutreachAction(selectedRequest.id, action)}
-              />
+          ) : thread.length > 0 ? (
+            <div className="mx-auto max-w-3xl space-y-8 px-6 py-8">
+              {thread.map((turn, index) => (
+                <ChatConversation
+                  key={turn.id}
+                  request={turn}
+                  handedOff={handedOff(turn, index)}
+                  onOutreachActionChange={(action) => mergeOutreachAction(turn.id, action)}
+                />
+              ))}
             </div>
           ) : (
             <div className="mx-auto flex h-full max-w-3xl flex-col items-center justify-center px-6 text-center">
@@ -304,8 +375,8 @@ export default function DashboardPage() {
                 {firstName ? `Welcome back, ${firstName}` : 'Welcome back'}
               </h1>
               <p className="mt-2 text-slate-500">
-                Pick an agent below, describe the task, and it'll show up here like a
-                conversation.
+                Ask General anything, from questions to plans. It answers, or hands the
+                task to the right agent.
               </p>
             </div>
           )}
@@ -332,10 +403,8 @@ export default function DashboardPage() {
               agentType={agentType}
               onAgentTypeChange={setAgentType}
               onSubmit={handleSubmit}
-              isRunning={
-                selectedRequest?.status === 'in_progress' || selectedRequest?.status === 'queued'
-              }
-              onStop={() => selectedRequest && stopAgentRun(selectedRequest.id)}
+              isRunning={Boolean(runningTurn)}
+              onStop={() => runningTurn && stopAgentRun(runningTurn.id)}
             />
           </div>
         </div>

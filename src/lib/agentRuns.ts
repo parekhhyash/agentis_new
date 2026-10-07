@@ -9,8 +9,9 @@
 // later from another (DashboardPage, mounted fresh after that navigation).
 
 import type { AgentType } from './agentTypes'
-import { BackendApiError } from './backendApi'
+import { authedFetch, BackendApiError } from './backendApi'
 import type { Json, Tables } from './database.types'
+import type { GeneralResult } from './generalTypes'
 import { runOutreach } from './outreachApi'
 import {
   cancelLeadsGeneration,
@@ -25,14 +26,32 @@ type AgentRequest = Tables<'agent_requests'>
 
 const abortControllers = new Map<string, AbortController>()
 
+// Runs can start other runs (the General agent handing a task to a
+// specialist), possibly after the component that started them unmounted, so
+// the dashboard listens here for new requests and their status changes.
+type RunEvent =
+  | { type: 'spawn'; request: AgentRequest }
+  | { type: 'update'; id: string; patch: Partial<AgentRequest> }
+const runListeners = new Set<(event: RunEvent) => void>()
+
+export function subscribeToRuns(listener: (event: RunEvent) => void): () => void {
+  runListeners.add(listener)
+  return () => runListeners.delete(listener)
+}
+
+function emit(event: RunEvent) {
+  runListeners.forEach((listener) => listener(event))
+}
+
 export async function createAgentRequest(
   userId: string,
   agentType: AgentType,
   prompt: string,
+  conversationId: string,
 ): Promise<AgentRequest | null> {
   const { data, error } = await supabase
     .from('agent_requests')
-    .insert({ user_id: userId, agent_type: agentType, prompt })
+    .insert({ user_id: userId, agent_type: agentType, prompt, conversation_id: conversationId })
     .select()
     .single()
 
@@ -126,8 +145,67 @@ export interface AgentRunOptions {
   leadRequestId?: string | null
 }
 
+// General: answers in the chat, or hands the message to a specialist agent,
+// which then runs as the next turn of the same conversation.
+export async function runGeneralAgent(
+  request: AgentRequest,
+  options: AgentRunOptions,
+  onUpdate?: (patch: Partial<AgentRequest>) => void,
+): Promise<void> {
+  const update = (patch: Partial<AgentRequest>) => {
+    onUpdate?.(patch)
+    emit({ type: 'update', id: request.id, patch })
+  }
+  const startedAt = new Date().toISOString()
+  await supabase.from('agent_requests').update({ status: 'in_progress', started_at: startedAt }).eq('id', request.id)
+  update({ status: 'in_progress', started_at: startedAt })
+
+  const controller = new AbortController()
+  abortControllers.set(request.id, controller)
+  let result: GeneralResult
+  try {
+    result = await authedFetch<GeneralResult>('/general/run', {
+      method: 'POST',
+      signal: controller.signal,
+      body: JSON.stringify({
+        prompt: request.prompt,
+        request_id: request.id,
+        company_context: options.companyContext,
+        user_name: options.senderName,
+      }),
+    })
+  } catch (err) {
+    const message =
+      err instanceof DOMException && err.name === 'AbortError'
+        ? STOPPED_BY_USER_MESSAGE
+        : err instanceof BackendApiError
+          ? err.message
+          : 'Unexpected error running the agent.'
+    await supabase.from('agent_requests').update({ status: 'failed', error: message }).eq('id', request.id)
+    update({ status: 'failed', error: message })
+    return
+  } finally {
+    abortControllers.delete(request.id)
+  }
+
+  await supabase
+    .from('agent_requests')
+    .update({ status: 'completed', result: result as unknown as Json, error: null })
+    .eq('id', request.id)
+  update({ status: 'completed', result: result as unknown as Json, error: null })
+
+  if (result.route === 'none' || !request.conversation_id) return
+  const next = await createAgentRequest(request.user_id, result.route, result.task, request.conversation_id)
+  if (!next) return
+  emit({ type: 'spawn', request: next })
+  // The specialist picks up leads from earlier in the chat on the backend.
+  void startAgentRun(next, { ...options, leadRequestId: null }, (patch) =>
+    emit({ type: 'update', id: next.id, patch }),
+  )
+}
+
 // Agents with a real backend behind them; the rest stay queued for now.
-export const RUNNABLE_AGENTS: AgentType[] = ['lead_research', 'sales_outreach']
+export const RUNNABLE_AGENTS: AgentType[] = ['general', 'lead_research', 'sales_outreach']
 
 export function startAgentRun(
   request: AgentRequest,
@@ -139,6 +217,9 @@ export function startAgentRun(
   }
   if (request.agent_type === 'sales_outreach') {
     return runSalesOutreachAgent(request.id, request.prompt, options, onUpdate)
+  }
+  if (request.agent_type === 'general') {
+    return runGeneralAgent(request, options, onUpdate)
   }
   return undefined
 }
