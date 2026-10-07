@@ -56,6 +56,8 @@ class OutreachContext:
     now: datetime
     company: dict[str, Any] = field(default_factory=dict)
     leads: list[dict[str, Any]] = field(default_factory=list)
+    # Earlier turns of the chat, rendered as text ("" for a new chat).
+    history: str = ""
 
 
 def extract_addresses(text: str) -> set[str]:
@@ -159,6 +161,7 @@ class SalesOutreachAgent:
                 sender_email=ctx.sender_email,
                 company=_company_text(ctx.company),
                 leads=json.dumps(ctx.leads, ensure_ascii=False, indent=1) if ctx.leads else "(none)",
+                history=ctx.history or "(this is the first message)",
                 instruction=ctx.instruction,
             ),
             tier="strong",
@@ -171,7 +174,8 @@ class SalesOutreachAgent:
         result.summary = str(data.get("summary") or "").strip()
         result.notes.extend(str(q).strip() for q in (data.get("questions") or [])[:5] if str(q).strip())
 
-        allowed = extract_addresses(ctx.instruction) | lead_addresses(ctx.leads)
+        # Addresses the user gave earlier in the chat count too ("email him again").
+        allowed = extract_addresses(ctx.instruction) | lead_addresses(ctx.leads) | extract_addresses(ctx.history)
         raw_actions = [a for a in (data.get("actions") or []) if isinstance(a, dict)][: self._max_actions]
 
         reply_intents: list[dict[str, Any]] = []

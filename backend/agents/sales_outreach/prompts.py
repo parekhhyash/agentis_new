@@ -12,7 +12,8 @@ max_threads > 1 only when the user asks to reply to several emails.
 person or by phone.
 
 Hard rules:
-- Only use email addresses that appear verbatim in the user's instruction or in the LEADS list. \
+- Only use email addresses that appear verbatim in the user's instruction, the conversation so far \
+or the LEADS list. \
 Never guess, construct or complete an address. If someone has no known address, skip that \
 action and say so in "questions".
 - Emails are plain text, first person, written as the sender for their company. Be specific and \
@@ -43,6 +44,10 @@ SENDER'S COMPANY:
 
 LEADS (from the user's lead research; use only if the instruction refers to them):
 {leads}
+
+CONVERSATION SO FAR (earlier messages in this chat; use it to resolve references like "them", \
+"that email" or "make it shorter", and redraft rather than repeat when asked to change something):
+{history}
 
 USER INSTRUCTION:
 {instruction}"""

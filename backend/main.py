@@ -3,6 +3,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from api.general import router as general_router
 from api.integrations import router as integrations_router
 from api.outreach import router as outreach_router
 from api.routes import router as sales_agent_router
@@ -28,6 +29,7 @@ app.add_middleware(
 
 app.include_router(sales_agent_router)
 app.include_router(outreach_router)
+app.include_router(general_router)
 app.include_router(integrations_router)
 
 

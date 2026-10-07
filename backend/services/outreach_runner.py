@@ -28,6 +28,7 @@ from integrations.google.gmail import GmailClient
 from services import supabase_rest
 from services.auth import AuthUser
 from services.cancellation import clear_cancellation, is_cancelled
+from services.conversation_context import load_context
 from services.progress_reporter import ProgressTracker
 from services.request_store import finalize_request
 from services.uuid_utils import is_valid_request_id
@@ -131,6 +132,11 @@ async def _run(
     if not connection:
         raise GoogleNotConnectedError("Connect your Google account first so the agent can use Gmail and Calendar")
 
+    # Earlier turns of this chat: lets "email them" or "make it shorter"
+    # resolve, and a Lead Research turn earlier in the chat supplies the leads.
+    context = await load_context(user.id, request_id)
+    lead_request_id = lead_request_id or context.latest_lead_request_id
+
     leads: list[dict[str, Any]] = []
     if lead_request_id:
         lead_row = await _owned_request(user.id, lead_request_id, "lead_research")
@@ -146,6 +152,7 @@ async def _run(
         now=datetime.now(timezone.utc),
         company={k: v for k, v in company_context.items() if v},
         leads=leads,
+        history=context.render() if context.turns else "",
     )
     try:
         async with httpx.AsyncClient(timeout=20.0) as client:
