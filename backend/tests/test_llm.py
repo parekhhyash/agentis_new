@@ -122,3 +122,34 @@ def test_reasoning_effort_can_be_disabled():
     client = build_llm_client(_settings(llm_provider="groq", groq_api_key="k", llm_reasoning_effort=""))
 
     assert "reasoning_effort" not in client._specs["fast"].extra
+
+
+def test_openrouter_preference_allows_fallback_providers():
+    from agents.lead_research.llm import build_llm_client
+
+    client = build_llm_client(_settings(llm_provider="openrouter", openrouter_api_key="k"))
+    provider = client._specs["strong"].extra["extra_body"]["provider"]
+    assert provider["allow_fallbacks"] is True and "quantizations" not in provider
+
+
+def test_missing_route_retries_without_provider_preference(monkeypatch):
+    import litellm
+
+    calls = []
+
+    async def acompletion(**kwargs):
+        calls.append(kwargs)
+        if "provider" in kwargs.get("extra_body", {}):
+            raise litellm.NotFoundError(message="No endpoints found", model="m", llm_provider="openrouter")
+        return _response('{"ok": true}')
+
+    monkeypatch.setattr(litellm, "acompletion", acompletion)
+    spec = ModelSpec(model="openrouter/m", api_key="k", extra={"extra_body": {"provider": {"order": ["x"]}, "reasoning": {"enabled": False}}})
+    client = LiteLLMClient(fast=spec, strong=spec, reasoning_allowance=0)
+
+    result = asyncio.run(client.complete_json(system="s", user="u", tier="fast", max_tokens=10))
+    assert result.data == {"ok": True}
+    assert calls[-1]["extra_body"] == {"reasoning": {"enabled": False}}
+    # The preference stays dropped for later calls.
+    asyncio.run(client.complete_json(system="s", user="u", tier="fast", max_tokens=10))
+    assert len(calls) == 3

@@ -106,6 +106,17 @@ class LiteLLMClient:
             )
         except litellm.AuthenticationError as exc:
             raise ResearchConfigError(f"LLM provider rejected the API key for {spec.model}") from exc
+        except litellm.NotFoundError:
+            # OpenRouter answers 404 when no endpoint matches the preferred
+            # provider/quantization (providers change what they serve). Drop
+            # the preference for the rest of this client's life and retry on
+            # normal routing rather than failing every call.
+            body = spec.extra.get("extra_body") or {}
+            if "provider" not in body:
+                raise
+            logger.warning("No OpenRouter route for %s with the preferred provider; using default routing", spec.model)
+            spec.extra = {**spec.extra, "extra_body": {k: v for k, v in body.items() if k != "provider"}}
+            return await self._call(spec, system, user, limit)
 
         choice = response.choices[0]
         usage = getattr(response, "usage", None)
@@ -146,13 +157,13 @@ def build_llm_client(settings: Any) -> LiteLLMClient:
                 # (DeepSeek) ignore effort levels, so "none" must disable it.
                 body["reasoning"] = {"enabled": False} if effort == "none" else {"effort": effort}
             if chosen == settings.openrouter_model and settings.openrouter_provider_order:
-                # Pin the default model to the cheap route we validated; overrides
-                # use OpenRouter's normal routing since the pinned provider may not
-                # serve them.
+                # Prefer the cheap route we validated for the default model, but
+                # let OpenRouter fall back to other providers: a hard pin broke
+                # every call when that provider stopped serving the model.
+                # Overrides use normal routing since the provider may not serve them.
                 body["provider"] = {
                     "order": [p.strip() for p in settings.openrouter_provider_order.split(",") if p.strip()],
-                    "quantizations": ["fp8"],
-                    "allow_fallbacks": False,
+                    "allow_fallbacks": True,
                 }
             if body:
                 extra["extra_body"] = body

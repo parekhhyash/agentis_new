@@ -60,6 +60,9 @@ def _to_outreach_error(exc: Exception) -> OutreachError:
         return OutreachError("The model returned an unusable answer, try again", 502)
     if isinstance(exc, OutreachCancelledError):
         return OutreachError("Stopped by you.", 409)
+    if type(exc).__module__.startswith("litellm"):
+        logger.warning("LLM provider error during sales outreach: %s", exc)
+        return OutreachError("The AI model provider returned an error, try again in a minute", 502)
     if isinstance(exc, asyncio.TimeoutError):
         return OutreachError(f"The agent didn't finish within {RUN_TIMEOUT_SECONDS:.0f}s", 504)
     logger.exception("Unexpected sales outreach failure")
