@@ -4,7 +4,7 @@ import type { AgentType } from './agentTypes'
 export interface GeneralResult {
   kind: 'general'
   reply: string
-  route: 'none' | Extract<AgentType, 'lead_research' | 'sales_outreach'>
+  route: 'none' | Extract<AgentType, 'lead_research' | 'sales_outreach' | 'data_reporting'>
   task: string
 }
 

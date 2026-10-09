@@ -31,6 +31,14 @@ function formatElapsed(totalSeconds: number): string {
 // Another agent's output this run is using, read from its progress steps
 // (Sales & Outreach reports "Using 5 lead(s) from your research").
 function handoffFor(agentType: AgentType, progress: AgentProgress | null): { from: number; carry: string } | null {
+  if (agentType === 'data_reporting') {
+    // "Reading 42 leads from Lead Research" / "Reading 18 emails from Sales & Outreach"
+    const step = [...(progress?.steps ?? [])].reverse().find((s) => /^Reading \d+ (leads|emails) from/i.test(s.label))
+    const match = step?.label.match(/^Reading (\d+) (leads|emails)/i)
+    if (!match) return null
+    const kind = match[2].toLowerCase()
+    return { from: AGENT_NODE[kind === 'leads' ? 'lead_research' : 'sales_outreach'] ?? 0, carry: `${match[1]} ${kind}` }
+  }
   if (agentType !== 'sales_outreach') return null
   const step = progress?.steps?.find((s) => /from your research/i.test(s.label))
   if (!step) return null
@@ -59,7 +67,13 @@ export default function AgentProgressView({
       <div className="w-full max-w-[17rem] shrink-0">
         <LiveAgentNetwork
           agent={node}
-          status={handoff ? `${label} is using your leads` : node === null ? 'General is thinking' : `${label} is working`}
+          status={
+            handoff
+              ? `${label} is using your ${handoff.carry.replace(/^\d+ /, '')}`
+              : node === null
+                ? 'General is thinking'
+                : `${label} is working`
+          }
           handoffFrom={handoff?.from}
           carry={handoff?.carry}
         />

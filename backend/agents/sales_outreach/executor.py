@@ -1,6 +1,6 @@
 """Carries out one drafted action after the user approves it."""
 
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Protocol
 from zoneinfo import ZoneInfo
 
@@ -117,4 +117,5 @@ async def execute(
         done.meet_link = event.get("hangoutLink")
         done.status = "scheduled"
     done.error = None
+    done.done_at = datetime.now(timezone.utc).isoformat()
     return done

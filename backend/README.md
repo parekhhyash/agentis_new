@@ -52,6 +52,26 @@ link), `discard` drops it, `save` keeps edits. Every endpoint here requires the
 user's Supabase session (`Authorization: Bearer <access token>`) and only
 touches that user's rows.
 
+## How the Data & Reporting Agent works
+
+```
+Question (+ attached files, company profile, earlier turns)
+  -> Catalogue  built-in tables from agent_requests (leads, emails, meetings,
+                agent_runs) + the user's uploads (columns, types, samples)
+  -> Planner    1 strong-model call: up to 6 blocks (kpi/line/bar/pie/table),
+                each a query in query.py's JSON language
+  -> Check      every dataset/column/operator/value checked against the data;
+                failing blocks go back to the model once with the reasons
+  -> Run        upload rows load only when used; reply status read live from
+                Gmail when a query uses it; queries run in plain Python
+  -> Summary    written from the results; numbers not in the results trigger
+                one rewrite, then a summary read straight off the results
+```
+
+`POST /data/datasets` takes `{filename, content_base64}` (CSV or .xlsx, up to
+5 MB / 20,000 rows) and stores typed rows in `datasets`
+(`supabase/migrations/20261009000000_data_reporting.sql`).
+
 ### Connecting Google
 
 `GET /integrations/google/auth-url` returns Google's consent URL; Google
@@ -85,6 +105,8 @@ users needs Google's app verification.
 ```
 backend/
 ├── agents/sales_outreach/  # planner + guard + reply drafting, executor, prompts
+├── agents/general/         # answers or routes each chat message
+├── agents/data_reporting/  # tables.py (uploads), activity.py, query.py, verify.py, agent.py
 ├── integrations/google/    # OAuth, encrypted connections, Gmail + Calendar clients
 ├── agents/lead_research/
 │   ├── agent.py            # orchestrator: stages, stop conditions, progress

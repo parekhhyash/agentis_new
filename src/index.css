@@ -33,6 +33,17 @@
   --color-surface: #ffffff;
   --color-page: #ffffff;
   --color-ink: #0f172a;
+
+  /* Report charts: categorical slots in a fixed order, validated for
+     colour-vision deficiency on both surfaces (dark steps below). Single
+     series charts use slot 1; "Other" is neutral. */
+  --color-viz-1: #3d7ffd;
+  --color-viz-2: #d680d0;
+  --color-viz-3: #eda100;
+  --color-viz-4: #6632fa;
+  --color-viz-5: #51b6fd;
+  --color-viz-6: #b972a1;
+  --color-viz-other: #94a3b8;
   --animate-marquee: marquee 40s linear infinite;
   --animate-marquee-slow: marquee 60s linear infinite;
   --animate-aurora: aurora 18s ease-in-out infinite alternate;
@@ -201,6 +212,12 @@ body,
   --color-slate-950: #fafafa;
 
   --color-zinc-100: #262626;
+
+  --color-viz-2: #c05cba;
+  --color-viz-3: #c98500;
+  --color-viz-4: #9d6bff;
+  --color-viz-5: #2f97de;
+  --color-viz-other: #6b6b6b;
 
   /* Pale status tints become translucent washes, and their dark text
      shades lighten so they stay readable on #1c1c1c. */

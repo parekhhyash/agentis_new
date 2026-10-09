@@ -37,6 +37,8 @@ The system is built as a **React + TypeScript** frontend (Vite) paired with a **
 
 - **Lead Research Agent** — Discovers, filters, deeply researches, and qualifies companies as potential sales leads using Exa search and LLM analysis
 - **Sales & Outreach Agent** — Drafts personalized emails, thread-aware replies, and calendar invitations using the user's connected Gmail and Google Calendar
+- **General Agent** — The default chat agent: answers questions with company and conversation context, or hands the task to the right specialist
+- **Data & Reporting Agent** — Answers questions about numbers with headline figures, charts and tables, from the user's Agentis activity (leads, emails, replies, meetings) and CSV/Excel files they upload. The model plans queries; the backend runs every calculation, and the written summary may only quote numbers that the queries produced
 - **Conversational Dashboard** — Chat-style UI where each agent request appears as a conversation with real-time progress updates
 - **Google Integration** — Secure OAuth 2.0 flow to connect Gmail (send, read, reply) and Google Calendar (create events with Meet links)
 - **Human-in-the-Loop** — All outreach drafts require explicit user approval before sending; users can edit, approve, discard, or save each action
@@ -332,16 +334,47 @@ Instruction + Company context + Optional leads from Lead Research
 - **Discard** → Drops the draft
 - **Save** → Keeps edits without sending
 
+### Data & Reporting Agent
+
+```
+Question + attached files + company context + earlier turns of the chat
+  │
+  ▼
+┌──────────────────────────────────────────────────────────────────┐
+│ 1. Catalogue           Built-in tables from agent_requests       │
+│    (leads, emails, meetings, agent_runs) + the user's uploads    │
+│    with column names, types and sample values                    │
+├──────────────────────────────────────────────────────────────────┤
+│ 2. Planner             1 strong-model call: up to 6 blocks       │
+│    (kpi, line, bar, pie, table), each a query in a small JSON    │
+│    language (filters, group_by + time bucket, metrics, sort)     │
+├──────────────────────────────────────────────────────────────────┤
+│ 3. Check + repair      Every dataset, column, operator and value │
+│    is checked against the real schema; failing blocks go back to │
+│    the model once with the reasons, the rest are left out        │
+├──────────────────────────────────────────────────────────────────┤
+│ 4. Load + run          Upload rows load only if used; reply      │
+│    status is checked live in Gmail when a query needs it;        │
+│    queries run in plain Python (no eval, no SQL)                 │
+├──────────────────────────────────────────────────────────────────┤
+│ 5. Summary + verify    The model writes the summary from the     │
+│    results; any number not in the results triggers one rewrite,  │
+│    then a plain summary read straight off the results            │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+**Uploads** — CSV or Excel (`.xlsx`) up to 5 MB / 20,000 rows. The backend skips title rows, drops empty columns, and types each column as number (₹/$, lakh commas and `(1,000)` negatives understood), date (day-first when ambiguous), yes/no or text, so queries never parse raw strings.
+
 ---
 
 ## Core Workflow
 
 1. **Sign Up / Sign In** — Create an account with email + password (Supabase Auth)
 2. **Company Setup** — Enter company name, website, industry, description, and target audience location during onboarding
-3. **Pick an Agent** — Select Lead Research or Sales & Outreach from the dashboard's task composer
+3. **Pick an Agent** — Ask General (the default), or pick Lead Research, Sales & Outreach or Data & Reporting in the task composer; attach a CSV or Excel file with the paperclip to ask about your own numbers
 4. **Describe the Task** — Enter a natural-language request (e.g., *"Find 10 fintech startups in Southeast Asia"*)
 5. **Watch Progress** — The agent runs and pushes live step-by-step progress visible in the chat view
-6. **Review Results** — Lead Research shows a table of qualified companies with contacts and evidence; Sales & Outreach shows editable email/meeting draft cards
+6. **Review Results** — Lead Research shows a table of qualified companies with contacts and evidence; Sales & Outreach shows editable email/meeting draft cards; Data & Reporting shows a summary with number tiles, charts and tables (each with its calculation, a table view and CSV download)
 7. **Take Action** — Export leads as CSV, or approve/edit/discard outreach drafts
 8. **Iterate** — Start new chats, link lead research results to outreach runs, review history in the sidebar
 
@@ -526,6 +559,14 @@ The frontend runs at `http://localhost:5173` and the backend at `http://localhos
 | `POST` | `/sales-outreach/requests/{id}/actions/{action_id}` | ✅ Bearer | Approve, discard, or save a drafted action |
 | `POST` | `/sales-outreach/cancel` | ✅ Bearer | Cancel a running outreach request |
 
+### General and Data & Reporting
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| `POST` | `/general/run` | ✅ Bearer | Answer a message or route it to a specialist agent |
+| `POST` | `/data/run` | ✅ Bearer | Build a report (numbers, charts, tables) for a question |
+| `POST` | `/data/datasets` | ✅ Bearer | Upload a CSV/Excel file (base64) to be parsed and stored |
+
 ### Google Integration
 
 | Method | Endpoint | Auth | Description |
@@ -558,7 +599,9 @@ The frontend runs at `http://localhost:5173` and the backend at `http://localhos
 |---|---|---|
 | `id` | `uuid` (PK) | Request identifier |
 | `user_id` | `uuid` (FK) | Owning user |
-| `agent_type` | `enum` | `lead_research`, `sales_outreach`, `manager`, etc. |
+| `agent_type` | `enum` | `general`, `lead_research`, `sales_outreach`, `data_reporting`, etc. |
+| `conversation_id` | `uuid` (FK) | The chat this turn belongs to |
+| `attachments` | `jsonb` | Files attached to the message: `[{type: "dataset", id, name}]` |
 | `prompt` | `text` | User's natural-language request |
 | `status` | `enum` | `queued` → `in_progress` → `completed` / `failed` |
 | `result` | `jsonb` | Agent output (leads or outreach drafts) |
@@ -579,6 +622,20 @@ The frontend runs at `http://localhost:5173` and the backend at `http://localhos
 | `updated_at` | `timestamptz` | Last token update |
 
 > RLS is enabled on `google_connections` with **no policies** — only the backend (service role key) can access it. The encrypted refresh token never reaches the browser.
+
+### `datasets`
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | `uuid` (PK) | Dataset identifier |
+| `user_id` | `uuid` (FK) | Owning user |
+| `name` / `filename` | `text` | Display name and original file name |
+| `columns` | `jsonb` | `[{name, type, samples, min, max, unit}]` |
+| `rows` | `jsonb` | Typed rows (numbers, ISO dates, booleans, null for blanks) |
+| `row_count` / `size_bytes` | `integer` | Size of the upload |
+| `created_at` | `timestamptz` | Upload time |
+
+> Users can read and delete their own datasets (RLS); uploads are parsed and inserted by the backend.
 
 ---
 
@@ -620,6 +677,9 @@ python -m pytest tests
 Test coverage includes:
 - Full lead research pipeline (`test_pipeline.py`)
 - Sales outreach agent and executor (`test_outreach.py`)
+- Reply checking (`test_replies.py`)
+- General agent and conversation context (`test_general.py`)
+- Data & Reporting: file parsing, query checks and execution, summary number checks, live reply status (`test_data_reporting.py`)
 - LLM client behavior (`test_llm.py`)
 - Exa search provider (`test_exa.py`)
 - Contact research (`test_contacts.py`)
@@ -637,10 +697,10 @@ The codebase defines several agent types that are registered in the UI but do no
 |---|---|---|
 | **Lead Research** | ✅ Implemented | Find and qualify companies as leads |
 | **Sales & Outreach** | ✅ Implemented | Draft and send emails, schedule meetings |
-| **Manager** | 🔜 Planned | Coordinates other agents for multi-step workflows |
+| **General** | ✅ Implemented | Answers questions and routes tasks to specialist agents |
+| **Data & Reporting** | ✅ Implemented | Reports with charts from Agentis activity and uploaded files |
 | **Content & Copy** | 🔜 Planned | Blog posts, ad copy, social captions |
 | **Customer Support** | 🔜 Planned | Ticket resolution and routing |
-| **Data & Reporting** | 🔜 Planned | Weekly reports from raw data |
 | **Operations** | 🔜 Planned | Back-office automation |
 
 ---

@@ -31,7 +31,7 @@ from agents.sales_outreach.schemas import (
     ReplyCheck,
 )
 from integrations.google.errors import GoogleAPIError
-from integrations.google.gmail import GmailThread, addresses, reply_recipient, reply_subject, thread_link
+from integrations.google.gmail import GmailMessage, GmailThread, addresses, reply_recipient, reply_subject, thread_link
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +95,17 @@ def is_email(value: str) -> bool:
 
 def lead_addresses(leads: list[dict[str, Any]]) -> set[str]:
     return extract_addresses(json.dumps(leads))
+
+
+def thread_replies(thread: GmailThread, own: str) -> tuple[list[GmailMessage], bool]:
+    """Messages from the other side after the user's first message in the
+    thread, and whether the latest message is theirs (so they await an answer)."""
+    own = own.lower()
+    senders = [addresses(m.sender)[:1] for m in thread.messages]
+    first_own = next((i for i, s in enumerate(senders) if s and s[0] == own), 0)
+    replies = [m for m, s in zip(thread.messages[first_own:], senders[first_own:]) if s and s[0] != own]
+    last_is_theirs = bool(senders and senders[-1] and senders[-1][0] != own)
+    return replies, last_is_theirs
 
 
 def compact_leads(result: dict[str, Any] | None, limit: int = 15) -> list[dict[str, Any]]:
@@ -381,10 +392,7 @@ class SalesOutreachAgent:
             except GoogleAPIError:
                 continue  # deleted or no longer accessible
             result.usage.threads_read += 1
-            senders = [addresses(m.sender)[:1] for m in thread.messages]
-            first_own = next((i for i, s in enumerate(senders) if s and s[0] == own), 0)
-            replies = [m for m, s in zip(thread.messages[first_own:], senders[first_own:]) if s and s[0] != own]
-            last_is_theirs = bool(senders and senders[-1] and senders[-1][0] != own)
+            replies, last_is_theirs = thread_replies(thread, own)
             check = ReplyCheck(
                 thread_id=thread.id,
                 to=item.to,

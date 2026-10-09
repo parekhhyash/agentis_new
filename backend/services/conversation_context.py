@@ -17,6 +17,7 @@ AGENT_LABELS = {
     "general": "General",
     "lead_research": "Lead Research",
     "sales_outreach": "Sales & Outreach",
+    "data_reporting": "Data & Reporting",
 }
 
 
@@ -79,6 +80,14 @@ def summarize(row: dict[str, Any]) -> str:
                     f"- {action.get('type')} to {', '.join(action.get('to', []))}, subject \"{action.get('subject')}\" "
                     f"[{status}]: {_clip(action.get('body', ''), 300)}"
                 )
+        return "\n".join(lines)
+
+    if kind == "data_report":
+        lines = [f"Report \"{result.get('title', '')}\": {_clip(result.get('summary', ''), 600)}"]
+        for block in (result.get("blocks") or [])[:6]:
+            columns = [c.get("name") for c in block.get("columns", [])]
+            rows = "; ".join(", ".join(str(v) for v in row) for row in (block.get("rows") or [])[:5])
+            lines.append(f"- {block.get('title')} ({', '.join(map(str, columns))}): {_clip(rows, 300)}")
         return "\n".join(lines)
 
     leads = result.get("leads")

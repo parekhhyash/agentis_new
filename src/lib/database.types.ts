@@ -17,6 +17,7 @@ export type Database = {
       agent_requests: {
         Row: {
           agent_type: Database["public"]["Enums"]["agent_type"]
+          attachments: Json | null
           conversation_id: string | null
           created_at: string
           error: string | null
@@ -30,6 +31,7 @@ export type Database = {
         }
         Insert: {
           agent_type: Database["public"]["Enums"]["agent_type"]
+          attachments?: Json | null
           conversation_id?: string | null
           created_at?: string
           error?: string | null
@@ -43,6 +45,7 @@ export type Database = {
         }
         Update: {
           agent_type?: Database["public"]["Enums"]["agent_type"]
+          attachments?: Json | null
           conversation_id?: string | null
           created_at?: string
           error?: string | null
@@ -84,6 +87,42 @@ export type Database = {
           id?: string
           title?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      datasets: {
+        Row: {
+          columns: Json
+          created_at: string
+          filename: string
+          id: string
+          name: string
+          row_count: number
+          rows: Json
+          size_bytes: number
+          user_id: string
+        }
+        Insert: {
+          columns: Json
+          created_at?: string
+          filename: string
+          id?: string
+          name: string
+          row_count: number
+          rows: Json
+          size_bytes: number
+          user_id: string
+        }
+        Update: {
+          columns?: Json
+          created_at?: string
+          filename?: string
+          id?: string
+          name?: string
+          row_count?: number
+          rows?: Json
+          size_bytes?: number
           user_id?: string
         }
         Relationships: []

@@ -54,6 +54,16 @@ async def upsert(table: str, row: dict[str, Any], on_conflict: str) -> None:
         response.raise_for_status()
 
 
+async def insert(table: str, row: dict[str, Any], select: str = "*", timeout: float = 30.0) -> dict[str, Any]:
+    """Inserts one row and returns the stored row (only the `select` columns)."""
+    url, headers = _base()
+    headers = {**headers, "Prefer": "return=representation"}
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        response = await client.post(f"{url}/rest/v1/{table}", headers=headers, params={"select": select}, json=row)
+        response.raise_for_status()
+        return response.json()[0]
+
+
 async def update(table: str, params: dict[str, str], patch: dict[str, Any]) -> None:
     url, headers = _base()
     headers = {**headers, "Prefer": "return=minimal"}

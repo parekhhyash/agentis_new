@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { CONNECTORS, type ConnectorInfo } from '../../lib/connectors'
 import type { GoogleStatus } from '../../lib/googleConnection'
 import { GoogleIcon } from '../icons'
+import DataFilesPanel from './DataFilesPanel'
 
 function Tile({ connector }: { connector: ConnectorInfo }) {
   return (
@@ -97,6 +98,8 @@ export default function ConnectionsPanel({
           </Card>
         ))}
       </div>
+
+      <DataFilesPanel />
     </div>
   )
 }

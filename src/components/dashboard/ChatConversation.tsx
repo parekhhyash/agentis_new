@@ -1,5 +1,6 @@
 import { AGENT_LABELS } from '../../lib/agentTypes'
 import type { Tables } from '../../lib/database.types'
+import { attachmentsOf, isDataReport } from '../../lib/dataTypes'
 import { relativeTime } from '../../lib/relativeTime'
 import { isGeneralResult } from '../../lib/generalTypes'
 import { isOutreachResult, type OutreachAction } from '../../lib/outreachTypes'
@@ -8,6 +9,8 @@ import AgentProgressView from './AgentProgressView'
 import GeneralReply from './GeneralReply'
 import LeadResultsPanel from './LeadResultsPanel'
 import OutreachResultsPanel from './OutreachResultsPanel'
+import ReportPanel from './report/ReportPanel'
+import { SheetIcon } from '../icons'
 
 type AgentRequest = Tables<'agent_requests'>
 
@@ -24,6 +27,23 @@ export default function ChatConversation({
   onOutreachActionChange?: (action: OutreachAction) => void
   onResultChange?: (result: unknown) => void
 }) {
+  const files = attachmentsOf(request.attachments)
+  const fileChips = files.length > 0 && (
+    <ul className={`flex flex-wrap gap-1.5 ${handedOff ? 'mt-2' : 'mb-2 justify-end'}`}>
+      {files.map((file) => (
+        <li
+          key={file.id}
+          className={`flex max-w-full items-center gap-1.5 rounded-md px-2 py-1 text-xs ${
+            handedOff ? 'bg-slate-100 text-slate-600' : 'bg-white/15 text-white'
+          }`}
+        >
+          <SheetIcon className="h-3 w-3 shrink-0" />
+          <span className="truncate">{file.name}</span>
+        </li>
+      ))}
+    </ul>
+  )
+
   return (
     <div className="space-y-6">
       {handedOff ? (
@@ -31,11 +51,15 @@ export default function ChatConversation({
           <span className="mt-0.5 shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap text-slate-600">
             General &rarr; {AGENT_LABELS[request.agent_type]}
           </span>
-          <p className="min-w-0 text-sm text-slate-600">{request.prompt}</p>
+          <div className="min-w-0">
+            <p className="text-sm text-slate-600">{request.prompt}</p>
+            {fileChips}
+          </div>
         </div>
       ) : (
         <div className="flex justify-end">
           <div className="max-w-xl rounded-2xl rounded-tr-sm bg-sky-600 px-4 py-3 text-white">
+            {fileChips}
             <p className="text-[15px] whitespace-pre-line">{request.prompt}</p>
             <p className="mt-1.5 text-xs text-sky-100">
               {AGENT_LABELS[request.agent_type]} &middot; {relativeTime(request.created_at)}
@@ -64,6 +88,8 @@ export default function ChatConversation({
             request.result != null &&
             (isGeneralResult(request.result) ? (
               <GeneralReply result={request.result} />
+            ) : isDataReport(request.result) ? (
+              <ReportPanel result={request.result} />
             ) : isOutreachResult(request.result) ? (
               <OutreachResultsPanel
                 key={request.id}

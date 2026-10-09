@@ -13,6 +13,7 @@ import type { AgentType } from '../lib/agentTypes'
 import { useAuth } from '../lib/AuthContext'
 import { createConversation, type Conversation } from '../lib/conversations'
 import type { Json, Tables } from '../lib/database.types'
+import type { Attachment } from '../lib/dataTypes'
 import { isGeneralResult } from '../lib/generalTypes'
 import { useGoogleConnection } from '../lib/googleConnection'
 import { isOutreachResult, type OutreachAction } from '../lib/outreachTypes'
@@ -182,7 +183,7 @@ export default function DashboardPage() {
     })
   }
 
-  async function handleSubmit(prompt: string) {
+  async function handleSubmit(prompt: string, attachments: Attachment[] = []) {
     if (!user) return
 
     // A message goes into the open chat; with none open it starts a new one.
@@ -194,7 +195,7 @@ export default function DashboardPage() {
       conversationId = chat.id
     }
 
-    const data = await createAgentRequest(user.id, agentType, prompt, conversationId)
+    const data = await createAgentRequest(user.id, agentType, prompt, conversationId, attachments)
     if (!data) return
     setRequests((prev) => [...prev, data])
     touchConversation(conversationId)
@@ -377,7 +378,7 @@ export default function DashboardPage() {
               </h1>
               <p className="mt-2 text-slate-500">
                 Ask General anything, from questions to plans. It answers, or hands the
-                task to the right agent.
+                task to the right agent. Attach a CSV or Excel file to ask about your numbers.
               </p>
             </div>
           )}

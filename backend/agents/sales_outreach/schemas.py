@@ -15,6 +15,8 @@ class _Action(BaseModel):
     error: str | None = None
     # Why the agent drafted this (shown to the user while reviewing).
     rationale: str | None = None
+    # When it was sent or scheduled (UTC ISO), for reporting.
+    done_at: str | None = None
 
 
 class EmailAction(_Action):

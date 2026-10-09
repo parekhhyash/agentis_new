@@ -9,8 +9,8 @@ from pydantic import BaseModel
 from agents.general import prompts
 from agents.lead_research.llm import LLMClient
 
-Route = Literal["none", "lead_research", "sales_outreach"]
-ROUTES = ("lead_research", "sales_outreach")
+Route = Literal["none", "lead_research", "sales_outreach", "data_reporting"]
+ROUTES = ("lead_research", "sales_outreach", "data_reporting")
 
 
 class GeneralResult(BaseModel):
@@ -32,7 +32,14 @@ class GeneralAgent:
         self._llm = llm
 
     async def run(
-        self, *, message: str, history: str, company: dict[str, Any], user_name: str, today: datetime
+        self,
+        *,
+        message: str,
+        history: str,
+        company: dict[str, Any],
+        user_name: str,
+        today: datetime,
+        attachments: str = "",
     ) -> GeneralResult:
         out = await self._llm.complete_json(
             system=prompts.SYSTEM,
@@ -41,6 +48,7 @@ class GeneralAgent:
                 user_name=user_name or "the user",
                 company=_company_text(company),
                 history=history,
+                attachments=attachments or "(none)",
                 message=message,
             ),
             tier="strong",

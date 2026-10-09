@@ -48,7 +48,7 @@ class OutreachError(Exception):
         self.status = status
 
 
-def _to_outreach_error(exc: Exception) -> OutreachError:
+def _to_outreach_error(exc: Exception, agent: str = "Sales & Outreach", timeout: float = RUN_TIMEOUT_SECONDS) -> OutreachError:
     if isinstance(exc, OutreachError):
         return exc
     if isinstance(exc, (GoogleNotConnectedError, GoogleAuthExpiredError)):
@@ -64,12 +64,12 @@ def _to_outreach_error(exc: Exception) -> OutreachError:
     if isinstance(exc, OutreachCancelledError):
         return OutreachError("Stopped by you.", 409)
     if type(exc).__module__.startswith("litellm"):
-        logger.warning("LLM provider error during sales outreach: %s", exc)
+        logger.warning("LLM provider error during %s: %s", agent, exc)
         return OutreachError("The AI model provider returned an error, try again in a minute", 502)
     if isinstance(exc, asyncio.TimeoutError):
-        return OutreachError(f"The agent didn't finish within {RUN_TIMEOUT_SECONDS:.0f}s", 504)
-    logger.exception("Unexpected sales outreach failure")
-    return OutreachError("Internal error running the Sales & Outreach agent", 500)
+        return OutreachError(f"The agent didn't finish within {timeout:.0f}s", 504)
+    logger.exception("Unexpected %s failure", agent)
+    return OutreachError(f"Internal error running the {agent} agent", 500)
 
 
 async def _owned_request(user_id: str, request_id: str, agent_type: str) -> dict[str, Any]:

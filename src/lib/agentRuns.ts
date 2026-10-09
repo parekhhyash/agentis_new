@@ -11,6 +11,7 @@
 import type { AgentType } from './agentTypes'
 import { authedFetch, BackendApiError } from './backendApi'
 import type { Json, Tables } from './database.types'
+import { attachmentsOf, type Attachment, type DataReportResult } from './dataTypes'
 import type { GeneralResult } from './generalTypes'
 import { runOutreach } from './outreachApi'
 import {
@@ -48,10 +49,17 @@ export async function createAgentRequest(
   agentType: AgentType,
   prompt: string,
   conversationId: string,
+  attachments: Attachment[] = [],
 ): Promise<AgentRequest | null> {
   const { data, error } = await supabase
     .from('agent_requests')
-    .insert({ user_id: userId, agent_type: agentType, prompt, conversation_id: conversationId })
+    .insert({
+      user_id: userId,
+      agent_type: agentType,
+      prompt,
+      conversation_id: conversationId,
+      attachments: attachments.length ? (attachments as unknown as Json) : null,
+    })
     .select()
     .single()
 
@@ -100,12 +108,12 @@ export async function runLeadResearchAgent(
   }
 }
 
-// Sales & Outreach: drafts emails, replies and meetings for review. Nothing
-// is sent until the user approves a draft in OutreachResultsPanel.
-export async function runSalesOutreachAgent(
+// Runs one backend agent call for a request, keeping its row (and any
+// listening view) in step: in progress, then completed with the result, or
+// failed with a message.
+async function runBackendAgent(
   requestId: string,
-  prompt: string,
-  options: { companyContext?: CompanyContext; senderName?: string | null; leadRequestId?: string | null },
+  call: (signal: AbortSignal) => Promise<unknown>,
   onUpdate?: (patch: Partial<AgentRequest>) => void,
 ): Promise<void> {
   const startedAt = new Date().toISOString()
@@ -119,7 +127,7 @@ export async function runSalesOutreachAgent(
   abortControllers.set(requestId, controller)
 
   try {
-    const result = await runOutreach({ prompt, requestId, ...options }, controller.signal)
+    const result = await call(controller.signal)
     await supabase
       .from('agent_requests')
       .update({ status: 'completed', result: result as unknown as Json, error: null })
@@ -137,6 +145,42 @@ export async function runSalesOutreachAgent(
   } finally {
     abortControllers.delete(requestId)
   }
+}
+
+// Sales & Outreach: drafts emails, replies and meetings for review. Nothing
+// is sent until the user approves a draft in OutreachResultsPanel.
+export function runSalesOutreachAgent(
+  requestId: string,
+  prompt: string,
+  options: { companyContext?: CompanyContext; senderName?: string | null; leadRequestId?: string | null },
+  onUpdate?: (patch: Partial<AgentRequest>) => void,
+): Promise<void> {
+  return runBackendAgent(requestId, (signal) => runOutreach({ prompt, requestId, ...options }, signal), onUpdate)
+}
+
+// Data & Reporting: answers with numbers, charts and tables from the user's
+// Agentis activity and the files attached to the message.
+export function runDataReportingAgent(
+  requestId: string,
+  prompt: string,
+  options: { companyContext?: CompanyContext },
+  onUpdate?: (patch: Partial<AgentRequest>) => void,
+): Promise<void> {
+  return runBackendAgent(
+    requestId,
+    (signal) =>
+      authedFetch<DataReportResult>('/data/run', {
+        method: 'POST',
+        signal,
+        body: JSON.stringify({
+          prompt,
+          request_id: requestId,
+          company_context: options.companyContext,
+          time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        }),
+      }),
+    onUpdate,
+  )
 }
 
 export interface AgentRunOptions {
@@ -195,7 +239,14 @@ export async function runGeneralAgent(
   update({ status: 'completed', result: result as unknown as Json, error: null })
 
   if (result.route === 'none' || !request.conversation_id) return
-  const next = await createAgentRequest(request.user_id, result.route, result.task, request.conversation_id)
+  // Files attached to the message go with it to the specialist.
+  const next = await createAgentRequest(
+    request.user_id,
+    result.route,
+    result.task,
+    request.conversation_id,
+    attachmentsOf(request.attachments),
+  )
   if (!next) return
   emit({ type: 'spawn', request: next })
   // The specialist picks up leads from earlier in the chat on the backend.
@@ -205,7 +256,7 @@ export async function runGeneralAgent(
 }
 
 // Agents with a real backend behind them; the rest stay queued for now.
-export const RUNNABLE_AGENTS: AgentType[] = ['general', 'lead_research', 'sales_outreach']
+export const RUNNABLE_AGENTS: AgentType[] = ['general', 'lead_research', 'sales_outreach', 'data_reporting']
 
 export function startAgentRun(
   request: AgentRequest,
@@ -217,6 +268,9 @@ export function startAgentRun(
   }
   if (request.agent_type === 'sales_outreach') {
     return runSalesOutreachAgent(request.id, request.prompt, options, onUpdate)
+  }
+  if (request.agent_type === 'data_reporting') {
+    return runDataReportingAgent(request.id, request.prompt, options, onUpdate)
   }
   if (request.agent_type === 'general') {
     return runGeneralAgent(request, options, onUpdate)

@@ -374,3 +374,40 @@ export function PlugIcon({ className }: IconProps) {
     </svg>
   )
 }
+
+export function PaperclipIcon({ className }: IconProps) {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="m21 11-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l8.6-8.6a3.7 3.7 0 0 1 5.2 5.2l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6L15 7" />
+    </svg>
+  )
+}
+
+export function SheetIcon({ className }: IconProps) {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <rect x="4" y="3" width="16" height="18" rx="2" />
+      <path d="M4 9h16M4 15h16M10 9v12" />
+    </svg>
+  )
+}
