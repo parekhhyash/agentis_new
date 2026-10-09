@@ -40,6 +40,8 @@ The system is built as a **React + TypeScript** frontend (Vite) paired with a **
 - **General Agent** — The default chat agent: answers questions with company and conversation context, or hands the task to the right specialist
 - **CRM integrations over MCP** — Connect **HubSpot**, **Salesforce** or **Zoho CRM** through their official MCP servers. Ask General about contacts, companies and deals, ask it to update records, or add researched leads with one click. Lookups run on their own; every change is a draft you approve; delete and merge tools are never used
 - **Data & Reporting Agent** — Answers questions about numbers with headline figures, charts and tables, from the user's Agentis activity (leads, emails, replies, meetings) and CSV/Excel files they upload. The model plans queries; the backend runs every calculation, and the written summary may only quote numbers that the queries produced
+- **Content & Copy Agent** — Writes LinkedIn posts, X posts and threads, Instagram captions, blog posts, emails and ad copy, several options per piece. The backend checks every option against the platform's real limits (X counts links as 23 and emoji as 2), flags clichés and figures that aren't in the request, fixes rule-breaking drafts once, then scores and recommends one
+- **LinkedIn and X posting** — Connect a LinkedIn profile or X account and post a chosen option (edited or not) straight from the chat, after a confirm step; X threads go out as a reply chain
 - **Conversational Dashboard** — Chat-style UI where each agent request appears as a conversation with real-time progress updates
 - **Google Integration** — Secure OAuth 2.0 flow to connect Gmail (send, read, reply) and Google Calendar (create events with Meet links)
 - **Human-in-the-Loop** — All outreach drafts require explicit user approval before sending; users can edit, approve, discard, or save each action
@@ -179,7 +181,9 @@ agentis_new/
 │   │       ├── OutreachResultsPanel.tsx  # Email/meeting draft cards
 │   │       ├── OutreachSetupBar.tsx      # Google connection + lead picker
 │   │       ├── AgentProgressView.tsx     # Live progress steps
-│   │       ├── ConnectionsPanel.tsx      # Google account management
+│   │       ├── ConnectionsPanel.tsx      # Connect page (Google, CRMs, LinkedIn, X)
+│   │       ├── ContentResultPanel.tsx    # Content options, checks, edit + post
+│   │       ├── SocialConnectControls.tsx # LinkedIn / X connect cards
 │   │       └── ProfileMenu.tsx           # User profile dropdown
 │   └── lib/
 │       ├── supabase.ts           # Supabase client initialization
@@ -192,6 +196,7 @@ agentis_new/
 │       ├── outreachTypes.ts      # Outreach action types (email, reply, meeting)
 │       ├── backendApi.ts         # Authenticated fetch wrapper
 │       ├── googleConnection.ts   # Google connection hook
+│       ├── content.ts            # Content results, X counting, LinkedIn/X hook
 │       ├── leadExport.ts         # CSV export utility
 │       ├── database.types.ts     # Auto-generated Supabase types
 │       ├── useProfile.ts         # Profile data hook
@@ -207,6 +212,8 @@ agentis_new/
 │   │   ├── routes.py             # /sales-agent/* endpoints
 │   │   ├── outreach.py           # /sales-outreach/* endpoints
 │   │   ├── integrations.py       # /integrations/google/* endpoints
+│   │   ├── content.py            # /content/* endpoints (run, publish)
+│   │   ├── social.py             # /integrations/social/* (LinkedIn, X)
 │   │   └── models.py             # Pydantic request/response models
 │   ├── agents/
 │   │   ├── lead_research/
@@ -230,6 +237,8 @@ agentis_new/
 │   │       ├── executor.py       # Execute approved actions (send/schedule)
 │   │       ├── prompts.py        # Planner and reply prompts
 │   │       └── schemas.py        # Action models (email, reply, meeting)
+│   ├── agents/content_copy/      # Content & Copy: formats, checks, writer + judge
+│   ├── integrations/social/      # LinkedIn / X OAuth, encrypted tokens, posting
 │   ├── integrations/google/
 │   │   ├── oauth.py              # OAuth 2.0 flow + token management
 │   │   ├── connections.py        # Encrypted connection storage
@@ -239,6 +248,7 @@ agentis_new/
 │   ├── services/
 │   │   ├── agent_runner.py       # Lead research run lifecycle
 │   │   ├── outreach_runner.py    # Outreach run lifecycle + action decisions
+│   │   ├── content_runner.py     # Content run + posting a chosen option
 │   │   ├── auth.py               # Supabase session verification
 │   │   ├── progress_reporter.py  # Live progress to Supabase
 │   │   ├── request_store.py      # Final status persistence
@@ -255,7 +265,8 @@ agentis_new/
 │
 └── supabase/
     └── migrations/
-        └── 20261007000000_google_connections.sql  # Google connections table
+        ├── 20261007000000_google_connections.sql  # Google connections table
+        └── 20261011000000_social_connections.sql  # LinkedIn / X connections
 ```
 
 ---
@@ -400,17 +411,58 @@ Question + attached files + company context + earlier turns of the chat
 
 **Uploads** — CSV or Excel (`.xlsx`) up to 5 MB / 20,000 rows. The backend skips title rows, drops empty columns, and types each column as number (₹/$, lakh commas and `(1,000)` negatives understood), date (day-first when ambiguous), yes/no or text, so queries never parse raw strings.
 
+### Content & Copy Agent
+
+```
+Request + company context + earlier turns of the chat
+  │
+  ▼
+┌──────────────────────────────────────────────────────────────────┐
+│ 1. Brief               1 call: up to 4 pieces (format, topic,    │
+│                        audience, 1-4 options each) + the facts   │
+│                        the copy may use                          │
+├──────────────────────────────────────────────────────────────────┤
+│ 2. Write               1 call per piece, in parallel: each       │
+│                        option takes a different angle            │
+├──────────────────────────────────────────────────────────────────┤
+│ 3. Check               Code checks every option: length against  │
+│    (no model)          the platform limit, empty or missing      │
+│                        parts, placeholders (errors); hashtags,   │
+│                        clichés, em dashes, figures not in the    │
+│                        request, paid X links (warnings)          │
+├──────────────────────────────────────────────────────────────────┤
+│ 4. Repair              Options with errors go back once with     │
+│                        the exact problems                        │
+├──────────────────────────────────────────────────────────────────┤
+│ 5. Judge               Scores hook, clarity, specificity, voice  │
+│                        and call to action; minus a penalty for   │
+│                        failed checks. Recommended = best option  │
+│                        with no errors                            │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+| Format | Limit used |
+|---|---|
+| LinkedIn post | 3,000 characters, up to 3 hashtags |
+| X post / thread | 280 per post as X counts them (links 23, emoji and CJK 2), 2 hashtags |
+| Instagram caption | 2,200 characters, up to 8 hashtags |
+| Blog post | Title ≤ 70, meta description ≤ 155 |
+| Email | Subject ≤ 60, preview ≤ 90 |
+| Ad copy | Headlines ≤ 30, descriptions ≤ 90, primary text ≤ 125 |
+
+**Posting** — LinkedIn and X options have a "Post to …" button once the network is connected. Posting re-runs the limit checks on the (possibly edited) text, asks for confirmation, then posts as the user: LinkedIn through the Posts API (`w_member_social`), X through `POST /2/tweets` (threads as replies to the previous post). Each option can be posted once per network; the post link is saved on the chat turn. If an X thread fails partway, the posts that went out are recorded.
+
 ---
 
 ## Core Workflow
 
 1. **Sign Up / Sign In** — Create an account with email + password (Supabase Auth)
 2. **Company Setup** — Enter company name, website, industry, description, and target audience location during onboarding
-3. **Pick an Agent** — Ask General (the default), or pick Lead Research, Sales & Outreach or Data & Reporting in the task composer; attach a CSV or Excel file with the paperclip to ask about your own numbers
+3. **Pick an Agent** — Ask General (the default), or pick Lead Research, Sales & Outreach, Data & Reporting or Content & Copy in the task composer; attach a CSV or Excel file with the paperclip to ask about your own numbers
 4. **Describe the Task** — Enter a natural-language request (e.g., *"Find 10 fintech startups in Southeast Asia"*)
 5. **Watch Progress** — The agent runs and pushes live step-by-step progress visible in the chat view
-6. **Review Results** — Lead Research shows a table of qualified companies with contacts and evidence; Sales & Outreach shows editable email/meeting draft cards; Data & Reporting shows a summary with number tiles, charts and tables (each with its calculation, a table view and CSV download)
-7. **Take Action** — Export leads as CSV, or approve/edit/discard outreach drafts
+6. **Review Results** — Lead Research shows a table of qualified companies with contacts and evidence; Sales & Outreach shows editable email/meeting draft cards; Data & Reporting shows a summary with number tiles, charts and tables (each with its calculation, a table view and CSV download); Content & Copy shows each piece with scored options, character counters and the checks it failed
+7. **Take Action** — Export leads as CSV, approve/edit/discard outreach drafts, or copy, edit and post content to LinkedIn or X
 8. **Iterate** — Start new chats, link lead research results to outreach runs, review history in the sidebar
 
 ---
@@ -511,6 +563,24 @@ Run `supabase/migrations/20261010000000_crm_connections.sql`. All CRMs return to
 
 **Zoho CRM** — no server setup. Each user opens Zoho CRM > Setup > Developer Hub > **MCP for AI Agents**, copies a server's URL (Data Operations allows changes; Data Insights is read-only) and pastes it on the Connect page.
 
+### 7. LinkedIn / X Setup (Optional — Content & Copy posting)
+
+Run `supabase/migrations/20261011000000_social_connections.sql`. Both networks return to one callback: `https://<your-backend>/integrations/social/callback` (`SOCIAL_OAUTH_REDIRECT_URI`, defaults to the Google callback's host). `INTEGRATIONS_ENCRYPTION_KEY` must be set. The agent writes content without either; only the post buttons need them.
+
+**LinkedIn**
+1. At [linkedin.com/developers](https://www.linkedin.com/developers/apps) create an app (it must be linked to a LinkedIn Page).
+2. Products: add **Share on LinkedIn** and **Sign In with LinkedIn using OpenID Connect** (scopes `openid profile email w_member_social`).
+3. Auth > Authorized redirect URLs: the social callback above.
+4. Set `LINKEDIN_CLIENT_ID` and `LINKEDIN_CLIENT_SECRET` on the backend. `LINKEDIN_API_VERSION` (`YYYYMM`) is sent as the `LinkedIn-Version` header; LinkedIn retires versions after about a year.
+
+LinkedIn access tokens last 60 days and this app type gets no refresh token, so users reconnect when the Connect page says access is ending.
+
+**X (Twitter)**
+1. At [developer.x.com](https://developer.x.com) create a project and app.
+2. User authentication settings: OAuth 2.0, type **Web App**, permissions **Read and write**, callback URL = the social callback.
+3. Set `X_CLIENT_ID` and `X_CLIENT_SECRET` (OAuth 2.0 client ID and secret, not the API key) on the backend.
+4. Buy API credits in the developer console. X API is pay-per-use: each post costs credits (more for posts that contain a link), and posting fails with a clear message when credits run out.
+
 ---
 
 ## Environment Variables
@@ -545,6 +615,10 @@ Run `supabase/migrations/20261010000000_crm_connections.sql`. All CRMs return to
 | `GOOGLE_OAUTH_REDIRECT_URI` | For outreach | OAuth callback URL |
 | `INTEGRATIONS_ENCRYPTION_KEY` | For outreach | Fernet key for token encryption |
 | `FRONTEND_URL` | For outreach | Where OAuth callback redirects (default: `http://localhost:5173`) |
+| `LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET` | For LinkedIn posting | LinkedIn app credentials |
+| `LINKEDIN_API_VERSION` | ❌ | `LinkedIn-Version` header, `YYYYMM` (default: `202609`) |
+| `X_CLIENT_ID` / `X_CLIENT_SECRET` | For X posting | X app OAuth 2.0 client credentials |
+| `SOCIAL_OAUTH_REDIRECT_URI` | ❌ | LinkedIn/X callback (default: derived from `GOOGLE_OAUTH_REDIRECT_URI`) |
 
 ---
 
@@ -629,6 +703,17 @@ The frontend runs at `http://localhost:5173` and the backend at `http://localhos
 | `POST` | `/data/run` | ✅ Bearer | Build a report (numbers, charts, tables) for a question |
 | `POST` | `/data/datasets` | ✅ Bearer | Upload a CSV/Excel file (base64) to be parsed and stored |
 
+### Content & Copy and posting
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| `POST` | `/content/run` | ✅ Bearer | Write, check and score content for a request |
+| `POST` | `/content/requests/{id}/publish` | ✅ Bearer | Post one option (`piece_id`, `variant_id`, `provider`, optional edited `text` or `parts`) |
+| `GET` | `/integrations/social` | ✅ Bearer | LinkedIn and X status for the user |
+| `POST` | `/integrations/social/{provider}/connect` | ✅ Bearer | Returns the sign-in URL (`linkedin` or `x`) |
+| `GET` | `/integrations/social/callback` | ❌ | OAuth callback (internal) |
+| `DELETE` | `/integrations/social/{provider}` | ✅ Bearer | Disconnect |
+
 ### Google Integration
 
 | Method | Endpoint | Auth | Description |
@@ -711,6 +796,18 @@ The frontend runs at `http://localhost:5173` and the backend at `http://localhos
 
 > Users can read and delete their own datasets (RLS); uploads are parsed and inserted by the backend.
 
+### `social_connections`
+
+| Column | Type | Description |
+|---|---|---|
+| `user_id` + `provider` | `uuid` + `text` (PK) | One row per user and network (`linkedin`, `x`) |
+| `account_id` | `text` | LinkedIn member id (OpenID `sub`) or X user id |
+| `account_label` | `text` | Display name or `@handle` |
+| `access_token_encrypted` / `refresh_token_encrypted` | `text` | Fernet-encrypted tokens (X rotates its refresh token on each use) |
+| `expires_at` | `timestamptz` | When the access token ends |
+
+> Backend only: RLS on with no policies.
+
 ---
 
 ## Deployment
@@ -755,6 +852,7 @@ Test coverage includes:
 - General agent and conversation context (`test_general.py`)
 - CRM over MCP: tool classification, PKCE and encrypted state, Zoho URL checks, the agent loop and approvals against a real local MCP server, token refresh (`test_crm.py`)
 - Data & Reporting: file parsing, query checks and execution, summary number checks, live reply status (`test_data_reporting.py`)
+- Content & Copy: X character counting, limit and claim checks, repair and scoring, LinkedIn text escaping, X threads (including a partial failure), posting rules, token refresh (`test_content.py`)
 - LLM client behavior (`test_llm.py`)
 - Exa search provider (`test_exa.py`)
 - Contact research (`test_contacts.py`)
@@ -774,7 +872,7 @@ The codebase defines several agent types that are registered in the UI but do no
 | **Sales & Outreach** | ✅ Implemented | Draft and send emails, schedule meetings |
 | **General** | ✅ Implemented | Answers questions and routes tasks to specialist agents |
 | **Data & Reporting** | ✅ Implemented | Reports with charts from Agentis activity and uploaded files |
-| **Content & Copy** | 🔜 Planned | Blog posts, ad copy, social captions |
+| **Content & Copy** | ✅ Implemented | Social posts, threads, blog posts, emails and ad copy; posts to LinkedIn and X |
 | **Customer Support** | 🔜 Planned | Ticket resolution and routing |
 | **Operations** | 🔜 Planned | Back-office automation |
 

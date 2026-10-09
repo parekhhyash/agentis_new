@@ -107,6 +107,20 @@ class Settings(BaseSettings):
     # Most MCP tool calls one CRM request may make before answering.
     crm_max_tool_calls: int = 8
 
+    # --- LinkedIn and X posting (Content & Copy) -------------------------
+    # Both send the browser back to <backend>/integrations/social/callback;
+    # empty = derived from GOOGLE_OAUTH_REDIRECT_URI.
+    social_oauth_redirect_uri: str | None = None
+    # LinkedIn app with the "Share on LinkedIn" and "Sign In with LinkedIn
+    # using OpenID Connect" products.
+    linkedin_client_id: str | None = None
+    linkedin_client_secret: str | None = None
+    # LinkedIn-Version header (YYYYMM); each version is supported for a year.
+    linkedin_api_version: str = "202609"
+    # X app with OAuth 2.0 (type "Web App"); posting is billed per post.
+    x_client_id: str | None = None
+    x_client_secret: str | None = None
+
     # --- API --------------------------------------------------------
     # Plain comma-separated string, not list[str]: pydantic-settings always
     # tries json.loads() on the raw env value for any list-typed field

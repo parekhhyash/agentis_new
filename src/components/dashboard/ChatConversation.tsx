@@ -1,5 +1,6 @@
 import { AGENT_LABELS } from '../../lib/agentTypes'
 import type { Tables } from '../../lib/database.types'
+import { isContentResult, type useSocialConnections } from '../../lib/content'
 import type { CrmProviderStatus } from '../../lib/crm'
 import { attachmentsOf, isDataReport } from '../../lib/dataTypes'
 import { relativeTime } from '../../lib/relativeTime'
@@ -7,6 +8,7 @@ import { isGeneralResult } from '../../lib/generalTypes'
 import { isOutreachResult, type OutreachAction } from '../../lib/outreachTypes'
 import type { AgentProgress, AnyLeadResult } from '../../lib/salesAgentTypes'
 import AgentProgressView from './AgentProgressView'
+import ContentResultPanel from './ContentResultPanel'
 import GeneralReply from './GeneralReply'
 import LeadResultsPanel from './LeadResultsPanel'
 import OutreachResultsPanel from './OutreachResultsPanel'
@@ -24,6 +26,8 @@ export default function ChatConversation({
   onResultChange,
   crms = [],
   onAddLeadsToCrm,
+  social,
+  onOpenConnect,
 }: {
   request: AgentRequest
   handedOff?: boolean
@@ -32,6 +36,8 @@ export default function ChatConversation({
   // Connected CRMs, for "Add to HubSpot" on lead results.
   crms?: CrmProviderStatus[]
   onAddLeadsToCrm?: (crmName: string, count: number) => void
+  social?: ReturnType<typeof useSocialConnections>
+  onOpenConnect?: () => void
 }) {
   const files = attachmentsOf(request.attachments)
   const fileChips = files.length > 0 && (
@@ -97,6 +103,14 @@ export default function ChatConversation({
                 result={request.result}
                 requestId={request.id}
                 onResultChange={(result) => onResultChange?.(result)}
+              />
+            ) : isContentResult(request.result) && social ? (
+              <ContentResultPanel
+                requestId={request.id}
+                result={request.result}
+                social={social}
+                onResultChange={(result) => onResultChange?.(result)}
+                onOpenConnect={() => onOpenConnect?.()}
               />
             ) : isDataReport(request.result) ? (
               <ReportPanel result={request.result} />

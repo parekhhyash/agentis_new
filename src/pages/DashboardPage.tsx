@@ -15,6 +15,7 @@ import { createConversation, type Conversation } from '../lib/conversations'
 import type { Json, Tables } from '../lib/database.types'
 import type { Attachment } from '../lib/dataTypes'
 import { isGeneralResult } from '../lib/generalTypes'
+import { useSocialConnections } from '../lib/content'
 import { CRM_NAMES, useCrmConnections, type CrmProvider } from '../lib/crm'
 import { useGoogleConnection } from '../lib/googleConnection'
 import { isOutreachResult, type OutreachAction } from '../lib/outreachTypes'
@@ -54,6 +55,7 @@ export default function DashboardPage() {
   const [view, setView] = useState<'chat' | 'connect'>('chat')
   const google = useGoogleConnection(agentType === 'sales_outreach' || view === 'connect')
   const crm = useCrmConnections()
+  const social = useSocialConnections()
 
   // Back from Google's consent screen (see api/integrations.py's callback).
   const googleResult = searchParams.get('google')
@@ -83,9 +85,23 @@ export default function DashboardPage() {
         : { tone: 'error', text: returnMessage ?? `${name} could not be connected.` },
     )
   }
+  // Back from LinkedIn's or X's sign-in page (see api/social.py's callback).
+  const socialResult = searchParams.get('social')
+  const socialProvider = searchParams.get('provider')
+  const [handledSocialResult, setHandledSocialResult] = useState<string | null>(null)
+  if (socialResult && `${socialResult}:${socialProvider}` !== handledSocialResult) {
+    setHandledSocialResult(`${socialResult}:${socialProvider}`)
+    setView('connect')
+    const name = socialProvider === 'x' ? 'X' : 'LinkedIn'
+    setNotice(
+      socialResult === 'connected'
+        ? { tone: 'ok', text: `${name} connected. Content & Copy drafts for ${name} now have a Post button.` }
+        : { tone: 'error', text: returnMessage ?? `${name} could not be connected.` },
+    )
+  }
   useEffect(() => {
-    if (googleResult || crmResult) setSearchParams({}, { replace: true })
-  }, [googleResult, crmResult, setSearchParams])
+    if (googleResult || crmResult || socialResult) setSearchParams({}, { replace: true })
+  }, [googleResult, crmResult, socialResult, setSearchParams])
 
   // The conversation scrolls; the composer below it doesn't. A visible
   // scrollbar (e.g. on Windows) narrows the scroll area and shifts its
@@ -374,7 +390,7 @@ export default function DashboardPage() {
 
         <div ref={scrollRef} className="flex-1 overflow-y-auto [scrollbar-gutter:stable]">
           {view === 'connect' ? (
-            <ConnectionsPanel google={google} crm={crm} notice={noticeBanner} />
+            <ConnectionsPanel google={google} crm={crm} social={social} notice={noticeBanner} />
           ) : thread.length > 0 ? (
             <div className="mx-auto max-w-3xl space-y-8 px-6 py-8">
               {thread.map((turn, index) => (
@@ -385,6 +401,8 @@ export default function DashboardPage() {
                   onOutreachActionChange={(action) => mergeOutreachAction(turn.id, action)}
                   onResultChange={(result) => updateRequest(turn.id, { result: result as Json })}
                   crms={crm.connected}
+                  social={social}
+                  onOpenConnect={openConnect}
                   onAddLeadsToCrm={(name, count) =>
                     void handleSubmit(
                       `Add the ${count} lead${count === 1 ? '' : 's'} from my last research to ${name}: create each company and its contacts with their emails, and skip any that are already in ${name}.`,

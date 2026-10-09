@@ -10,8 +10,8 @@ from agents.crm.schemas import CrmResult
 from agents.general import prompts
 from agents.lead_research.llm import LLMClient
 
-Route = Literal["none", "lead_research", "sales_outreach", "data_reporting", "crm"]
-ROUTES = ("lead_research", "sales_outreach", "data_reporting")
+Route = Literal["none", "lead_research", "sales_outreach", "data_reporting", "content_copy", "crm"]
+ROUTES = ("lead_research", "sales_outreach", "data_reporting", "content_copy")
 
 
 class GeneralResult(BaseModel):

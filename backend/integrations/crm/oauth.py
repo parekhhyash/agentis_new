@@ -1,25 +1,16 @@
-"""OAuth 2.0 authorization code flow with PKCE for CRM MCP servers.
+"""OAuth 2.0 authorization code flow with PKCE for CRM MCP servers. The
+PKCE verifier travels encrypted in `state` (see integrations/oauth_common.py)."""
 
-The PKCE verifier travels in the `state` parameter, encrypted (Fernet) and
-time-limited, so the callback needs no server-side session and nobody but
-this backend can read or forge it.
-"""
-
-import base64
-import hashlib
-import json
-import secrets
 import time
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlencode
 
 import httpx
-from cryptography.fernet import Fernet, InvalidToken
+from cryptography.fernet import Fernet
 
+from integrations import oauth_common
 from integrations.crm.providers import NAMES, CrmError, OAuthProvider
-
-STATE_TTL_SECONDS = 600
 
 
 @dataclass
@@ -37,25 +28,18 @@ def fernet(secret_key: str) -> Fernet:
         raise CrmError("INTEGRATIONS_ENCRYPTION_KEY is not a valid Fernet key", 503) from exc
 
 
-def pkce_pair() -> tuple[str, str]:
-    verifier = secrets.token_urlsafe(64)[:96]
-    challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).rstrip(b"=").decode()
-    return verifier, challenge
+pkce_pair = oauth_common.pkce_pair
 
 
 def make_state(secret_key: str, user_id: str, provider: str, verifier: str) -> str:
-    payload = {"u": user_id, "p": provider, "v": verifier, "n": secrets.token_urlsafe(8)}
-    return fernet(secret_key).encrypt(json.dumps(payload, separators=(",", ":")).encode()).decode()
+    return oauth_common.seal_state(fernet(secret_key), user_id, provider, verifier)
 
 
 def read_state(secret_key: str, state: str) -> dict[str, str]:
     try:
-        payload = json.loads(fernet(secret_key).decrypt(state.encode(), ttl=STATE_TTL_SECONDS))
-    except InvalidToken:
-        raise CrmError("The sign-in link expired or was changed; connect again", 400) from None
-    if not all(payload.get(k) for k in ("u", "p", "v")):
-        raise CrmError("Invalid sign-in state", 400)
-    return payload
+        return oauth_common.open_state(fernet(secret_key), state)
+    except oauth_common.StateError as exc:
+        raise CrmError(str(exc), 400) from None
 
 
 def authorize_url(provider: OAuthProvider, redirect_uri: str, state: str, challenge: str) -> str:

@@ -45,7 +45,7 @@ def test_general_routes_with_a_standalone_task_and_rejects_unknown_agents():
     no_task, _ = _run({"route": "sales_outreach", "reply": "On it."}, message="email ravi@beta.io")
     assert no_task.task == "email ravi@beta.io"
 
-    unknown, _ = _run({"route": "content_copy", "reply": "Here's a post", "task": "x"})
+    unknown, _ = _run({"route": "operations", "reply": "Here's a plan", "task": "x"})
     assert unknown.route == "none" and unknown.task == ""
 
 

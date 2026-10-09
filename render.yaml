@@ -53,3 +53,13 @@ services:
         sync: false
       - key: SALESFORCE_MCP_CLIENT_SECRET
         sync: false
+      # LinkedIn / X posting. Both send users back to
+      # https://<this service's URL>/integrations/social/callback
+      - key: LINKEDIN_CLIENT_ID
+        sync: false
+      - key: LINKEDIN_CLIENT_SECRET
+        sync: false
+      - key: X_CLIENT_ID
+        sync: false
+      - key: X_CLIENT_SECRET
+        sync: false

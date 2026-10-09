@@ -94,6 +94,39 @@ Question (+ attached files, company profile, earlier turns)
 5 MB / 20,000 rows) and stores typed rows in `datasets`
 (`supabase/migrations/20261009000000_data_reporting.sql`).
 
+## How the Content & Copy Agent works
+
+```
+Request (+ company profile, earlier turns)
+  -> Brief      1 call: up to 4 pieces (format, topic, audience, 1-4 options
+                each) + the facts the copy may use
+  -> Write      1 call per piece, in parallel; each option a different angle
+  -> Check      code only (checks.py): platform limits (formats.py; X counts
+                links as 23, emoji/CJK as 2), empty parts and placeholders are
+                errors; hashtags, cliches, em dashes, figures not in the
+                request and paid X links are warnings
+  -> Repair     options with errors go back once with the exact problems
+  -> Judge      hook/clarity/specificity/voice/cta, minus 3 per error and up
+                to 2 for warnings; recommended = best option with no errors
+```
+
+Posting (`POST /content/requests/{id}/publish`): the chosen option, with the
+user's edits, is checked again and posted as the user, once per network.
+LinkedIn: `POST /rest/posts` with `LinkedIn-Version` (text escaped as
+LinkedIn's "little text", hashtags kept as hashtags). X: `POST /2/tweets`,
+threads as a reply chain; if one fails partway, the posts that went out are
+saved before the error is returned.
+
+Sign-in: `integrations/social/` (LinkedIn: authorization code with the client
+secret, scopes `openid profile email w_member_social`, 60-day token, no
+refresh; X: OAuth 2.0 + PKCE, `tweet.read tweet.write users.read
+offline.access`, refresh tokens rotate). Tokens are stored encrypted in
+`social_connections` (`supabase/migrations/20261011000000_social_connections.sql`).
+Both use `https://<backend>/integrations/social/callback`. Set
+`LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET` and `X_CLIENT_ID` /
+`X_CLIENT_SECRET`; app setup steps are in the root README. X posting uses
+the account's pay-per-use API credits.
+
 ### Connecting Google
 
 `GET /integrations/google/auth-url` returns Google's consent URL; Google
@@ -130,9 +163,12 @@ backend/
 ├── agents/general/         # answers or routes each chat message
 ├── agents/data_reporting/  # tables.py (uploads), activity.py, query.py, verify.py, agent.py
 ├── agents/crm/             # CRM tool loop: reads run, writes drafted for approval
+├── agents/content_copy/    # formats.py (limits), checks.py, writer + judge in agent.py
 ├── integrations/mcp/       # MCP client (Streamable HTTP, official SDK), tool classification
 ├── integrations/crm/       # HubSpot/Salesforce/Zoho providers, OAuth + PKCE, connections
 ├── integrations/google/    # OAuth, encrypted connections, Gmail + Calendar clients
+├── integrations/social/    # LinkedIn/X OAuth, encrypted tokens, posting
+├── integrations/oauth_common.py  # PKCE + encrypted OAuth state (CRMs, LinkedIn, X)
 ├── agents/lead_research/
 │   ├── agent.py            # orchestrator: stages, stop conditions, progress
 │   ├── budget.py           # ResearchBudget (hard limits, scaled per request)

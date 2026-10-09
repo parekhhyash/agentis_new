@@ -183,6 +183,26 @@ export function runDataReportingAgent(
   )
 }
 
+// Content & Copy: scored drafts for each requested piece; posting happens
+// later, from the results, when the user confirms.
+export function runContentAgent(
+  requestId: string,
+  prompt: string,
+  options: { companyContext?: CompanyContext },
+  onUpdate?: (patch: Partial<AgentRequest>) => void,
+): Promise<void> {
+  return runBackendAgent(
+    requestId,
+    (signal) =>
+      authedFetch<unknown>('/content/run', {
+        method: 'POST',
+        signal,
+        body: JSON.stringify({ prompt, request_id: requestId, company_context: options.companyContext }),
+      }),
+    onUpdate,
+  )
+}
+
 export interface AgentRunOptions {
   companyContext?: CompanyContext
   senderName?: string | null
@@ -256,7 +276,7 @@ export async function runGeneralAgent(
 }
 
 // Agents with a real backend behind them; the rest stay queued for now.
-export const RUNNABLE_AGENTS: AgentType[] = ['general', 'lead_research', 'sales_outreach', 'data_reporting']
+export const RUNNABLE_AGENTS: AgentType[] = ['general', 'lead_research', 'sales_outreach', 'data_reporting', 'content_copy']
 
 export function startAgentRun(
   request: AgentRequest,
@@ -268,6 +288,9 @@ export function startAgentRun(
   }
   if (request.agent_type === 'sales_outreach') {
     return runSalesOutreachAgent(request.id, request.prompt, options, onUpdate)
+  }
+  if (request.agent_type === 'content_copy') {
+    return runContentAgent(request.id, request.prompt, options, onUpdate)
   }
   if (request.agent_type === 'data_reporting') {
     return runDataReportingAgent(request.id, request.prompt, options, onUpdate)

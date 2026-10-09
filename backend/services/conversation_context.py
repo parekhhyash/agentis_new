@@ -18,6 +18,7 @@ AGENT_LABELS = {
     "lead_research": "Lead Research",
     "sales_outreach": "Sales & Outreach",
     "data_reporting": "Data & Reporting",
+    "content_copy": "Content & Copy",
 }
 
 
@@ -82,6 +83,17 @@ def summarize(row: dict[str, Any]) -> str:
                     f"- {action.get('type')} to {', '.join(action.get('to', []))}, subject \"{action.get('subject')}\" "
                     f"[{status}]: {_clip(action.get('body', ''), 300)}"
                 )
+        return "\n".join(lines)
+
+    if kind == "content_copy":
+        lines = [_clip(result.get("summary", ""), 300)]
+        for piece in (result.get("pieces") or [])[:4]:
+            variants = piece.get("variants") or []
+            best = next((v for v in variants if v.get("id") == piece.get("recommended_id")), variants[0] if variants else {})
+            body = best.get("text") or " / ".join(best.get("parts") or []) or " / ".join(best.get("headlines") or [])
+            posted = ", ".join(f"posted on {p.get('provider')}" for v in variants for p in v.get("published") or [])
+            lines.append(f"- {piece.get('label')} ({len(variants)} options){' [' + posted + ']' if posted else ''}: "
+                         f"{(best.get('title') + ': ') if best.get('title') else ''}{_clip(body, 500)}")
         return "\n".join(lines)
 
     if kind == "data_report":
