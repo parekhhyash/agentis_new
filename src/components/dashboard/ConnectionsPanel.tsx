@@ -1,9 +1,13 @@
 import type { ReactNode } from 'react'
 
 import { CONNECTORS, type ConnectorInfo } from '../../lib/connectors'
+import type { CrmProvider, useCrmConnections } from '../../lib/crm'
 import type { GoogleStatus } from '../../lib/googleConnection'
 import { GoogleIcon } from '../icons'
+import CrmConnectControls from './CrmConnectControls'
 import DataFilesPanel from './DataFilesPanel'
+
+const CRM_IDS = new Set<string>(['hubspot', 'salesforce', 'zoho'])
 
 function Tile({ connector }: { connector: ConnectorInfo }) {
   return (
@@ -33,6 +37,7 @@ function Card({ connector, children }: { connector: ConnectorInfo; children: Rea
 
 export default function ConnectionsPanel({
   google,
+  crm,
   notice,
 }: {
   google: {
@@ -42,6 +47,7 @@ export default function ConnectionsPanel({
     connect: () => void
     disconnect: () => void
   }
+  crm: ReturnType<typeof useCrmConnections>
   notice: ReactNode
 }) {
   const [googleConnector, ...others] = CONNECTORS
@@ -92,9 +98,13 @@ export default function ConnectionsPanel({
 
         {others.map((connector) => (
           <Card key={connector.id} connector={connector}>
-            <span className="inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">
-              Coming soon
-            </span>
+            {CRM_IDS.has(connector.id) ? (
+              <CrmConnectControls provider={connector.id as CrmProvider} crm={crm} />
+            ) : (
+              <span className="inline-block rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">
+                Coming soon
+              </span>
+            )}
           </Card>
         ))}
       </div>

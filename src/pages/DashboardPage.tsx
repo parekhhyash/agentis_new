@@ -15,6 +15,7 @@ import { createConversation, type Conversation } from '../lib/conversations'
 import type { Json, Tables } from '../lib/database.types'
 import type { Attachment } from '../lib/dataTypes'
 import { isGeneralResult } from '../lib/generalTypes'
+import { CRM_NAMES, useCrmConnections, type CrmProvider } from '../lib/crm'
 import { useGoogleConnection } from '../lib/googleConnection'
 import { isOutreachResult, type OutreachAction } from '../lib/outreachTypes'
 import { CLIENT_TIMEOUT_MESSAGE, STOPPED_BY_USER_MESSAGE } from '../lib/salesAgentApi'
@@ -52,10 +53,11 @@ export default function DashboardPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [view, setView] = useState<'chat' | 'connect'>('chat')
   const google = useGoogleConnection(agentType === 'sales_outreach' || view === 'connect')
+  const crm = useCrmConnections()
 
   // Back from Google's consent screen (see api/integrations.py's callback).
   const googleResult = searchParams.get('google')
-  const googleMessage = searchParams.get('message')
+  const returnMessage = searchParams.get('message')
   const [handledGoogleResult, setHandledGoogleResult] = useState<string | null>(null)
   if (googleResult && googleResult !== handledGoogleResult) {
     setHandledGoogleResult(googleResult)
@@ -64,12 +66,26 @@ export default function DashboardPage() {
     setNotice(
       googleResult === 'connected'
         ? { tone: 'ok', text: 'Google connected. Sales & Outreach can now draft email and meetings for you.' }
-        : { tone: 'error', text: googleMessage ?? 'Google could not be connected.' },
+        : { tone: 'error', text: returnMessage ?? 'Google could not be connected.' },
+    )
+  }
+  // Back from a CRM's sign-in page (see api/crm.py's callback).
+  const crmResult = searchParams.get('crm')
+  const crmProvider = searchParams.get('provider') as CrmProvider | null
+  const [handledCrmResult, setHandledCrmResult] = useState<string | null>(null)
+  if (crmResult && `${crmResult}:${crmProvider}` !== handledCrmResult) {
+    setHandledCrmResult(`${crmResult}:${crmProvider}`)
+    setView('connect')
+    const name = crmProvider && crmProvider in CRM_NAMES ? CRM_NAMES[crmProvider] : 'Your CRM'
+    setNotice(
+      crmResult === 'connected'
+        ? { tone: 'ok', text: `${name} connected. Ask General about your contacts, companies and deals, or to update them.` }
+        : { tone: 'error', text: returnMessage ?? `${name} could not be connected.` },
     )
   }
   useEffect(() => {
-    if (googleResult) setSearchParams({}, { replace: true })
-  }, [googleResult, setSearchParams])
+    if (googleResult || crmResult) setSearchParams({}, { replace: true })
+  }, [googleResult, crmResult, setSearchParams])
 
   // The conversation scrolls; the composer below it doesn't. A visible
   // scrollbar (e.g. on Windows) narrows the scroll area and shifts its
@@ -183,7 +199,7 @@ export default function DashboardPage() {
     })
   }
 
-  async function handleSubmit(prompt: string, attachments: Attachment[] = []) {
+  async function handleSubmit(prompt: string, attachments: Attachment[] = [], agent: AgentType = agentType) {
     if (!user) return
 
     // A message goes into the open chat; with none open it starts a new one.
@@ -195,7 +211,7 @@ export default function DashboardPage() {
       conversationId = chat.id
     }
 
-    const data = await createAgentRequest(user.id, agentType, prompt, conversationId, attachments)
+    const data = await createAgentRequest(user.id, agent, prompt, conversationId, attachments)
     if (!data) return
     setRequests((prev) => [...prev, data])
     touchConversation(conversationId)
@@ -215,7 +231,7 @@ export default function DashboardPage() {
           company_description: profile?.company_description,
         },
         senderName: profile?.full_name,
-        leadRequestId: agentType === 'sales_outreach' ? leadRequestId : null,
+        leadRequestId: agent === 'sales_outreach' ? leadRequestId : null,
       },
       (patch) => updateRequest(data.id, patch),
     )
@@ -358,7 +374,7 @@ export default function DashboardPage() {
 
         <div ref={scrollRef} className="flex-1 overflow-y-auto [scrollbar-gutter:stable]">
           {view === 'connect' ? (
-            <ConnectionsPanel google={google} notice={noticeBanner} />
+            <ConnectionsPanel google={google} crm={crm} notice={noticeBanner} />
           ) : thread.length > 0 ? (
             <div className="mx-auto max-w-3xl space-y-8 px-6 py-8">
               {thread.map((turn, index) => (
@@ -368,6 +384,14 @@ export default function DashboardPage() {
                   handedOff={handedOff(turn, index)}
                   onOutreachActionChange={(action) => mergeOutreachAction(turn.id, action)}
                   onResultChange={(result) => updateRequest(turn.id, { result: result as Json })}
+                  crms={crm.connected}
+                  onAddLeadsToCrm={(name, count) =>
+                    void handleSubmit(
+                      `Add the ${count} lead${count === 1 ? '' : 's'} from my last research to ${name}: create each company and its contacts with their emails, and skip any that are already in ${name}.`,
+                      [],
+                      'general',
+                    )
+                  }
                 />
               ))}
             </div>

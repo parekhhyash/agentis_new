@@ -6,10 +6,11 @@ from typing import Any, Literal
 
 from pydantic import BaseModel
 
+from agents.crm.schemas import CrmResult
 from agents.general import prompts
 from agents.lead_research.llm import LLMClient
 
-Route = Literal["none", "lead_research", "sales_outreach", "data_reporting"]
+Route = Literal["none", "lead_research", "sales_outreach", "data_reporting", "crm"]
 ROUTES = ("lead_research", "sales_outreach", "data_reporting")
 
 
@@ -20,6 +21,8 @@ class GeneralResult(BaseModel):
     # Instruction for the routed agent (empty when answering directly).
     task: str = ""
     llm_tokens: int = 0
+    # Set when the answer came from the user's CRM (lookups made, changes drafted).
+    crm: CrmResult | None = None
 
 
 def _company_text(company: dict[str, Any]) -> str:
@@ -40,6 +43,7 @@ class GeneralAgent:
         user_name: str,
         today: datetime,
         attachments: str = "",
+        crms: list[str] | None = None,
     ) -> GeneralResult:
         out = await self._llm.complete_json(
             system=prompts.SYSTEM,
@@ -49,13 +53,15 @@ class GeneralAgent:
                 company=_company_text(company),
                 history=history,
                 attachments=attachments or "(none)",
+                crms=", ".join(crms) if crms else "(none connected)",
                 message=message,
             ),
             tier="strong",
             max_tokens=3000,
         )
         data = out.data
-        route = data.get("route") if data.get("route") in ROUTES else "none"
+        allowed = ROUTES + (("crm",) if crms else ())
+        route = data.get("route") if data.get("route") in allowed else "none"
         reply = str(data.get("reply") or "").strip()
         task = str(data.get("task") or "").strip()
         if route != "none" and not task:

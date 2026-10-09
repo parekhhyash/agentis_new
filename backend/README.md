@@ -52,6 +52,28 @@ link), `discard` drops it, `save` keeps edits. Every endpoint here requires the
 user's Supabase session (`Authorization: Bearer <access token>`) and only
 touches that user's rows.
 
+## CRMs over MCP (HubSpot, Salesforce, Zoho CRM)
+
+```
+General decides a message is about the CRM (route "crm")
+  -> Connect    MCP session per connected CRM (integrations/mcp/client.py, on
+                the official MCP SDK); HubSpot/Salesforce with a fresh OAuth
+                token (refreshed and retried once if rejected), Zoho by URL
+  -> Tools      tools/list, each classified read / write / blocked (delete,
+                merge: never offered)
+  -> Loop       up to 6 model turns, <= 3 read calls each, 8 in total; every
+                call's arguments checked against the tool's JSON Schema;
+                results fenced as untrusted data
+  -> Finish     answer + write calls as drafts on the chat turn
+  -> Approve    POST /crm/requests/{id}/actions/{action_id} runs the stored
+                arguments (re-checked) once
+```
+
+Sign-in: `integrations/crm/oauth.py` (authorization code + PKCE; the verifier
+travels encrypted in `state`), connections in `crm_connections`
+(`supabase/migrations/20261010000000_crm_connections.sql`). Setup per CRM is in
+the root README.
+
 ## How the Data & Reporting Agent works
 
 ```
@@ -107,6 +129,9 @@ backend/
 ├── agents/sales_outreach/  # planner + guard + reply drafting, executor, prompts
 ├── agents/general/         # answers or routes each chat message
 ├── agents/data_reporting/  # tables.py (uploads), activity.py, query.py, verify.py, agent.py
+├── agents/crm/             # CRM tool loop: reads run, writes drafted for approval
+├── integrations/mcp/       # MCP client (Streamable HTTP, official SDK), tool classification
+├── integrations/crm/       # HubSpot/Salesforce/Zoho providers, OAuth + PKCE, connections
 ├── integrations/google/    # OAuth, encrypted connections, Gmail + Calendar clients
 ├── agents/lead_research/
 │   ├── agent.py            # orchestrator: stages, stop conditions, progress

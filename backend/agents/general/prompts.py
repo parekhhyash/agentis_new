@@ -16,6 +16,12 @@ calculated from real data: the user's Agentis activity (leads found, emails sent
 booked, agent runs) and spreadsheets they upload (sales, orders, expenses, anything in CSV or \
 Excel). Use it for metrics, trends, comparisons, breakdowns, weekly or monthly reports, and \
 whenever the message has files attached and asks anything about them.
+- crm: (only when CONNECTED CRMS lists one) looks things up in, or drafts changes to, the user's \
+CRM through its MCP tools: contacts, companies, deals, tickets, notes, tasks, pipelines. Use it \
+for any question about records in their CRM ("what's the status of the Acme deal?") and any \
+request to add or update CRM records, including adding leads found earlier in this chat. If they \
+ask about their CRM and none is connected, tell them to connect HubSpot, Salesforce or Zoho CRM \
+on the Connect page.
 
 Do everything else yourself: questions, advice, strategy, plans, research from your own \
 knowledge, writing (posts, copy, scripts, documents), analysis and explanations.
@@ -33,7 +39,7 @@ When you answer yourself (route "none"):
 Use "### " for section headings only in longer answers.
 - if something important is missing, say what and still give your best answer.
 
-Return only JSON: {"route": "none" | "lead_research" | "sales_outreach" | "data_reporting", "task": "...", "reply": "..."}"""
+Return only JSON: {"route": "none" | "lead_research" | "sales_outreach" | "data_reporting" | "crm", "task": "...", "reply": "..."}"""
 
 USER = """TODAY: {today}
 USER: {user_name}
@@ -45,6 +51,8 @@ CONVERSATION SO FAR (earlier messages in this chat, oldest first):
 
 FILES ATTACHED TO THIS MESSAGE:
 {attachments}
+
+CONNECTED CRMS: {crms}
 
 NEW MESSAGE FROM THE USER:
 {message}"""

@@ -87,6 +87,26 @@ class Settings(BaseSettings):
     # Upper bound on actions one outreach request may draft.
     outreach_max_actions: int = 20
 
+    # --- CRMs over MCP (HubSpot, Salesforce, Zoho CRM) -------------------
+    # Every CRM sends the browser back to this backend's
+    # /integrations/crm/callback; empty = derived from GOOGLE_OAUTH_REDIRECT_URI.
+    crm_oauth_redirect_uri: str | None = None
+    # HubSpot: an "MCP auth app" (HubSpot > Development > MCP Auth Apps) whose
+    # redirect URL is the callback above.
+    hubspot_mcp_client_id: str | None = None
+    hubspot_mcp_client_secret: str | None = None
+    hubspot_mcp_url: str = "https://mcp.hubspot.com"
+    hubspot_mcp_authorize_url: str = "https://mcp.hubspot.com/oauth/authorize"
+    hubspot_mcp_token_url: str = "https://mcp.hubspot.com/oauth/v3/token"
+    # Salesforce: an External Client App (OAuth scopes mcp_api + refresh_token,
+    # PKCE on) and an activated hosted MCP server.
+    salesforce_mcp_client_id: str | None = None
+    salesforce_mcp_client_secret: str | None = None
+    salesforce_login_url: str = "https://login.salesforce.com"
+    salesforce_mcp_url: str = "https://api.salesforce.com/platform/mcp/v1/platform/sobject-all"
+    # Most MCP tool calls one CRM request may make before answering.
+    crm_max_tool_calls: int = 8
+
     # --- API --------------------------------------------------------
     # Plain comma-separated string, not list[str]: pydantic-settings always
     # tries json.loads() on the raw env value for any list-typed field

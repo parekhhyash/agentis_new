@@ -1,0 +1,220 @@
+"""Client for remote MCP servers (Streamable HTTP), on the official MCP SDK.
+
+Agents talk to a CRM through `McpConnection`: list its tools (each one
+classified read / write / blocked) and call them. Every tool result is
+reduced to text for the model and treated as untrusted data by callers.
+"""
+
+import json
+import re
+from collections.abc import AsyncIterator
+from contextlib import AsyncExitStack, asynccontextmanager
+from dataclasses import dataclass
+from typing import Any, Literal
+
+import anyio
+import httpx2
+from mcp import ClientSession
+from mcp.client.streamable_http import create_mcp_http_client, streamable_http_client
+from mcp.shared.exceptions import MCPError
+from mcp.types import Implementation, Tool
+
+ToolKind = Literal["read", "write", "blocked"]
+
+MAX_RESULT_CHARS = 12_000
+_BLOCKED_WORDS = {"delete", "remove", "purge", "destroy", "erase", "merge", "archive", "deactivate", "revoke", "wipe"}
+_WRITE_WORDS = {
+    "create", "update", "upsert", "add", "insert", "set", "patch", "write", "log", "assign", "move", "send",
+    "convert", "manage", "batch", "edit", "change", "associate", "mass", "post", "put",
+}
+_READ_WORDS = {
+    "get", "list", "search", "query", "find", "read", "describe", "fetch", "count", "retrieve", "lookup", "show",
+    "view", "soql", "sosl", "schema", "details", "info", "recent", "related",
+}
+_SIGN_IN = re.compile(r"https://[^\s\"'<>)\]]*(?:accounts\.zoho|oauth|authori[sz]e|/auth\b|signin|sign-in|consent)[^\s\"'<>)\]]*", re.I)
+
+
+class McpError(Exception):
+    """A failure talking to an MCP server, with a message safe to show."""
+
+
+class McpAuthError(McpError):
+    """The server rejected our credentials (expired or revoked)."""
+
+
+@dataclass
+class McpTool:
+    name: str
+    description: str
+    input_schema: dict[str, Any]
+    kind: ToolKind
+    title: str | None = None
+
+    def brief(self, schema_chars: int = 1500) -> dict[str, Any]:
+        schema = json.dumps(self.input_schema, separators=(",", ":"), ensure_ascii=False)
+        return {
+            "name": self.name,
+            "kind": self.kind,
+            "description": " ".join(self.description.split())[:400],
+            "input_schema": schema if len(schema) <= schema_chars else schema[:schema_chars] + "...(truncated)",
+        }
+
+
+@dataclass
+class ToolOutput:
+    ok: bool
+    text: str
+    data: Any = None
+    # A sign-in link the server asked the user to open (Zoho authorises
+    # each service on first use).
+    sign_in_url: str | None = None
+
+
+def _words(name: str) -> set[str]:
+    """createSobjectRecord / search_crm_objects / MassUpdateRecords -> words."""
+    spaced = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", name)
+    return {w for w in re.split(r"[^a-z]+", spaced.lower()) if w}
+
+
+def classify(tool: Tool) -> ToolKind:
+    """Deletes and merges are never offered; reads run without asking;
+    anything else that changes data needs the user's approval. Unknown
+    tools count as writes, so they always need approval."""
+    words = _words(tool.name)
+    if words & _BLOCKED_WORDS:
+        return "blocked"
+    annotations = tool.annotations
+    if annotations and annotations.read_only_hint is True:
+        return "read"
+    if annotations and annotations.read_only_hint is False:
+        return "write"
+    if words & _WRITE_WORDS:
+        return "write"
+    return "read" if words & _READ_WORDS else "write"
+
+
+def _to_tool(tool: Tool) -> McpTool:
+    return McpTool(
+        name=tool.name,
+        description=tool.description or tool.title or "",
+        input_schema=tool.input_schema or {"type": "object"},
+        kind=classify(tool),
+        title=tool.title,
+    )
+
+
+def _text_of(result: Any) -> str:
+    parts = []
+    for item in getattr(result, "content", None) or []:
+        text = getattr(item, "text", None)
+        if text is not None:
+            parts.append(text)
+        elif getattr(item, "uri", None):
+            parts.append(f"[resource {item.uri}]")
+        else:
+            parts.append(f"[{getattr(item, 'type', 'content')}]")
+    if not parts and getattr(result, "structured_content", None) is not None:
+        parts.append(json.dumps(result.structured_content, ensure_ascii=False, default=str))
+    return "\n".join(parts)
+
+
+def _unwrap(exc: BaseException) -> BaseException:
+    while isinstance(exc, BaseExceptionGroup) and exc.exceptions:
+        exc = exc.exceptions[0]
+    return exc
+
+
+_TRANSPORT_ERRORS: tuple[type[BaseException], ...] = (httpx2.HTTPError, MCPError, TimeoutError, OSError, anyio.ClosedResourceError, anyio.BrokenResourceError, anyio.EndOfStream)
+
+
+def _mapped(exc: BaseException, server: str, statuses: list[int]) -> BaseException:
+    """Transport failures become McpError (McpAuthError for 401/403);
+    anything else (including McpError raised by callers) passes through."""
+    inner = _unwrap(exc)
+    if isinstance(inner, McpError):
+        return inner
+    if any(s in (401, 403) for s in statuses):
+        return McpAuthError(f"{server} rejected the connection; reconnect it on the Connect page")
+    if not isinstance(inner, _TRANSPORT_ERRORS):
+        return inner
+    if isinstance(inner, (httpx2.TimeoutException, TimeoutError)):
+        return McpError(f"{server} took too long to answer")
+    status = next((s for s in reversed(statuses) if s >= 400), None)
+    if status:
+        return McpError(f"{server} answered with an error (HTTP {status})")
+    if isinstance(inner, MCPError):
+        return McpError(f"{server} returned an error: {inner}")
+    return McpError(f"Couldn't reach {server}")
+
+
+class McpConnection:
+    """One open MCP session. Use `open_connection` to create it."""
+
+    def __init__(self, session: ClientSession, server: str, statuses: list[int] | None = None):
+        self._session = session
+        self.server = server
+        self._statuses = statuses if statuses is not None else []
+        self._tools: list[McpTool] | None = None
+
+    async def tools(self) -> list[McpTool]:
+        if self._tools is None:
+            tools: list[McpTool] = []
+            cursor = None
+            try:
+                for _ in range(20):
+                    page = await self._session.list_tools(params={"cursor": cursor} if cursor else None)
+                    tools.extend(_to_tool(t) for t in page.tools)
+                    cursor = page.next_cursor
+                    if not cursor:
+                        break
+            except Exception as exc:  # noqa: BLE001 - mapped below
+                raise _mapped(exc, self.server, self._statuses) from exc
+            self._tools = tools
+        return self._tools
+
+    async def tool(self, name: str) -> McpTool | None:
+        return next((t for t in await self.tools() if t.name == name), None)
+
+    async def call(self, name: str, arguments: dict[str, Any], timeout: float = 45.0) -> ToolOutput:
+        try:
+            result = await self._session.call_tool(name, arguments, read_timeout_seconds=timeout)
+        except Exception as exc:  # noqa: BLE001 - mapped below
+            raise _mapped(exc, self.server, self._statuses) from exc
+        text = _text_of(result)
+        data = getattr(result, "structured_content", None)
+        if data is None:
+            try:
+                data = json.loads(text) if text.strip()[:1] in ("{", "[") else None
+            except ValueError:
+                data = None
+        failed = bool(getattr(result, "is_error", False))
+        sign_in = None
+        if failed or re.search(r"authori[sz]|sign.?in|connect your", text, re.I):
+            match = _SIGN_IN.search(text)
+            sign_in = match.group(0) if match else None
+        if len(text) > MAX_RESULT_CHARS:
+            text = text[:MAX_RESULT_CHARS] + f"\n...(cut, {len(text) - MAX_RESULT_CHARS} more characters)"
+        return ToolOutput(ok=not failed, text=text, data=data, sign_in_url=sign_in)
+
+
+@asynccontextmanager
+async def open_connection(url: str, *, bearer: str | None = None, server: str = "The MCP server", timeout: float = 30.0) -> AsyncIterator[McpConnection]:
+    headers = {"Authorization": f"Bearer {bearer}"} if bearer else {}
+    statuses: list[int] = []
+
+    async def record(response: httpx2.Response) -> None:
+        statuses.append(response.status_code)
+
+    try:
+        async with AsyncExitStack() as stack:
+            http = create_mcp_http_client(headers=headers, timeout=httpx2.Timeout(timeout, read=90.0))
+            http.event_hooks["response"].append(record)
+            await stack.enter_async_context(http)
+            streams = await stack.enter_async_context(streamable_http_client(url, http_client=http))
+            session = await stack.enter_async_context(
+                ClientSession(streams[0], streams[1], client_info=Implementation(name="Agentis", version="1.0"))
+            )
+            await session.initialize()
+            yield McpConnection(session, server, statuses)
+    except Exception as exc:  # noqa: BLE001 - the SDK wraps failures in task-group exception groups
+        raise _mapped(exc, server, statuses) from exc

@@ -9,7 +9,11 @@ from agents.lead_research.llm import build_llm_client
 from config.settings import get_settings
 from services import supabase_rest
 from services.auth import AuthUser
+from integrations.crm.connections import connected_providers
+from integrations.crm.providers import NAMES, CrmError
+from integrations.mcp.client import McpError
 from services.conversation_context import load_context
+from services.crm_runner import CRM_TIMEOUT_SECONDS, run_crm
 from services.outreach_runner import OutreachError, _owned_request, _to_outreach_error
 from services.progress_reporter import ProgressTracker
 from services.request_store import finalize_request
@@ -52,6 +56,7 @@ async def run_general(
         await progress.add_step("Reading the conversation")
         context = await load_context(user.id, owned_id)
         files = await describe_attachments(user.id, attachments)
+        crms = await connected_providers(user.id)
         await progress.add_step("Thinking")
         agent = GeneralAgent(build_llm_client(get_settings()))
         result = await asyncio.wait_for(
@@ -62,11 +67,27 @@ async def run_general(
                 user_name=(user_name or "").strip(),
                 today=datetime.now(timezone.utc),
                 attachments=files,
+                crms=[NAMES[p] for p in crms],
             ),
             timeout=RUN_TIMEOUT_SECONDS,
         )
+        if result.route == "crm":
+            # CRM work happens inside this turn: lookups now, changes as drafts.
+            result.reply, result.crm = await run_crm(
+                user,
+                message=result.task or prompt,
+                history=context.render(),
+                company={k: v for k, v in company_context.items() if v},
+                user_name=(user_name or "").strip(),
+                today=datetime.now(timezone.utc),
+                progress=progress,
+            )
+            result.route, result.task = "none", ""
     except Exception as exc:  # noqa: BLE001 - mapped to a user-facing message
-        error = _to_outreach_error(exc, "General", RUN_TIMEOUT_SECONDS)
+        if isinstance(exc, (CrmError, McpError)):
+            error = OutreachError(str(exc), getattr(exc, "status", 502))
+        else:
+            error = _to_outreach_error(exc, "General", RUN_TIMEOUT_SECONDS + CRM_TIMEOUT_SECONDS)
         await finalize_request(owned_id, status="failed", error=str(error))
         raise error from exc
     await finalize_request(owned_id, status="completed", result=result.model_dump(mode="json"))

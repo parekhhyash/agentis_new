@@ -38,6 +38,7 @@ The system is built as a **React + TypeScript** frontend (Vite) paired with a **
 - **Lead Research Agent** — Discovers, filters, deeply researches, and qualifies companies as potential sales leads using Exa search and LLM analysis
 - **Sales & Outreach Agent** — Drafts personalized emails, thread-aware replies, and calendar invitations using the user's connected Gmail and Google Calendar
 - **General Agent** — The default chat agent: answers questions with company and conversation context, or hands the task to the right specialist
+- **CRM integrations over MCP** — Connect **HubSpot**, **Salesforce** or **Zoho CRM** through their official MCP servers. Ask General about contacts, companies and deals, ask it to update records, or add researched leads with one click. Lookups run on their own; every change is a draft you approve; delete and merge tools are never used
 - **Data & Reporting Agent** — Answers questions about numbers with headline figures, charts and tables, from the user's Agentis activity (leads, emails, replies, meetings) and CSV/Excel files they upload. The model plans queries; the backend runs every calculation, and the written summary may only quote numbers that the queries produced
 - **Conversational Dashboard** — Chat-style UI where each agent request appears as a conversation with real-time progress updates
 - **Google Integration** — Secure OAuth 2.0 flow to connect Gmail (send, read, reply) and Google Calendar (create events with Meet links)
@@ -334,6 +335,40 @@ Instruction + Company context + Optional leads from Lead Research
 - **Discard** → Drops the draft
 - **Save** → Keeps edits without sending
 
+### CRM over MCP (HubSpot, Salesforce, Zoho CRM)
+
+The backend is an MCP client (official MCP Python SDK, Streamable HTTP). Each user connects their own CRM account; the General agent routes CRM questions and requests (route `crm`) to a bounded tool loop inside the same chat turn.
+
+```
+Message about the CRM ("what's the status of the Acme deal?", "add these leads to HubSpot")
+  │
+  ▼
+┌──────────────────────────────────────────────────────────────────┐
+│ 1. Connect             Open an MCP session to each connected CRM │
+│    (fresh OAuth token for HubSpot/Salesforce; Zoho's own URL)    │
+├──────────────────────────────────────────────────────────────────┤
+│ 2. Discover tools      tools/list; each tool classified:         │
+│    read (runs on its own) · write (needs approval) ·             │
+│    blocked (delete/merge, never offered)                         │
+├──────────────────────────────────────────────────────────────────┤
+│ 3. Look up (loop)      The model asks for up to 3 read calls per │
+│    turn (8 in total); arguments are validated against each       │
+│    tool's JSON Schema before running; results are fenced as data │
+├──────────────────────────────────────────────────────────────────┤
+│ 4. Finish              Answer from the results + proposed writes │
+│    (schema-checked) stored as drafts on the chat turn            │
+├──────────────────────────────────────────────────────────────────┤
+│ 5. Approve             The user approves each change; the server │
+│    runs the stored arguments (re-checked), once                  │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+| CRM | MCP server | Sign-in |
+|---|---|---|
+| HubSpot | `https://mcp.hubspot.com` | OAuth 2.0 + PKCE with an MCP auth app |
+| Salesforce | `https://api.salesforce.com/platform/mcp/v1/platform/sobject-all` | OAuth 2.0 + PKCE with an External Client App (`mcp_api`, `refresh_token`) |
+| Zoho CRM | Per org, from Zoho CRM > Setup > Developer Hub > MCP for AI Agents | The URL embeds its key (stored encrypted); Zoho asks the user to authorise each service on first use |
+
 ### Data & Reporting Agent
 
 ```
@@ -460,6 +495,22 @@ Run the Google connections migration:
    ```
 4. Set the relevant environment variables in `backend/.env`
 
+### 6. CRM Setup (Optional — HubSpot, Salesforce, Zoho CRM)
+
+Run `supabase/migrations/20261010000000_crm_connections.sql`. All CRMs return to one callback: `https://<your-backend>/integrations/crm/callback` (`CRM_OAUTH_REDIRECT_URI`, defaults to the Google callback's host). `INTEGRATIONS_ENCRYPTION_KEY` must be set.
+
+**HubSpot**
+1. In HubSpot: Development (or Settings > Integrations > Developer Platform) > **MCP Auth Apps** > Create.
+2. Redirect URL: the CRM callback above (exact match).
+3. Set `HUBSPOT_MCP_CLIENT_ID` and `HUBSPOT_MCP_CLIENT_SECRET` on the backend.
+
+**Salesforce** (Developer Edition or Enterprise and up)
+1. Setup > **MCP Servers**: activate `platform/sobject-all` (or set `SALESFORCE_MCP_URL` to another hosted server, e.g. `sobject-reads`).
+2. Setup > **External Client App Manager** > New: enable OAuth, callback URL = the CRM callback, scopes **`mcp_api`** and **`refresh_token`**, require **PKCE**, and turn on JWT-based access tokens for named users.
+3. Set `SALESFORCE_MCP_CLIENT_ID` (consumer key) and, if the app requires one, `SALESFORCE_MCP_CLIENT_SECRET`. Sandboxes: `SALESFORCE_LOGIN_URL=https://test.salesforce.com` and the `.../v1/sandbox/platform/...` server URL.
+
+**Zoho CRM** — no server setup. Each user opens Zoho CRM > Setup > Developer Hub > **MCP for AI Agents**, copies a server's URL (Data Operations allows changes; Data Insights is read-only) and pastes it on the Connect page.
+
 ---
 
 ## Environment Variables
@@ -559,6 +610,17 @@ The frontend runs at `http://localhost:5173` and the backend at `http://localhos
 | `POST` | `/sales-outreach/requests/{id}/actions/{action_id}` | ✅ Bearer | Approve, discard, or save a drafted action |
 | `POST` | `/sales-outreach/cancel` | ✅ Bearer | Cancel a running outreach request |
 
+### CRM (MCP)
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| `GET` | `/integrations/crm` | ✅ Bearer | Status of HubSpot, Salesforce and Zoho CRM for the user |
+| `POST` | `/integrations/crm/{provider}/connect` | ✅ Bearer | HubSpot/Salesforce: returns the sign-in URL. Zoho: `{mcp_url}`, checked and saved |
+| `GET` | `/integrations/crm/callback` | ❌ | OAuth callback (internal) |
+| `GET` | `/integrations/crm/{provider}/tools` | ✅ Bearer | The CRM's MCP tools and how each is treated |
+| `DELETE` | `/integrations/crm/{provider}` | ✅ Bearer | Disconnect a CRM |
+| `POST` | `/crm/requests/{id}/actions/{action_id}` | ✅ Bearer | Approve or discard a drafted CRM change |
+
 ### General and Data & Reporting
 
 | Method | Endpoint | Auth | Description |
@@ -623,6 +685,18 @@ The frontend runs at `http://localhost:5173` and the backend at `http://localhos
 
 > RLS is enabled on `google_connections` with **no policies** — only the backend (service role key) can access it. The encrypted refresh token never reaches the browser.
 
+### `crm_connections`
+
+| Column | Type | Description |
+|---|---|---|
+| `user_id` + `provider` | `uuid` + `text` (PK) | One row per user and CRM (`hubspot`, `salesforce`, `zoho`) |
+| `account_label` | `text` | What the user connected as |
+| `mcp_url_encrypted` | `text` | MCP server URL, Fernet-encrypted (Zoho's embeds its key) |
+| `refresh_token_encrypted` | `text` | OAuth refresh token, Fernet-encrypted (HubSpot, Salesforce) |
+| `tool_count` | `integer` | Tools the server offered when connected |
+
+> Backend only: RLS on with no policies, like `google_connections`.
+
 ### `datasets`
 
 | Column | Type | Description |
@@ -679,6 +753,7 @@ Test coverage includes:
 - Sales outreach agent and executor (`test_outreach.py`)
 - Reply checking (`test_replies.py`)
 - General agent and conversation context (`test_general.py`)
+- CRM over MCP: tool classification, PKCE and encrypted state, Zoho URL checks, the agent loop and approvals against a real local MCP server, token refresh (`test_crm.py`)
 - Data & Reporting: file parsing, query checks and execution, summary number checks, live reply status (`test_data_reporting.py`)
 - LLM client behavior (`test_llm.py`)
 - Exa search provider (`test_exa.py`)

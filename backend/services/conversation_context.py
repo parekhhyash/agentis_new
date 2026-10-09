@@ -64,7 +64,9 @@ def summarize(row: dict[str, Any]) -> str:
         reply = _clip(result.get("reply", ""), 1200)
         if result.get("route") and result.get("route") != "none":
             return f"{reply} [handed to {AGENT_LABELS.get(result['route'], result['route'])}: {_clip(result.get('task', ''), 300)}]"
-        return reply
+        crm = result.get("crm") or {}
+        changes = [f"- CRM change \"{a.get('summary')}\" in {a.get('provider')} [{a.get('status')}]" for a in (crm.get("actions") or [])[:10]]
+        return "\n".join([reply, *changes])
 
     if kind == "sales_outreach":
         lines = [_clip(result.get("summary", ""), 300)]

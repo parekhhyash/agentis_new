@@ -43,3 +43,13 @@ services:
         sync: false
       - key: INTEGRATIONS_ENCRYPTION_KEY
         sync: false
+      # CRMs over MCP. Each CRM sends users back to
+      # https://<this service's URL>/integrations/crm/callback
+      - key: HUBSPOT_MCP_CLIENT_ID
+        sync: false
+      - key: HUBSPOT_MCP_CLIENT_SECRET
+        sync: false
+      - key: SALESFORCE_MCP_CLIENT_ID
+        sync: false
+      - key: SALESFORCE_MCP_CLIENT_SECRET
+        sync: false

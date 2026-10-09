@@ -3,6 +3,8 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from api.crm import actions_router as crm_actions_router
+from api.crm import router as crm_router
 from api.data import router as data_router
 from api.general import router as general_router
 from api.integrations import router as integrations_router
@@ -33,6 +35,8 @@ app.include_router(outreach_router)
 app.include_router(general_router)
 app.include_router(data_router)
 app.include_router(integrations_router)
+app.include_router(crm_router)
+app.include_router(crm_actions_router)
 
 
 @app.get("/health")

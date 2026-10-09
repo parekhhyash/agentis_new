@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 import { downloadLeadsCsv } from '../../lib/leadExport'
 import {
   isLeadResearchResult,
@@ -199,7 +201,16 @@ function LeadEvidence({ lead }: { lead: ResearchLead }) {
   )
 }
 
-function ResearchResults({ result }: { result: LeadResearchResult }) {
+function ResearchResults({
+  result,
+  crms,
+  onAddToCrm,
+}: {
+  result: LeadResearchResult
+  crms: string[]
+  onAddToCrm?: (crmName: string, count: number) => void
+}) {
+  const [asked, setAsked] = useState<string | null>(null)
   return (
     <div>
       <div className="flex items-start justify-between gap-3">
@@ -208,13 +219,30 @@ function ResearchResults({ result }: { result: LeadResearchResult }) {
           {result.icp.summary && ` · ${result.icp.summary}`}
         </p>
         {result.leads.length > 0 && (
-          <button
-            type="button"
-            onClick={() => downloadLeadsCsv(result)}
-            className="shrink-0 rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
-          >
-            Export CSV
-          </button>
+          <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+            {onAddToCrm &&
+              crms.map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  disabled={asked === name}
+                  onClick={() => {
+                    setAsked(name)
+                    onAddToCrm(name, result.leads.length)
+                  }}
+                  className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  {asked === name ? `Asked to add to ${name}` : `Add to ${name}`}
+                </button>
+              ))}
+            <button
+              type="button"
+              onClick={() => downloadLeadsCsv(result)}
+              className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+            >
+              Export CSV
+            </button>
+          </div>
         )}
       </div>
       {result.notes && <p className="mt-1 text-xs text-amber-700">{result.notes}</p>}
@@ -306,6 +334,18 @@ function LegacyResults({ result }: { result: LegacyLeadGenerationResult }) {
   )
 }
 
-export default function LeadResultsPanel({ result }: { result: AnyLeadResult }) {
-  return isLeadResearchResult(result) ? <ResearchResults result={result} /> : <LegacyResults result={result} />
+export default function LeadResultsPanel({
+  result,
+  crms = [],
+  onAddToCrm,
+}: {
+  result: AnyLeadResult
+  crms?: string[]
+  onAddToCrm?: (crmName: string, count: number) => void
+}) {
+  return isLeadResearchResult(result) ? (
+    <ResearchResults result={result} crms={crms} onAddToCrm={onAddToCrm} />
+  ) : (
+    <LegacyResults result={result} />
+  )
 }

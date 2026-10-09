@@ -1,5 +1,6 @@
 import { AGENT_LABELS } from '../../lib/agentTypes'
 import type { Tables } from '../../lib/database.types'
+import type { CrmProviderStatus } from '../../lib/crm'
 import { attachmentsOf, isDataReport } from '../../lib/dataTypes'
 import { relativeTime } from '../../lib/relativeTime'
 import { isGeneralResult } from '../../lib/generalTypes'
@@ -21,11 +22,16 @@ export default function ChatConversation({
   handedOff = false,
   onOutreachActionChange,
   onResultChange,
+  crms = [],
+  onAddLeadsToCrm,
 }: {
   request: AgentRequest
   handedOff?: boolean
   onOutreachActionChange?: (action: OutreachAction) => void
   onResultChange?: (result: unknown) => void
+  // Connected CRMs, for "Add to HubSpot" on lead results.
+  crms?: CrmProviderStatus[]
+  onAddLeadsToCrm?: (crmName: string, count: number) => void
 }) {
   const files = attachmentsOf(request.attachments)
   const fileChips = files.length > 0 && (
@@ -87,7 +93,11 @@ export default function ChatConversation({
           {request.status === 'completed' &&
             request.result != null &&
             (isGeneralResult(request.result) ? (
-              <GeneralReply result={request.result} />
+              <GeneralReply
+                result={request.result}
+                requestId={request.id}
+                onResultChange={(result) => onResultChange?.(result)}
+              />
             ) : isDataReport(request.result) ? (
               <ReportPanel result={request.result} />
             ) : isOutreachResult(request.result) ? (
@@ -99,7 +109,11 @@ export default function ChatConversation({
                 onResultChange={(result) => onResultChange?.(result)}
               />
             ) : (
-              <LeadResultsPanel result={request.result as unknown as AnyLeadResult} />
+              <LeadResultsPanel
+                result={request.result as unknown as AnyLeadResult}
+                crms={crms.map((c) => c.name)}
+                onAddToCrm={onAddLeadsToCrm}
+              />
             ))}
 
           {request.status === 'failed' && (
