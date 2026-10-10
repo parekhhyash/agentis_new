@@ -19,6 +19,7 @@ AGENT_LABELS = {
     "sales_outreach": "Sales & Outreach",
     "data_reporting": "Data & Reporting",
     "content_copy": "Content & Copy",
+    "operations": "Operations",
 }
 
 
@@ -94,6 +95,14 @@ def summarize(row: dict[str, Any]) -> str:
             posted = ", ".join(f"posted on {p.get('provider')}" for v in variants for p in v.get("published") or [])
             lines.append(f"- {piece.get('label')} ({len(variants)} options){' [' + posted + ']' if posted else ''}: "
                          f"{(best.get('title') + ': ') if best.get('title') else ''}{_clip(body, 500)}")
+        return "\n".join(lines)
+
+    if kind == "operations":
+        lines = [_clip(result.get("reply", ""), 600)]
+        for p in (result.get("proposals") or [])[:5]:
+            lines.append(
+                f"- proposed {p.get('action')} of task \"{p.get('name')}\" ({p.get('schedule_text')}) [{p.get('status')}]"
+            )
         return "\n".join(lines)
 
     if kind == "data_report":

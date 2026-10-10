@@ -5,20 +5,23 @@ import type { CrmProviderStatus } from '../../lib/crm'
 import { attachmentsOf, isDataReport } from '../../lib/dataTypes'
 import { relativeTime } from '../../lib/relativeTime'
 import { isGeneralResult } from '../../lib/generalTypes'
+import { isOperationsResult, type ScheduledTasks } from '../../lib/operations'
 import { isOutreachResult, type OutreachAction } from '../../lib/outreachTypes'
 import type { AgentProgress, AnyLeadResult } from '../../lib/salesAgentTypes'
 import AgentProgressView from './AgentProgressView'
 import ContentResultPanel from './ContentResultPanel'
 import GeneralReply from './GeneralReply'
 import LeadResultsPanel from './LeadResultsPanel'
+import OperationsResultPanel from './OperationsResultPanel'
 import OutreachResultsPanel from './OutreachResultsPanel'
 import ReportPanel from './report/ReportPanel'
-import { SheetIcon } from '../icons'
+import { ClockIcon, SheetIcon } from '../icons'
 
 type AgentRequest = Tables<'agent_requests'>
 
 // One turn of a chat: the message and the agent's answer. A turn the General
-// agent handed off shows the hand-off instead of a user message.
+// agent handed off, or a scheduled task started, shows that instead of a
+// user message.
 export default function ChatConversation({
   request,
   handedOff = false,
@@ -28,6 +31,9 @@ export default function ChatConversation({
   onAddLeadsToCrm,
   social,
   onOpenConnect,
+  scheduled,
+  onOpenChat,
+  onOpenScheduled,
 }: {
   request: AgentRequest
   handedOff?: boolean
@@ -38,6 +44,9 @@ export default function ChatConversation({
   onAddLeadsToCrm?: (crmName: string, count: number) => void
   social?: ReturnType<typeof useSocialConnections>
   onOpenConnect?: () => void
+  scheduled?: ScheduledTasks
+  onOpenChat?: (conversationId: string) => void
+  onOpenScheduled?: () => void
 }) {
   const files = attachmentsOf(request.attachments)
   const fileChips = files.length > 0 && (
@@ -66,6 +75,17 @@ export default function ChatConversation({
           <div className="min-w-0">
             <p className="text-sm text-slate-600">{request.prompt}</p>
             {fileChips}
+          </div>
+        </div>
+      ) : request.scheduled_task_id ? (
+        <div className="flex items-start gap-3 rounded-xl border border-dashed border-slate-300 px-4 py-3">
+          <span className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap text-slate-600">
+            <ClockIcon className="h-3 w-3" />
+            Scheduled &rarr; {AGENT_LABELS[request.agent_type]}
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm text-slate-600">{request.prompt}</p>
+            <p className="mt-1 text-xs text-slate-400">{relativeTime(request.created_at)}</p>
           </div>
         </div>
       ) : (
@@ -111,6 +131,15 @@ export default function ChatConversation({
                 social={social}
                 onResultChange={(result) => onResultChange?.(result)}
                 onOpenConnect={() => onOpenConnect?.()}
+              />
+            ) : isOperationsResult(request.result) && scheduled ? (
+              <OperationsResultPanel
+                requestId={request.id}
+                result={request.result}
+                scheduled={scheduled}
+                onResultChange={(result) => onResultChange?.(result)}
+                onOpenChat={(id) => onOpenChat?.(id)}
+                onOpenScheduled={() => onOpenScheduled?.()}
               />
             ) : isDataReport(request.result) ? (
               <ReportPanel result={request.result} />

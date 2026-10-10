@@ -256,8 +256,9 @@ export default function Features() {
                 Operations
               </h3>
               <p className="mt-2 max-w-md text-[15px] leading-relaxed text-slate-600">
-                Automate the repetitive back-office work that quietly eats up
-                your team's week.
+                Put any agent on a schedule: a Monday report, daily follow-up
+                drafts, a fresh lead list every month. It runs on time, and you
+                still approve anything that goes out.
               </p>
             </div>
             <span className="inline-flex shrink-0 items-center gap-2 rounded-full bg-brand-blue px-4 py-2 text-sm font-semibold text-white">

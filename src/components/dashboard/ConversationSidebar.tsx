@@ -2,6 +2,7 @@ import { AGENT_LABELS } from '../../lib/agentTypes'
 import type { Conversation } from '../../lib/conversations'
 import type { Tables } from '../../lib/database.types'
 import { relativeTime } from '../../lib/relativeTime'
+import { ClockIcon } from '../icons'
 
 type AgentRequest = Tables<'agent_requests'>
 
@@ -18,12 +19,15 @@ export default function ConversationSidebar({
   loading,
   selectedId,
   onSelect,
+  scheduledIds,
 }: {
   conversations: Conversation[]
   latestTurn: (conversationId: string) => AgentRequest | undefined
   loading: boolean
   selectedId: string | null
   onSelect: (id: string) => void
+  // Chats that scheduled tasks write into.
+  scheduledIds?: Set<string>
 }) {
   if (loading) {
     return <p className="px-3 py-6 text-center text-sm text-slate-400">Loading...</p>
@@ -56,6 +60,11 @@ export default function ConversationSidebar({
                   className={`h-1.5 w-1.5 shrink-0 rounded-full ${latest ? STATUS_DOT[latest.status] : 'bg-slate-300'}`}
                 />
                 <p className="truncate text-sm text-slate-800">{conversation.title}</p>
+                {scheduledIds?.has(conversation.id) && (
+                  <span title="A scheduled task's chat" className="shrink-0 text-slate-400">
+                    <ClockIcon className="h-3.5 w-3.5" />
+                  </span>
+                )}
               </div>
               <p className="mt-1 pl-3.5 text-xs text-slate-400">
                 {latest ? `${AGENT_LABELS[latest.agent_type]} · ` : ''}

@@ -79,6 +79,16 @@ async def delete(table: str, params: dict[str, str]) -> None:
         response.raise_for_status()
 
 
+async def rpc(function: str, args: dict[str, Any], timeout: float = 15.0) -> Any:
+    """Calls a Postgres function exposed by PostgREST (only ones granted to
+    the service role, see the migrations)."""
+    url, headers = _base()
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        response = await client.post(f"{url}/rest/v1/rpc/{function}", headers=headers, json=args)
+        response.raise_for_status()
+        return response.json()
+
+
 async def get_auth_user(access_token: str) -> dict[str, Any] | None:
     """Resolves a user's Supabase access token to their auth user, or None if
     the token is invalid or expired. Asking Supabase (rather than verifying

@@ -121,6 +121,13 @@ class Settings(BaseSettings):
     x_client_id: str | None = None
     x_client_secret: str | None = None
 
+    # --- Operations (scheduled tasks) --------------------------------
+    # While the backend is awake it also checks for due tasks this often
+    # (seconds; 0 = off). In production pg_cron calls /operations/tick, which
+    # wakes a sleeping instance; the call's secret lives in Supabase Vault.
+    operations_scheduler_interval_seconds: float = 60.0
+    operations_max_tasks: int = 10
+
     # --- API --------------------------------------------------------
     # Plain comma-separated string, not list[str]: pydantic-settings always
     # tries json.loads() on the raw env value for any list-typed field

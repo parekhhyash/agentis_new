@@ -25,6 +25,7 @@ export type Database = {
           progress: Json | null
           prompt: string
           result: Json | null
+          scheduled_task_id: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["request_status"]
           user_id: string
@@ -39,6 +40,7 @@ export type Database = {
           progress?: Json | null
           prompt: string
           result?: Json | null
+          scheduled_task_id?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["request_status"]
           user_id: string
@@ -53,6 +55,7 @@ export type Database = {
           progress?: Json | null
           prompt?: string
           result?: Json | null
+          scheduled_task_id?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["request_status"]
           user_id?: string

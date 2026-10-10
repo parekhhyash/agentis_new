@@ -57,7 +57,7 @@ export const AGENT_TYPES: {
   {
     value: 'operations',
     label: 'Operations',
-    description: 'Automate the repetitive back-office work.',
+    description: 'Runs your other agents on a schedule: reports, follow-ups, research and posts.',
     icon: GearIcon,
   },
 ]

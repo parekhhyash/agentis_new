@@ -5,8 +5,9 @@ import ConversationSidebar from '../components/dashboard/ConversationSidebar'
 import ConnectionsPanel from '../components/dashboard/ConnectionsPanel'
 import OutreachSetupBar from '../components/dashboard/OutreachSetupBar'
 import ProfileMenu from '../components/dashboard/ProfileMenu'
+import ScheduledPanel from '../components/dashboard/ScheduledPanel'
 import TaskComposer from '../components/dashboard/TaskComposer'
-import { CloseIcon, MenuIcon, PlugIcon, PlusIcon } from '../components/icons'
+import { ClockIcon, CloseIcon, MenuIcon, PlugIcon, PlusIcon } from '../components/icons'
 import ThemeToggle from '../components/ThemeToggle'
 import { createAgentRequest, RUNNABLE_AGENTS, startAgentRun, stopAgentRun, subscribeToRuns } from '../lib/agentRuns'
 import type { AgentType } from '../lib/agentTypes'
@@ -18,6 +19,7 @@ import { isGeneralResult } from '../lib/generalTypes'
 import { useSocialConnections } from '../lib/content'
 import { CRM_NAMES, useCrmConnections, type CrmProvider } from '../lib/crm'
 import { useGoogleConnection } from '../lib/googleConnection'
+import { useScheduledTasks } from '../lib/operations'
 import { isOutreachResult, type OutreachAction } from '../lib/outreachTypes'
 import { CLIENT_TIMEOUT_MESSAGE, STOPPED_BY_USER_MESSAGE } from '../lib/salesAgentApi'
 import { supabase } from '../lib/supabase'
@@ -52,10 +54,11 @@ export default function DashboardPage() {
   const [leadRequestId, setLeadRequestId] = useState<string | null>(null)
   const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null)
   const [searchParams, setSearchParams] = useSearchParams()
-  const [view, setView] = useState<'chat' | 'connect'>('chat')
+  const [view, setView] = useState<'chat' | 'connect' | 'scheduled'>('chat')
   const google = useGoogleConnection(agentType === 'sales_outreach' || view === 'connect')
   const crm = useCrmConnections()
   const social = useSocialConnections()
+  const scheduled = useScheduledTasks()
 
   // Back from Google's consent screen (see api/integrations.py's callback).
   const googleResult = searchParams.get('google')
@@ -99,9 +102,17 @@ export default function DashboardPage() {
         : { tone: 'error', text: returnMessage ?? `${name} could not be connected.` },
     )
   }
+  // A link to one chat, e.g. from a scheduled task's summary email.
+  const chatParam = searchParams.get('chat')
+  const [handledChatParam, setHandledChatParam] = useState<string | null>(null)
+  if (chatParam && chatParam !== handledChatParam) {
+    setHandledChatParam(chatParam)
+    setSelectedId(chatParam)
+    setView('chat')
+  }
   useEffect(() => {
-    if (googleResult || crmResult || socialResult) setSearchParams({}, { replace: true })
-  }, [googleResult, crmResult, socialResult, setSearchParams])
+    if (googleResult || crmResult || socialResult || chatParam) setSearchParams({}, { replace: true })
+  }, [googleResult, crmResult, socialResult, chatParam, setSearchParams])
 
   // The conversation scrolls; the composer below it doesn't. A visible
   // scrollbar (e.g. on Windows) narrows the scroll area and shifts its
@@ -152,6 +163,38 @@ export default function DashboardPage() {
   useEffect(() => {
     requestsRef.current = requests
   }, [requests])
+
+  // Scheduled tasks add turns from the server while the page is open: pick
+  // up new ones (and the chats they moved to the top) every so often.
+  const refreshScheduled = scheduled.refresh
+  useEffect(() => {
+    if (!user) return
+    const since = new Date(Date.now() - 5 * 60_000).toISOString()
+    const interval = setInterval(async () => {
+      const { data } = await supabase
+        .from('agent_requests')
+        .select('*')
+        .not('scheduled_task_id', 'is', null)
+        .gte('created_at', since)
+        .order('created_at', { ascending: true })
+      const known = new Set(requestsRef.current.map((r) => r.id))
+      const fresh = (data ?? []).filter((r) => !known.has(r.id))
+      if (fresh.length === 0) return
+      setRequests((prev) => [...prev, ...fresh.filter((r) => !prev.some((p) => p.id === r.id))])
+      const chats = await supabase.from('conversations').select('*').order('updated_at', { ascending: false })
+      if (chats.data) setConversations(chats.data)
+      void refreshScheduled()
+    }, 20_000)
+    return () => clearInterval(interval)
+  }, [user, refreshScheduled])
+
+  // While a task runs, or the Scheduled page is open, keep its status fresh.
+  const anyRunning = Boolean(scheduled.tasks?.some((t) => t.running))
+  useEffect(() => {
+    if (!anyRunning && view !== 'scheduled') return
+    const interval = setInterval(() => void refreshScheduled(), anyRunning ? 10_000 : 30_000)
+    return () => clearInterval(interval)
+  }, [anyRunning, view, refreshScheduled])
 
   // The backend pushes live progress straight to Supabase as it runs (see
   // ProgressTracker in the Python service) - poll the in-progress rows so
@@ -215,11 +258,16 @@ export default function DashboardPage() {
     })
   }
 
-  async function handleSubmit(prompt: string, attachments: Attachment[] = [], agent: AgentType = agentType) {
+  async function handleSubmit(
+    prompt: string,
+    attachments: Attachment[] = [],
+    agent: AgentType = agentType,
+    intoChat: string | null | undefined = undefined,
+  ) {
     if (!user) return
 
     // A message goes into the open chat; with none open it starts a new one.
-    let conversationId = view === 'chat' ? selectedId : null
+    let conversationId = intoChat !== undefined ? intoChat : view === 'chat' ? selectedId : null
     if (!conversationId) {
       const chat = await createConversation(user.id, prompt)
       if (!chat) return
@@ -281,6 +329,32 @@ export default function DashboardPage() {
     setView('connect')
     setSidebarOpen(false)
   }
+
+  function openScheduled() {
+    setSelectedId(null)
+    setView('scheduled')
+    setSidebarOpen(false)
+    void scheduled.refresh()
+  }
+
+  // A chat a scheduled task writes into may have been created after this
+  // page loaded; fetch the chat list again if it's not known yet.
+  async function openChat(conversationId: string) {
+    if (!conversations.some((c) => c.id === conversationId)) {
+      const [turns, chats] = await Promise.all([
+        supabase.from('agent_requests').select('*').eq('conversation_id', conversationId).order('created_at', { ascending: true }),
+        supabase.from('conversations').select('*').order('updated_at', { ascending: false }),
+      ])
+      if (chats.data) setConversations(chats.data)
+      if (turns.data?.length) {
+        setRequests((prev) => [...prev, ...turns.data.filter((t) => !prev.some((r) => r.id === t.id))])
+      }
+    }
+    selectRequest(conversationId)
+  }
+
+  const scheduledChatIds = new Set((scheduled.tasks ?? []).map((t) => t.conversation_id).filter((id): id is string => Boolean(id)))
+  const activeTaskCount = (scheduled.tasks ?? []).filter((t) => t.status === 'active').length
 
   const noticeBanner = notice && (
     <div
@@ -356,6 +430,17 @@ export default function DashboardPage() {
             <PlugIcon className="text-slate-500" />
             Connect
           </button>
+          <button
+            type="button"
+            onClick={openScheduled}
+            className={`mt-0.5 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+              view === 'scheduled' ? 'bg-slate-100 text-slate-900' : 'text-slate-700 hover:bg-slate-100'
+            }`}
+          >
+            <ClockIcon className="text-slate-500" />
+            Scheduled
+            {activeTaskCount > 0 && <span className="ml-auto text-xs font-normal text-slate-400">{activeTaskCount}</span>}
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-2 py-2">
@@ -365,6 +450,7 @@ export default function DashboardPage() {
             loading={loadingRequests}
             selectedId={view === 'chat' ? selectedId : null}
             onSelect={selectRequest}
+            scheduledIds={scheduledChatIds}
           />
         </div>
 
@@ -391,6 +477,17 @@ export default function DashboardPage() {
         <div ref={scrollRef} className="flex-1 overflow-y-auto [scrollbar-gutter:stable]">
           {view === 'connect' ? (
             <ConnectionsPanel google={google} crm={crm} social={social} notice={noticeBanner} />
+          ) : view === 'scheduled' ? (
+            <ScheduledPanel
+              scheduled={scheduled}
+              onOpenChat={(id) => void openChat(id)}
+              onAsk={(prompt) => {
+                setSelectedId(null)
+                setView('chat')
+                setAgentType('operations')
+                void handleSubmit(prompt, [], 'operations', null)
+              }}
+            />
           ) : thread.length > 0 ? (
             <div className="mx-auto max-w-3xl space-y-8 px-6 py-8">
               {thread.map((turn, index) => (
@@ -403,6 +500,9 @@ export default function DashboardPage() {
                   crms={crm.connected}
                   social={social}
                   onOpenConnect={openConnect}
+                  scheduled={scheduled}
+                  onOpenChat={(id) => void openChat(id)}
+                  onOpenScheduled={openScheduled}
                   onAddLeadsToCrm={(name, count) =>
                     void handleSubmit(
                       `Add the ${count} lead${count === 1 ? '' : 's'} from my last research to ${name}: create each company and its contacts with their emails, and skip any that are already in ${name}.`,
@@ -420,13 +520,14 @@ export default function DashboardPage() {
               </h1>
               <p className="mt-2 text-slate-500">
                 Ask General anything, from questions to plans. It answers, or hands the
-                task to the right agent. Attach a CSV or Excel file to ask about your numbers.
+                task to the right agent. Attach a CSV or Excel file to ask about your numbers,
+                or ask Operations to put any of it on a schedule.
               </p>
             </div>
           )}
         </div>
 
-        <div style={{ paddingRight: scrollbarWidth }} className={view === 'connect' ? 'hidden' : ''}>
+        <div style={{ paddingRight: scrollbarWidth }} className={view === 'chat' ? '' : 'hidden'}>
           <div className="mx-auto w-full max-w-3xl px-6 pb-6">
             {noticeBanner && <div className="mb-3">{noticeBanner}</div>}
             {agentType === 'sales_outreach' && (

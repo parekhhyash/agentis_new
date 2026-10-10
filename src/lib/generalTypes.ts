@@ -5,7 +5,7 @@ import type { CrmResult } from './crm'
 export interface GeneralResult {
   kind: 'general'
   reply: string
-  route: 'none' | Extract<AgentType, 'lead_research' | 'sales_outreach' | 'data_reporting' | 'content_copy'>
+  route: 'none' | Extract<AgentType, 'lead_research' | 'sales_outreach' | 'data_reporting' | 'content_copy' | 'operations'>
   task: string
   // Present when the answer came from the user's CRM.
   crm?: CrmResult | null

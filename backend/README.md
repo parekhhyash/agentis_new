@@ -127,6 +127,31 @@ Both use `https://<backend>/integrations/social/callback`. Set
 `X_CLIENT_SECRET`; app setup steps are in the root README. X posting uses
 the account's pay-per-use API credits.
 
+## How the Operations Agent works
+
+```
+Message ("every weekday at 10, check replies and draft responses")
+  -> Propose    1 call with the user's tasks, time zone and connections:
+                create / update / pause / resume / delete / run_now
+  -> Check      code only: step agents, 1-3 steps, prompt length, schedule
+                (schedule.py: once/daily/weekly/monthly, IANA zone, a run
+                still ahead), task ids, the per-user limit; failures go back
+                to the model once with the reasons
+  -> Confirm    each change is a card; POST /operations/requests/{id}/
+                proposals/{pid} re-checks and saves it
+```
+
+Running (`services/scheduler.py`): pg_cron calls `POST /operations/tick`
+(secret in Supabase Vault, checked by `check_operations_tick_secret`) every
+minute while a task is due or running; while awake the backend also checks
+every `OPERATIONS_SCHEDULER_INTERVAL_SECONDS`. `claim_due_scheduled_tasks`
+locks due tasks so a run happens once. A run moves `next_run_at` on first,
+then runs each step through the chat's own runner as a new turn of the
+task's chat (a General step that hands off runs the specialist too), stops
+at the first failed step, records the run, pauses the task after 3 failed
+runs in a row and, if asked, emails a summary from the user's Gmail.
+Steps only draft: approvals happen in the chat as usual.
+
 ### Connecting Google
 
 `GET /integrations/google/auth-url` returns Google's consent URL; Google
@@ -164,6 +189,7 @@ backend/
 ├── agents/data_reporting/  # tables.py (uploads), activity.py, query.py, verify.py, agent.py
 ├── agents/crm/             # CRM tool loop: reads run, writes drafted for approval
 ├── agents/content_copy/    # formats.py (limits), checks.py, writer + judge in agent.py
+├── agents/operations/      # schedule.py (format, next run), proposal checks in agent.py
 ├── integrations/mcp/       # MCP client (Streamable HTTP, official SDK), tool classification
 ├── integrations/crm/       # HubSpot/Salesforce/Zoho providers, OAuth + PKCE, connections
 ├── integrations/google/    # OAuth, encrypted connections, Gmail + Calendar clients

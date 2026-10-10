@@ -203,6 +203,32 @@ export function runContentAgent(
   )
 }
 
+// Operations: proposes scheduled tasks (or changes to them) for the user to
+// confirm in the chat; the backend runs them on their schedule.
+export function runOperationsAgent(
+  requestId: string,
+  prompt: string,
+  options: { companyContext?: CompanyContext; senderName?: string | null },
+  onUpdate?: (patch: Partial<AgentRequest>) => void,
+): Promise<void> {
+  return runBackendAgent(
+    requestId,
+    (signal) =>
+      authedFetch<unknown>('/operations/run', {
+        method: 'POST',
+        signal,
+        body: JSON.stringify({
+          prompt,
+          request_id: requestId,
+          company_context: options.companyContext,
+          time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          user_name: options.senderName,
+        }),
+      }),
+    onUpdate,
+  )
+}
+
 export interface AgentRunOptions {
   companyContext?: CompanyContext
   senderName?: string | null
@@ -276,7 +302,14 @@ export async function runGeneralAgent(
 }
 
 // Agents with a real backend behind them; the rest stay queued for now.
-export const RUNNABLE_AGENTS: AgentType[] = ['general', 'lead_research', 'sales_outreach', 'data_reporting', 'content_copy']
+export const RUNNABLE_AGENTS: AgentType[] = [
+  'general',
+  'lead_research',
+  'sales_outreach',
+  'data_reporting',
+  'content_copy',
+  'operations',
+]
 
 export function startAgentRun(
   request: AgentRequest,
@@ -294,6 +327,9 @@ export function startAgentRun(
   }
   if (request.agent_type === 'data_reporting') {
     return runDataReportingAgent(request.id, request.prompt, options, onUpdate)
+  }
+  if (request.agent_type === 'operations') {
+    return runOperationsAgent(request.id, request.prompt, options, onUpdate)
   }
   if (request.agent_type === 'general') {
     return runGeneralAgent(request, options, onUpdate)

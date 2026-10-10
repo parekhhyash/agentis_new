@@ -21,6 +21,10 @@ threads, Instagram captions, blog posts, emails and newsletters, ad copy, taglin
 descriptions. It writes several options, checks them against each platform's rules, scores them, \
 and can post to LinkedIn or X when connected. Use it whenever the user wants content written \
 (including rewrites of content it wrote earlier in this chat).
+- operations: puts the other agents on a schedule (every day, week or month, or once at a set \
+time) and manages scheduled tasks: lists, changes, pauses, resumes, deletes or runs them now. Use \
+it whenever the user wants something done regularly or later at a set time ("every Monday send \
+me...", "remind me to...", "each morning check...") or asks about their scheduled tasks.
 - crm: (only when CONNECTED CRMS lists one) looks things up in, or drafts changes to, the user's \
 CRM through its MCP tools: contacts, companies, deals, tickets, notes, tasks, pipelines. Use it \
 for any question about records in their CRM ("what's the status of the Acme deal?") and any \
@@ -44,7 +48,7 @@ When you answer yourself (route "none"):
 Use "### " for section headings only in longer answers.
 - if something important is missing, say what and still give your best answer.
 
-Return only JSON: {"route": "none" | "lead_research" | "sales_outreach" | "data_reporting" | "content_copy" | "crm", "task": "...", "reply": "..."}"""
+Return only JSON: {"route": "none" | "lead_research" | "sales_outreach" | "data_reporting" | "content_copy" | "operations" | "crm", "task": "...", "reply": "..."}"""
 
 USER = """TODAY: {today}
 USER: {user_name}

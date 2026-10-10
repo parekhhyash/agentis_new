@@ -42,6 +42,7 @@ The system is built as a **React + TypeScript** frontend (Vite) paired with a **
 - **Data & Reporting Agent** — Answers questions about numbers with headline figures, charts and tables, from the user's Agentis activity (leads, emails, replies, meetings) and CSV/Excel files they upload. The model plans queries; the backend runs every calculation, and the written summary may only quote numbers that the queries produced
 - **Content & Copy Agent** — Writes LinkedIn posts, X posts and threads, Instagram captions, blog posts, emails and ad copy, several options per piece. The backend checks every option against the platform's real limits (X counts links as 23 and emoji as 2), flags clichés and figures that aren't in the request, fixes rule-breaking drafts once, then scores and recommends one
 - **LinkedIn and X posting** — Connect a LinkedIn profile or X account and post a chosen option (edited or not) straight from the chat, after a confirm step; X threads go out as a reply chain
+- **Operations Agent (scheduled tasks)** — Put any agent on a schedule in plain words (*"every Monday at 9, report last week's emails and replies and email it to me"*). Each task is 1 to 3 steps run in order into its own chat, daily, weekly, monthly or once, in the user's time zone. Every change is a card the user confirms; runs only draft, so emails, CRM changes and posts still wait for approval. A Scheduled page lists tasks with Run now, Pause, Resume and Delete, and an optional summary email arrives from the user's own Gmail
 - **Conversational Dashboard** — Chat-style UI where each agent request appears as a conversation with real-time progress updates
 - **Google Integration** — Secure OAuth 2.0 flow to connect Gmail (send, read, reply) and Google Calendar (create events with Meet links)
 - **Human-in-the-Loop** — All outreach drafts require explicit user approval before sending; users can edit, approve, discard, or save each action
@@ -184,6 +185,8 @@ agentis_new/
 │   │       ├── ConnectionsPanel.tsx      # Connect page (Google, CRMs, LinkedIn, X)
 │   │       ├── ContentResultPanel.tsx    # Content options, checks, edit + post
 │   │       ├── SocialConnectControls.tsx # LinkedIn / X connect cards
+│   │       ├── OperationsResultPanel.tsx # Proposed scheduled tasks to confirm
+│   │       ├── ScheduledPanel.tsx        # Scheduled page (run now, pause, delete)
 │   │       └── ProfileMenu.tsx           # User profile dropdown
 │   └── lib/
 │       ├── supabase.ts           # Supabase client initialization
@@ -197,6 +200,7 @@ agentis_new/
 │       ├── backendApi.ts         # Authenticated fetch wrapper
 │       ├── googleConnection.ts   # Google connection hook
 │       ├── content.ts            # Content results, X counting, LinkedIn/X hook
+│       ├── operations.ts         # Scheduled tasks: types, API, hook
 │       ├── leadExport.ts         # CSV export utility
 │       ├── database.types.ts     # Auto-generated Supabase types
 │       ├── useProfile.ts         # Profile data hook
@@ -214,6 +218,7 @@ agentis_new/
 │   │   ├── integrations.py       # /integrations/google/* endpoints
 │   │   ├── content.py            # /content/* endpoints (run, publish)
 │   │   ├── social.py             # /integrations/social/* (LinkedIn, X)
+│   │   ├── operations.py         # /operations/* (agent, tasks, tick)
 │   │   └── models.py             # Pydantic request/response models
 │   ├── agents/
 │   │   ├── lead_research/
@@ -238,6 +243,7 @@ agentis_new/
 │   │       ├── prompts.py        # Planner and reply prompts
 │   │       └── schemas.py        # Action models (email, reply, meeting)
 │   ├── agents/content_copy/      # Content & Copy: formats, checks, writer + judge
+│   ├── agents/operations/        # Operations: schedule format, proposal checks
 │   ├── integrations/social/      # LinkedIn / X OAuth, encrypted tokens, posting
 │   ├── integrations/google/
 │   │   ├── oauth.py              # OAuth 2.0 flow + token management
@@ -249,6 +255,8 @@ agentis_new/
 │   │   ├── agent_runner.py       # Lead research run lifecycle
 │   │   ├── outreach_runner.py    # Outreach run lifecycle + action decisions
 │   │   ├── content_runner.py     # Content run + posting a chosen option
+│   │   ├── operations_runner.py  # Operations turns, confirmations, task changes
+│   │   ├── scheduler.py          # Claims due tasks, runs steps, summary email
 │   │   ├── auth.py               # Supabase session verification
 │   │   ├── progress_reporter.py  # Live progress to Supabase
 │   │   ├── request_store.py      # Final status persistence
@@ -266,7 +274,8 @@ agentis_new/
 └── supabase/
     └── migrations/
         ├── 20261007000000_google_connections.sql  # Google connections table
-        └── 20261011000000_social_connections.sql  # LinkedIn / X connections
+        ├── 20261011000000_social_connections.sql  # LinkedIn / X connections
+        └── 20261012000000_operations_scheduler.sql # Scheduled tasks + pg_cron
 ```
 
 ---
@@ -452,18 +461,54 @@ Request + company context + earlier turns of the chat
 
 **Posting** — LinkedIn and X options have a "Post to …" button once the network is connected. Posting re-runs the limit checks on the (possibly edited) text, asks for confirmation, then posts as the user: LinkedIn through the Posts API (`w_member_social`), X through `POST /2/tweets` (threads as replies to the previous post). Each option can be posted once per network; the post link is saved on the chat turn. If an X thread fails partway, the posts that went out are recorded.
 
+### Operations Agent (scheduled tasks)
+
+```
+"Every Monday at 9, report last week's emails and replies and email it to me"
+  │
+  ▼
+┌──────────────────────────────────────────────────────────────────┐
+│ 1. Propose             1 call with the user's tasks, time zone   │
+│                        and connections: create / update /       │
+│                        pause / resume / delete / run_now actions │
+├──────────────────────────────────────────────────────────────────┤
+│ 2. Check (code)        Agents, 1-3 steps, prompt length, the     │
+│                        schedule (once/daily/weekly/monthly, a    │
+│                        real time zone, a run still ahead), task  │
+│                        ids and the 10-task limit; failures go    │
+│                        back to the model once with the reasons   │
+├──────────────────────────────────────────────────────────────────┤
+│ 3. Confirm             Each change is a card with the next run   │
+│                        times; nothing is saved until the user    │
+│                        confirms (re-checked on the server)       │
+└──────────────────────────────────────────────────────────────────┘
+  │
+  ▼  at each run time
+┌──────────────────────────────────────────────────────────────────┐
+│ pg_cron (every minute) calls POST /operations/tick when a task is │
+│ due, which also wakes the Render instance. The backend claims due │
+│ tasks with a database lock, moves next_run_at on, then runs each  │
+│ step through the same runner the chat uses, as new turns of the   │
+│ task's own chat. A failed step stops the run; 3 failed runs in a  │
+│ row pause the task. Optional summary email from the user's Gmail. │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+Steps use the existing agents (Data & Reporting, Sales & Outreach, Lead Research, Content & Copy, General with CRM), so a scheduled run can only do what those agents do in the chat: read, research, write and **draft**. Sending, posting and CRM changes still need the user's click. Schedule times are wall-clock times in the task's time zone, so "Monday at 9" stays at 9 across daylight-saving changes; a run missed while the service was down happens once when it's back.
+
 ---
 
 ## Core Workflow
 
 1. **Sign Up / Sign In** — Create an account with email + password (Supabase Auth)
 2. **Company Setup** — Enter company name, website, industry, description, and target audience location during onboarding
-3. **Pick an Agent** — Ask General (the default), or pick Lead Research, Sales & Outreach, Data & Reporting or Content & Copy in the task composer; attach a CSV or Excel file with the paperclip to ask about your own numbers
+3. **Pick an Agent** — Ask General (the default), or pick Lead Research, Sales & Outreach, Data & Reporting, Content & Copy or Operations in the task composer; attach a CSV or Excel file with the paperclip to ask about your own numbers
 4. **Describe the Task** — Enter a natural-language request (e.g., *"Find 10 fintech startups in Southeast Asia"*)
 5. **Watch Progress** — The agent runs and pushes live step-by-step progress visible in the chat view
 6. **Review Results** — Lead Research shows a table of qualified companies with contacts and evidence; Sales & Outreach shows editable email/meeting draft cards; Data & Reporting shows a summary with number tiles, charts and tables (each with its calculation, a table view and CSV download); Content & Copy shows each piece with scored options, character counters and the checks it failed
 7. **Take Action** — Export leads as CSV, approve/edit/discard outreach drafts, or copy, edit and post content to LinkedIn or X
 8. **Iterate** — Start new chats, link lead research results to outreach runs, review history in the sidebar
+9. **Automate** — Ask Operations to repeat any of it on a schedule; manage tasks on the Scheduled page
 
 ---
 
@@ -581,6 +626,17 @@ LinkedIn access tokens last 60 days and this app type gets no refresh token, so 
 3. Set `X_CLIENT_ID` and `X_CLIENT_SECRET` (OAuth 2.0 client ID and secret, not the API key) on the backend.
 4. Buy API credits in the developer console. X API is pay-per-use: each post costs credits (more for posts that contain a link), and posting fails with a clear message when credits run out.
 
+### 8. Scheduled Tasks Setup (Operations)
+
+Run `supabase/migrations/20261012000000_operations_scheduler.sql`. It creates the task tables, the claim functions, and a `pg_cron` job (`operations-wake`, every minute) that calls the backend through `pg_net` whenever a task is due or running. The job reads two **Vault** secrets; create them once in the SQL editor:
+
+```sql
+select vault.create_secret(replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', ''), 'operations_tick_secret');
+select vault.create_secret('https://<your-backend>/operations/tick', 'operations_tick_url');
+```
+
+The secret never leaves the database: pg_cron sends it as `X-Operations-Secret`, and the backend checks it with `check_operations_tick_secret()`. Nothing to set on the backend. Locally (no pg_cron), the backend also checks for due tasks every minute while it runs (`OPERATIONS_SCHEDULER_INTERVAL_SECONDS`). Summary emails need Google connected (they use the `gmail.send` scope).
+
 ---
 
 ## Environment Variables
@@ -619,6 +675,8 @@ LinkedIn access tokens last 60 days and this app type gets no refresh token, so 
 | `LINKEDIN_API_VERSION` | ❌ | `LinkedIn-Version` header, `YYYYMM` (default: `202609`) |
 | `X_CLIENT_ID` / `X_CLIENT_SECRET` | For X posting | X app OAuth 2.0 client credentials |
 | `SOCIAL_OAUTH_REDIRECT_URI` | ❌ | LinkedIn/X callback (default: derived from `GOOGLE_OAUTH_REDIRECT_URI`) |
+| `OPERATIONS_SCHEDULER_INTERVAL_SECONDS` | ❌ | While awake, check for due scheduled tasks this often (default: `60`, `0` = off) |
+| `OPERATIONS_MAX_TASKS` | ❌ | Scheduled tasks per user (default: `10`) |
 
 ---
 
@@ -714,6 +772,18 @@ The frontend runs at `http://localhost:5173` and the backend at `http://localhos
 | `GET` | `/integrations/social/callback` | ❌ | OAuth callback (internal) |
 | `DELETE` | `/integrations/social/{provider}` | ✅ Bearer | Disconnect |
 
+### Operations (scheduled tasks)
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| `POST` | `/operations/run` | ✅ Bearer | Propose scheduled tasks or changes for a message (`time_zone` from the browser) |
+| `POST` | `/operations/requests/{id}/proposals/{proposal_id}` | ✅ Bearer | Confirm or discard a proposed change (`notify_email` optional) |
+| `GET` | `/operations/tasks` | ✅ Bearer | The user's tasks with their last 5 runs |
+| `PATCH` | `/operations/tasks/{id}` | ✅ Bearer | Pause/resume (`status`) or turn the summary email on/off |
+| `POST` | `/operations/tasks/{id}/run` | ✅ Bearer | Run a task now (409 if it's already running) |
+| `DELETE` | `/operations/tasks/{id}` | ✅ Bearer | Delete a task (its chat stays) |
+| `POST` | `/operations/tick` | `X-Operations-Secret` | Called by pg_cron: start due runs |
+
 ### Google Integration
 
 | Method | Endpoint | Auth | Description |
@@ -749,6 +819,7 @@ The frontend runs at `http://localhost:5173` and the backend at `http://localhos
 | `agent_type` | `enum` | `general`, `lead_research`, `sales_outreach`, `data_reporting`, etc. |
 | `conversation_id` | `uuid` (FK) | The chat this turn belongs to |
 | `attachments` | `jsonb` | Files attached to the message: `[{type: "dataset", id, name}]` |
+| `scheduled_task_id` | `uuid` (FK) | Set on turns a scheduled task's run created |
 | `prompt` | `text` | User's natural-language request |
 | `status` | `enum` | `queued` → `in_progress` → `completed` / `failed` |
 | `result` | `jsonb` | Agent output (leads or outreach drafts) |
@@ -795,6 +866,34 @@ The frontend runs at `http://localhost:5173` and the backend at `http://localhos
 | `created_at` | `timestamptz` | Upload time |
 
 > Users can read and delete their own datasets (RLS); uploads are parsed and inserted by the backend.
+
+### `scheduled_tasks`
+
+| Column | Type | Description |
+|---|---|---|
+| `id` / `user_id` | `uuid` | Task and owner |
+| `name` | `text` | Short name shown in the UI |
+| `steps` | `jsonb` | `[{agent, prompt}]`, 1 to 3, run in order |
+| `schedule` | `jsonb` | `{kind: once/daily/weekly/monthly, time, days, day_of_month, date, timezone}` |
+| `notify_email` | `boolean` | Email a summary after each run |
+| `status` / `status_reason` | `text` | `active`, `paused` (with the reason if it paused itself) or `finished` |
+| `next_run_at` / `last_run_at` | `timestamptz` | Next and last run |
+| `last_status` / `last_error` / `failure_count` / `run_count` | | Outcome of recent runs |
+| `conversation_id` | `uuid` (FK) | The chat each run writes into |
+| `locked_until` | `timestamptz` | Held while a run is in progress |
+
+### `scheduled_task_runs`
+
+| Column | Type | Description |
+|---|---|---|
+| `task_id` / `user_id` | `uuid` | The task and owner |
+| `trigger` | `text` | `schedule` or `manual` |
+| `status` | `text` | `running`, `completed`, `partial` or `failed` |
+| `started_at` / `finished_at` | `timestamptz` | When it ran |
+| `request_ids` | `uuid[]` | The chat turns it created, in order |
+| `error` / `emailed` | | What failed, and whether the summary email went out |
+
+> Users can read their own tasks and runs (RLS); only the backend writes them. `claim_due_scheduled_tasks`, `claim_scheduled_task` and `check_operations_tick_secret` are executable by the service role only.
 
 ### `social_connections`
 
@@ -853,6 +952,7 @@ Test coverage includes:
 - CRM over MCP: tool classification, PKCE and encrypted state, Zoho URL checks, the agent loop and approvals against a real local MCP server, token refresh (`test_crm.py`)
 - Data & Reporting: file parsing, query checks and execution, summary number checks, live reply status (`test_data_reporting.py`)
 - Content & Copy: X character counting, limit and claim checks, repair and scoring, LinkedIn text escaping, X threads (including a partial failure), posting rules, token refresh (`test_content.py`)
+- Operations: schedule parsing, next run times (time zones, daylight saving, short months), proposal checks and repair, running due tasks step by step, failures and auto-pause, confirming proposals, the tick secret (`test_operations.py`)
 - LLM client behavior (`test_llm.py`)
 - Exa search provider (`test_exa.py`)
 - Contact research (`test_contacts.py`)
@@ -874,7 +974,7 @@ The codebase defines several agent types that are registered in the UI but do no
 | **Data & Reporting** | ✅ Implemented | Reports with charts from Agentis activity and uploaded files |
 | **Content & Copy** | ✅ Implemented | Social posts, threads, blog posts, emails and ad copy; posts to LinkedIn and X |
 | **Customer Support** | 🔜 Planned | Ticket resolution and routing |
-| **Operations** | 🔜 Planned | Back-office automation |
+| **Operations** | ✅ Implemented | Runs the other agents on a schedule (reports, follow-ups, research, posts) |
 
 ---
 
